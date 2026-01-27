@@ -3,6 +3,11 @@
 import { useState } from 'react'
 import { login } from '@/app/actions/auth'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -21,73 +26,93 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Bienvenido</h1>
-            <p className="text-gray-300">Inicia sesión en tu cuenta</p>
-          </div>
+        <div className="mb-6">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            Volver al inicio
+          </Link>
+        </div>
 
-          <form action={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="tu@email.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-2">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm">
-                {error}
+        <Card className="border-2">
+          <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-2xl">M</span>
               </div>
-            )}
+            </div>
+            <CardTitle className="text-2xl font-bold">
+              Bienvenido a <span className="text-primary">MVPMarket</span>
+            </CardTitle>
+            <CardDescription>
+              Inicia sesión para acceder a tu cuenta
+            </CardDescription>
+          </CardHeader>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-            </button>
-          </form>
+          <CardContent>
+            <form action={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  required
+                  disabled={loading}
+                />
+              </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-300 text-sm">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              </Button>
+            </form>
+          </CardContent>
+
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="text-sm text-center text-muted-foreground">
               ¿No tienes cuenta?{' '}
-              <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium">
-                Regístrate aquí
+              <Link href="/register" className="text-primary font-medium hover:underline">
+                Regístrate gratis
               </Link>
-            </p>
-          </div>
-        </div>
+            </div>
+          </CardFooter>
+        </Card>
 
-        <div className="mt-8 text-center">
-          <p className="text-gray-400 text-xs">
-            Marketplace MVP - Sistema de autenticación seguro
-          </p>
-        </div>
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Al iniciar sesión, aceptas nuestros{' '}
+          <Link href="/terms" className="underline hover:text-foreground">
+            Términos de Servicio
+          </Link>{' '}
+          y{' '}
+          <Link href="/privacy" className="underline hover:text-foreground">
+            Política de Privacidad
+          </Link>
+        </p>
       </div>
     </div>
   )

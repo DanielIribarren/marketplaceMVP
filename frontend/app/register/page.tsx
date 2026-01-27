@@ -3,6 +3,11 @@
 import { useState } from 'react'
 import { signup } from '@/app/actions/auth'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowLeft, CheckCircle2 } from 'lucide-react'
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
@@ -36,103 +41,135 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Crear Cuenta</h1>
-            <p className="text-gray-300">Regístrate para comenzar</p>
-          </div>
+        <div className="mb-6">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            Volver al inicio
+          </Link>
+        </div>
 
-          <form action={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="display_name" className="block text-sm font-medium text-gray-200 mb-2">
-                Nombre completo
-              </label>
-              <input
-                id="display_name"
-                name="display_name"
-                type="text"
-                required
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="Juan Pérez"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="tu@email.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-2">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={8}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-200 mb-2">
-                Confirmar contraseña
-              </label>
-              <input
-                id="confirm_password"
-                name="confirm_password"
-                type="password"
-                required
-                minLength={8}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm">
-                {error}
+        <Card className="border-2">
+          <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-2xl">M</span>
               </div>
-            )}
+            </div>
+            <CardTitle className="text-2xl font-bold">
+              Únete a <span className="text-primary">MVPMarket</span>
+            </CardTitle>
+            <CardDescription>
+              Crea tu cuenta y comienza a comprar o vender MVPs
+            </CardDescription>
+          </CardHeader>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
-            </button>
-          </form>
+          <CardContent>
+            <form action={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="display_name">Nombre completo</Label>
+                <Input
+                  id="display_name"
+                  name="display_name"
+                  type="text"
+                  placeholder="Juan Pérez"
+                  required
+                  disabled={loading}
+                />
+              </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-300 text-sm">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  minLength={8}
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Mínimo 8 caracteres
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm_password">Confirmar contraseña</Label>
+                <Input
+                  id="confirm_password"
+                  name="confirm_password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  minLength={8}
+                  disabled={loading}
+                />
+              </div>
+
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="bg-secondary/50 border border-border rounded-lg p-4 space-y-2">
+                <p className="text-sm font-medium">Al registrarte obtienes:</p>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    Acceso al marketplace completo
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    Publicación ilimitada de proyectos
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    Mensajería segura con compradores
+                  </li>
+                </ul>
+              </div>
+
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? 'Creando cuenta...' : 'Crear Cuenta Gratis'}
+              </Button>
+            </form>
+          </CardContent>
+
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="text-sm text-center text-muted-foreground">
               ¿Ya tienes cuenta?{' '}
-              <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
-                Inicia sesión aquí
+              <Link href="/login" className="text-primary font-medium hover:underline">
+                Inicia sesión
               </Link>
-            </p>
-          </div>
-        </div>
+            </div>
+          </CardFooter>
+        </Card>
 
-        <div className="mt-8 text-center">
-          <p className="text-gray-400 text-xs">
-            Marketplace MVP - Sistema de autenticación seguro
-          </p>
-        </div>
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Al registrarte, aceptas nuestros{' '}
+          <Link href="/terms" className="underline hover:text-foreground">
+            Términos de Servicio
+          </Link>{' '}
+          y{' '}
+          <Link href="/privacy" className="underline hover:text-foreground">
+            Política de Privacidad
+          </Link>
+        </p>
       </div>
     </div>
   )
