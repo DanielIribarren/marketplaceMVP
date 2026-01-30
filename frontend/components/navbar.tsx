@@ -54,8 +54,8 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                     <User className="h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/dashboard">
-                  <Button>Dashboard</Button>
+                <Link href="/marketplace">
+                  <Button>Marketplace</Button>
                 </Link>
               </>
             ) : (

@@ -19,7 +19,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  redirect('/marketplace')
 }
 
 export async function signup(formData: FormData) {
@@ -42,7 +42,7 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  redirect('/marketplace')
 }
 
 export async function logout() {
@@ -69,7 +69,7 @@ export async function getUserRole() {
   if (!user) return null
 
   const { data: profile } = await supabase
-    .from('users')
+    .from('user_profiles')
     .select('role')
     .eq('id', user.id)
     .single()

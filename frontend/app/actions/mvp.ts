@@ -1,0 +1,222 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import type { MVPPublication } from '@/lib/types/mvp-publication'
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+
+/**
+ * Obtiene el token de autenticación del usuario actual
+ */
+async function getAuthToken(): Promise<string | null> {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token || null
+}
+
+/**
+ * Guarda un borrador de MVP (auto-guardado cada 10s)
+ */
+export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string }) {
+  try {
+    const token = await getAuthToken()
+    
+    if (!token) {
+      return { 
+        success: false, 
+        error: 'No autenticado',
+        message: 'Debes iniciar sesión para guardar borradores' 
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/draft`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        id: mvpData.id,
+        title: mvpData.name,
+        one_liner: mvpData.oneLiner,
+        description: mvpData.description,
+        demo_url: mvpData.demoUrl,
+        images_urls: mvpData.screenshots,
+        monetization_model: mvpData.monetizationModel,
+        minimal_evidence: mvpData.minimalEvidence,
+        competitive_differentials: mvpData.competitiveDifferentials,
+        deal_modality: mvpData.dealModality,
+        price_range: mvpData.priceRange,
+        transfer_checklist: mvpData.transferChecklist,
+        video_url: mvpData.videoUrl,
+        testimonials: mvpData.testimonials,
+        roadmap_60_days: mvpData.roadmap60Days,
+        risks_and_mitigations: mvpData.risksAndMitigations
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Error al guardar',
+        message: data.message || 'No se pudo guardar el borrador'
+      }
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      validation: data.validation,
+      message: data.message
+    }
+
+  } catch (error) {
+    console.error('Error al guardar borrador:', error)
+    return {
+      success: false,
+      error: 'Error de conexión',
+      message: 'No se pudo conectar con el servidor'
+    }
+  }
+}
+
+/**
+ * Publica un MVP (requiere 5 señales de calidad)
+ */
+export async function publishMVP(mvpId: string) {
+  try {
+    const token = await getAuthToken()
+    
+    if (!token) {
+      return { 
+        success: false, 
+        error: 'No autenticado',
+        message: 'Debes iniciar sesión para publicar' 
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/${mvpId}/publish`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Error al publicar',
+        message: data.message || 'No se pudo publicar el MVP',
+        blockers: data.blockers,
+        signals: data.signals
+      }
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+      signals: data.signals
+    }
+
+  } catch (error) {
+    console.error('Error al publicar MVP:', error)
+    return {
+      success: false,
+      error: 'Error de conexión',
+      message: 'No se pudo conectar con el servidor'
+    }
+  }
+}
+
+/**
+ * Obtiene un MVP por ID
+ */
+export async function getMVP(mvpId: string) {
+  try {
+    const token = await getAuthToken()
+    
+    if (!token) {
+      return { 
+        success: false, 
+        error: 'No autenticado' 
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/${mvpId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Error al obtener MVP'
+      }
+    }
+
+    return {
+      success: true,
+      data: data.data
+    }
+
+  } catch (error) {
+    console.error('Error al obtener MVP:', error)
+    return {
+      success: false,
+      error: 'Error de conexión'
+    }
+  }
+}
+
+/**
+ * Obtiene los borradores del usuario
+ */
+export async function getMyDrafts() {
+  try {
+    const token = await getAuthToken()
+    
+    if (!token) {
+      return { 
+        success: false, 
+        error: 'No autenticado' 
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/my-drafts`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Error al obtener borradores'
+      }
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      count: data.count
+    }
+
+  } catch (error) {
+    console.error('Error al obtener borradores:', error)
+    return {
+      success: false,
+      error: 'Error de conexión'
+    }
+  }
+}
+
