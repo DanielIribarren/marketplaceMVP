@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import { verifyAuth } from './middleware/auth.js'
 import { saveDraft } from './api/mvps/draft.js'
 import { publishMVP, getMVP, getMyDrafts } from './api/mvps/publish.js'
+import availabilityRoutes from './api/availability.routes.js'
 
 dotenv.config()
 
@@ -16,6 +17,8 @@ app.use(cors({
   credentials: true
 }))
 app.use(express.json())
+
+app.use('/api', availabilityRoutes)
 
 // Health check
 app.get('/health', (req, res) => {

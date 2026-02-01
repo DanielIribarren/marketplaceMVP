@@ -1,4 +1,20 @@
 import { supabase } from '../../utils/supabase-client.js'
+import { randomUUID } from 'crypto'
+
+function slugify(value) {
+  return (value || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+}
+
+function buildSlug(title) {
+  const base = slugify(title) || 'mvp'
+  const suffix = randomUUID().split('-')[0]
+  return `${base}-${suffix}`
+}
+
 
 /**
  * POST /api/mvps/draft
@@ -14,6 +30,7 @@ export async function saveDraft(req, res) {
       owner_id: userId,
       title: mvpData.title || null,
       one_liner: mvpData.one_liner || null,
+      slug: mvpData.slug || buildSlug(mvpData.title),
       description: mvpData.description || null,
       demo_url: mvpData.demo_url || null,
       images_urls: mvpData.images_urls || [],
@@ -38,6 +55,9 @@ export async function saveDraft(req, res) {
 
     let result
 
+    if (!mvpData.id) {
+      draftData.slug = mvpData.slug || buildSlug(mvpData.title)
+    }
     // Si tiene ID, actualizar; si no, crear nuevo
     if (mvpData.id) {
       // Verificar que el usuario sea el owner
