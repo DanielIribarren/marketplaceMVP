@@ -16,6 +16,7 @@ import { es } from 'date-fns/locale'
 interface AvailabilityCalendarProps {
   mvpId: string
   timezone?: string
+  onHasAvailabilityChange?: (hasAvailability: boolean) => void
 }
 
 interface TimeSlot {
@@ -66,7 +67,7 @@ const TIMEZONES = [
   { value: 'UTC', label: 'UTC' },
 ]
 
-export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'America/Caracas' }: AvailabilityCalendarProps) {
+export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'America/Caracas', onHasAvailabilityChange }: AvailabilityCalendarProps) {
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([])
   const [timezone, setTimezone] = useState(initialTimezone)
@@ -75,13 +76,18 @@ export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'Ameri
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
+  const updateExistingSlots = (slots: ExistingSlot[]) => {
+    setExistingSlots(slots)
+    onHasAvailabilityChange?.(slots.length > 0)
+  }
+
   // Load existing availability
   useEffect(() => {
     const loadExistingAvailability = async () => {
       setLoading(true)
       const result = await getMyAvailability({ mvpId })
       if (result.success) {
-        setExistingSlots(result.data || [])
+        updateExistingSlots(result.data || [])
       }
       setLoading(false)
     }
@@ -93,7 +99,7 @@ export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'Ameri
     setLoading(true)
     const result = await getMyAvailability({ mvpId })
     if (result.success) {
-      setExistingSlots(result.data || [])
+      updateExistingSlots(result.data || [])
     }
     setLoading(false)
   }
@@ -181,6 +187,11 @@ export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'Ameri
     const ampm = hour >= 12 ? 'PM' : 'AM'
     const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
     return `${displayHour}:${minutes} ${ampm}`
+  }
+
+  const parseLocalDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-').map(Number)
+    return new Date(year, month - 1, day)
   }
 
   return (
@@ -341,7 +352,7 @@ export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'Ameri
                 .map(([date, slots]) => (
                   <div key={date} className="border rounded-lg p-4">
                     <h4 className="font-medium mb-3">
-                      {format(new Date(date), 'EEEE, d MMMM yyyy', { locale: es })}
+                      {format(parseLocalDate(date), 'EEEE, d MMMM yyyy', { locale: es })}
                     </h4>
                     <div className="grid gap-2">
                       {slots.map((slot) => (

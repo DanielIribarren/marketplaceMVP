@@ -29,6 +29,7 @@ export default function PublishPage() {
   const [isPublishing, setIsPublishing] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [hasAvailability, setHasAvailability] = useState(false)
 
   // Auto-save every 10 seconds
   useEffect(() => {
@@ -111,6 +112,10 @@ export default function PublishPage() {
         setSaveError('Por favor completa los campos básicos antes de continuar')
       }
     } else if (currentStep === 'availability') {
+      if (!hasAvailability) {
+        setSaveError('Debes guardar al menos un horario para continuar')
+        return
+      }
       setCurrentStep('review')
     }
   }
@@ -233,17 +238,17 @@ export default function PublishPage() {
                 </p>
               </div>
               <Badge variant="secondary" className="mb-4">
-                Opcional pero recomendado
+                Requerido para continuar
               </Badge>
             </Card>
 
-            <AvailabilityCalendar mvpId={mvpData.id} />
+            <AvailabilityCalendar mvpId={mvpData.id} onHasAvailabilityChange={setHasAvailability} />
 
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setCurrentStep('basics')}>
                 Volver
               </Button>
-              <Button onClick={goToNextStep}>
+              <Button onClick={goToNextStep} disabled={!hasAvailability}>
                 Continuar a Revisión
               </Button>
             </div>
