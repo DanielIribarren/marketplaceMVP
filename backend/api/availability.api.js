@@ -53,7 +53,7 @@ export async function createAvailability(req, res) {
     const { data: createdSlots, error: insertError } = await supabase
       .from('availability_slots')
       .upsert(slotsToInsert, {
-        onConflict: 'owner_id,date,start_time',
+        onConflict: 'mvp_id,date,start_time',
         ignoreDuplicates: false
       })
       .select()
@@ -397,7 +397,7 @@ export async function createBulkAvailability(req, res) {
     const { data: createdSlots, error: insertError } = await supabase
       .from('availability_slots')
       .upsert(slotsToInsert, {
-        onConflict: 'owner_id,date,start_time',
+        onConflict: 'mvp_id,date,start_time',
         ignoreDuplicates: true
       })
       .select()
