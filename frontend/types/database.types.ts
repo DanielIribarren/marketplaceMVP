@@ -51,7 +51,7 @@ export interface MVP {
   cover_image_url: string | null
   images_urls: string[] | null
   video_url: string | null
-  metrics: Record<string, any> | null
+  metrics: Record<string, unknown> | null
   views_count: number
   favorites_count: number
   published_at: string | null
@@ -119,7 +119,7 @@ export interface Notification {
   type: string
   title: string
   message: string
-  data: Record<string, any> | null
+  data: Record<string, unknown> | null
   read: boolean
   read_at: string | null
   created_at: string
