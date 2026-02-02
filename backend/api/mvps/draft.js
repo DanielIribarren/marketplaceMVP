@@ -56,7 +56,7 @@ export async function saveDraft(req, res) {
     let result
 
     if (!mvpData.id) {
-      draftData.slug = mvpData.slug || buildSlug(mvpData.title)
+      draftData.slug = buildSlug(mvpData.title)
     }
     // Si tiene ID, actualizar; si no, crear nuevo
     if (mvpData.id) {

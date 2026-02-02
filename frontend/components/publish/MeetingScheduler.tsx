@@ -126,6 +126,11 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
     return `${displayHour}:${minutes} ${ampm}`
   }
 
+  const parseLocalDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
   if (loading) {
     return (
       <Card>
@@ -179,7 +184,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                 .map(([date, slots]) => (
                   <div key={date} className="space-y-2">
                     <h4 className="text-sm font-semibold text-muted-foreground">
-                      {format(new Date(date), 'EEEE, d MMMM yyyy', { locale: es })}
+                      {format(parseLocalDate(date), 'EEEE, d MMMM yyyy', { locale: es })}
                     </h4>
                     <div className="grid gap-2">
                       {slots.map((slot) => {
@@ -265,7 +270,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      {format(new Date(selectedSlot.date), 'EEEE, d MMMM yyyy', { locale: es })}
+                      {format(parseLocalDate(selectedSlot.date), 'EEEE, d MMMM yyyy', { locale: es })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
