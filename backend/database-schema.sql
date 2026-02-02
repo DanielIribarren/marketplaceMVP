@@ -407,6 +407,30 @@ CREATE POLICY "Users can view their own notifications" ON notifications
 
 CREATE POLICY "Users can update their own notifications" ON notifications
     FOR UPDATE USING (auth.uid() = user_id);
+    
+-- =====================================================
+-- TABLA: mvp_views
+-- Visualizaciones únicas por usuario (1 view por usuario por MVP)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS mvp_views (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    mvp_id UUID NOT NULL REFERENCES mvps(id) ON DELETE CASCADE,
+    viewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    first_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    UNIQUE (mvp_id, viewer_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mvp_views_mvp_id ON mvp_views(mvp_id);
+CREATE INDEX IF NOT EXISTS idx_mvp_views_viewer_id ON mvp_views(viewer_id);
+
+ALTER TABLE mvp_views ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can insert their own mvp view" ON mvp_views
+    FOR INSERT WITH CHECK (auth.uid() = viewer_id);
+
+CREATE POLICY "MVP views are readable for counting" ON mvp_views
+    FOR SELECT USING (true);
 
 -- =====================================================
 -- DATOS INICIALES (SEEDS)
