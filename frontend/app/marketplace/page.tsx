@@ -77,9 +77,11 @@ export default async function MarketplacePage() {
                       </div>
                     </div>
 
-                    <Button className="w-full" variant="outline">
-                      Ver detalles
-                    </Button>
+                    <Link href={`/marketplace/${mvp.id}`}>
+                      <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                        Ver detalles
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               )
