@@ -227,3 +227,11 @@ export function createEmptyDraft(userId: string): MVPDraft {
     }
   }
 }
+
+export interface QualitySignals {
+  hasValidOneLiner: boolean
+  hasConcreteUseCase: boolean
+  hasDemoOrScreenshot: boolean
+  hasMinimalEvidence: boolean
+  hasDealModality: boolean
+}

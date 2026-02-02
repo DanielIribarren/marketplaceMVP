@@ -8,10 +8,11 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BasicFields } from '@/components/publish/BasicFields'
 import { AvailabilityCalendar } from '@/components/publish/AvailabilityCalendar'
-import { saveDraft, publishMVP } from '@/app/actions/mvp'
+import { saveDraft, publishMVP, calculateQualitySignals } from '@/app/actions/mvp'
 import { createEmptyDraft } from '@/lib/types/mvp-publication'
-import type { MVPPublication } from '@/lib/types/mvp-publication'
+import type { MVPPublication, QualitySignals } from '@/lib/types/mvp-publication'
 import { Loader2, Save, Send, CheckCircle2, Calendar } from 'lucide-react'
+import { QualitySignalsIndicator } from '@/components/publish/QualitySignals'
 
 type Step = 'basics' | 'availability' | 'review'
 
@@ -29,6 +30,13 @@ export default function PublishPage() {
   const [isPublishing, setIsPublishing] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [signals, setSignals] = useState<QualitySignals>({
+    hasValidOneLiner: false,
+    hasConcreteUseCase: false,
+    hasDemoOrScreenshot: false,
+    hasMinimalEvidence: false,
+    hasDealModality: false
+  })
 
   // Auto-save every 10 seconds
   useEffect(() => {
@@ -41,6 +49,23 @@ export default function PublishPage() {
     return () => clearInterval(interval)
   }, [mvpData])
 
+  useEffect(() => {
+    const calculateSignals = async () => {
+      try {
+        const result = await calculateQualitySignals(mvpData)
+
+        console.log('Señales calculadas:', result) // 🔹 para depurar
+
+        if (result.success && result.signals) {
+          setSignals(result.signals)
+        }
+      } catch (error) {
+        console.error('Error al calcular señales de calidad:', error)
+      }
+  }
+
+  calculateSignals()
+}, [mvpData])
   const handleSaveDraft = async (silent = false) => {
     if (!silent) setIsSaving(true)
     setSaveError(null)
@@ -211,16 +236,36 @@ export default function PublishPage() {
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentStep === 'basics' && (
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-6">Información del MVP</h2>
-            <BasicFields data={mvpData} onChange={setMvpData} />
-            
-            <div className="mt-6 flex justify-end">
-              <Button onClick={goToNextStep} disabled={!canProceedToAvailability()}>
-                Continuar a Disponibilidad
-              </Button>
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Formulario */}
+            <div className="lg:col-span-2">
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-6">Información del MVP</h2>
+                <BasicFields data={mvpData} onChange={setMvpData} />
+                <div className="mt-6 flex justify-end">
+                  <Button onClick={goToNextStep} disabled={!canProceedToAvailability()}>
+                    Continuar a Disponibilidad
+                  </Button>
+                </div>
+              </Card>
             </div>
-          </Card>
+
+            {/* Sidebar de señales */}
+            <div className="lg:col-span-1 sticky top-24">
+              <QualitySignalsIndicator signals={signals} />
+
+              {!Object.values(signals).every(Boolean) && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                  <p className="text-sm text-yellow-800 font-medium mb-2">
+                    Completa los campos requeridos
+                  </p>
+                  <p className="text-xs text-yellow-700">
+                    Tu MVP se guarda automáticamente cada 10 segundos. Completa las 5 señales de calidad para poder publicar.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {currentStep === 'availability' && mvpData.id && (
