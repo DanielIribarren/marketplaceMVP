@@ -21,7 +21,8 @@ export default async function MVPDetailPage({ params }: PageProps) {
     redirect('/login')
   }
 
-  const { success, data: mvp, error } = await getMVP(params.slug)
+  const { slug } = await params
+  const { success, data: mvp, error } = await getMVP(slug)
 
   if (!success || !mvp) {
     return (
