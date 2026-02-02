@@ -283,4 +283,53 @@ export async function getMyDrafts() {
   }
 }
 
+/**
+ * Obtiene MVPs públicos para búsqueda
+ */
+export async function getPublicMvps(params: {
+  q?: string
+  category?: string
+  dealModality?: string
+  status?: string
+  sort?: 'recent' | 'price_low' | 'price_high'
+  limit?: number
+  offset?: number
+} = {}) {
+  try {
+    const searchParams = new URLSearchParams()
+
+    if (params.q) searchParams.set('q', params.q)
+    if (params.category) searchParams.set('category', params.category)
+    if (params.dealModality) searchParams.set('deal_modality', params.dealModality)
+    if (params.status) searchParams.set('status', params.status)
+    if (params.sort) searchParams.set('sort', params.sort)
+    if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit))
+    if (typeof params.offset === 'number') searchParams.set('offset', String(params.offset))
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/public?${searchParams.toString()}`, {
+      cache: 'no-store'
+    })
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Error al obtener MVPs'
+      }
+    }
+
+    return {
+      success: true,
+      data: data.data || [],
+      count: data.count || 0
+    }
+  } catch (error) {
+    console.error('Error al obtener MVPs públicos:', error)
+    return {
+      success: false,
+      error: 'Error de conexión'
+    }
+  }
+}
+
 

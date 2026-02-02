@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import { verifyAuth } from './middleware/auth.js'
 import { saveDraft } from './api/mvps/draft.js'
 import { publishMVP, getMVP, getMyDrafts } from './api/mvps/publish.js'
+import { getPublicMvps } from './api/mvps/public.js'
 import availabilityRoutes from './api/availability.routes.js'
 import { validateField, getQualitySignals } from './api/mvps/validate.js'
 
@@ -19,8 +20,6 @@ app.use(cors({
 }))
 app.use(express.json())
 
-app.use('/api', availabilityRoutes)
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
@@ -33,6 +32,12 @@ app.get('/health', (req, res) => {
 // ============================================================================
 // RUTAS DE MVPs (requieren autenticación)
 // ============================================================================
+
+// Listado público de MVPs (no requiere auth)
+app.get('/api/mvps/public', getPublicMvps)
+
+// Rutas de disponibilidad
+app.use('/api', availabilityRoutes)
 
 // Guardar borrador
 app.post('/api/mvps/draft', verifyAuth, saveDraft)
