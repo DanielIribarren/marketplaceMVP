@@ -1,9 +1,72 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import type { MVPPublication } from '@/lib/types/mvp-publication'
+import type { MVPPublication, QualitySignals } from '@/lib/types/mvp-publication'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+
+
+
+/**
+ * Calcula las señales de calidad para un MVP
+ */
+export async function calculateQualitySignals(mvpData: Partial<MVPPublication>): Promise<{
+  success: boolean
+  signals?: QualitySignals
+  count?: number
+  canPublish?: boolean
+  error?: string
+}> {
+  try {
+    const token = await getAuthToken()
+    
+    if (!token) {
+      return { 
+        success: false, 
+        error: 'No autenticado' 
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/quality-signals`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        one_liner: mvpData.oneLiner,
+        description: mvpData.description,
+        demo_url: mvpData.demoUrl,
+        images_urls: mvpData.screenshots,
+        minimal_evidence: mvpData.minimalEvidence,
+        deal_modality: mvpData.dealModality
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: 'Error al calcular señales'
+      }
+    }
+
+    return {
+      success: true,
+      signals: data.signals,
+      count: data.count,
+      canPublish: data.canPublish
+    }
+
+  } catch (error) {
+    console.error('Error al calcular señales:', error)
+    return {
+      success: false,
+      error: 'Error de conexión'
+    }
+  }
+}
 
 /**
  * Obtiene el token de autenticación del usuario actual
@@ -219,4 +282,5 @@ export async function getMyDrafts() {
     }
   }
 }
+
 

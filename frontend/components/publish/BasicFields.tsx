@@ -16,6 +16,8 @@ interface BasicFieldsProps {
   onChange: (data: Partial<MVPPublication>) => void
 }
 
+type TransferChecklistKey = 'codeAndDocs' | 'domainOrLanding' | 'integrationAccounts' | 'ownIp'
+
 export function BasicFields({ data, onChange }: BasicFieldsProps) {
   const [screenshotInput, setScreenshotInput] = useState('')
   const [differentialInputs, setDifferentialInputs] = useState(
@@ -251,16 +253,20 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
       <div>
         <Label>{MICROCOPYS.transferChecklist.label}</Label>
         <div className="space-y-3 mt-2">
-          {Object.entries(MICROCOPYS.transferChecklist.items).map(([key, label]) => (
+          {(Object.entries(MICROCOPYS.transferChecklist.items) as [TransferChecklistKey, string][]).map(([key, label]) => (
             <div key={key} className="flex items-center space-x-2">
               <Checkbox
                 id={key}
-                checked={data.transferChecklist?.[key as keyof typeof data.transferChecklist] || false}
+                checked={data.transferChecklist?.[key] || false}
                 onCheckedChange={(checked) => onChange({
                   ...data,
                   transferChecklist: {
                     ...data.transferChecklist,
-                    [key]: checked
+                    codeAndDocs: data.transferChecklist?.codeAndDocs || false,
+                    domainOrLanding: data.transferChecklist?.domainOrLanding || false,
+                    integrationAccounts: data.transferChecklist?.integrationAccounts || false,
+                    ownIp: data.transferChecklist?.ownIp || false,
+                    [key]: checked === true
                   }
                 })}
               />
