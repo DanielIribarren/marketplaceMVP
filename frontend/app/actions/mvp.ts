@@ -332,4 +332,32 @@ export async function getPublicMvps(params: {
   }
 }
 
+/**
+* Obtiene los detalles completos de un MVP específico (público)
+*/
+export async function getMvpDetails(mvpId: string) {
+try {
+const response = await fetch(`${BACKEND_URL}/api/mvps/public/${mvpId}`, {
+cache: 'no-store'
+})
+const data = await response.json()
 
+if (!response.ok) {
+return {
+success: false,
+error: data.error || 'Error al obtener detalles del MVP'
+}
+}
+
+return {
+success: true,
+data: data.data
+}
+} catch (error) {
+console.error('Error al obtener detalles del MVP:', error)
+return {
+success: false,
+error: 'Error de conexión'
+}
+}
+}

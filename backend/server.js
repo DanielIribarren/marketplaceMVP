@@ -5,6 +5,7 @@ import { verifyAuth } from './middleware/auth.js'
 import { saveDraft } from './api/mvps/draft.js'
 import { publishMVP, getMVP, getMyDrafts } from './api/mvps/publish.js'
 import { getPublicMvps } from './api/mvps/public.js'
+import{getMvpDetails } from './api/mvps/details.js'
 import availabilityRoutes from './api/availability.routes.js'
 import { validateField, getQualitySignals } from './api/mvps/validate.js'
 
@@ -35,6 +36,9 @@ app.get('/health', (req, res) => {
 
 // Listado público de MVPs (no requiere auth)
 app.get('/api/mvps/public', getPublicMvps)
+
+//Detalles de un MVP especifico (público, no requiere auth)
+app.get('/api/mvps/:id', getMvpDetails)
 
 // Rutas de disponibilidad
 app.use('/api', availabilityRoutes)

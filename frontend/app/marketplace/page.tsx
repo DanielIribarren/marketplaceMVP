@@ -77,7 +77,7 @@ export default async function MarketplacePage() {
                       </div>
                     </div>
 
-                    <Link href={`/marketplace/${mvp.id}`}>
+                    <Link href={`/mvps/${mvp.id}`}>
                       <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                         Ver detalles
                       </Button>
