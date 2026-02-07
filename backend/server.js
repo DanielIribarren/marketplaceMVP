@@ -38,7 +38,7 @@ app.get('/health', (req, res) => {
 app.get('/api/mvps/public', getPublicMvps)
 
 //Detalles de un MVP especifico (público, no requiere auth)
-app.get('/api/mvps/:id', getMvpDetails)
+app.get('/api/mvps/public/:id', getMvpDetails)
 
 // Rutas de disponibilidad
 app.use('/api', availabilityRoutes)
