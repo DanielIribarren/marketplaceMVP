@@ -20,8 +20,20 @@ type FilterState = {
   publishedTo: string
 }
 
+type MvpListItem = {
+  id: string
+  title: string
+  one_liner?: string | null
+  category?: string | null
+  deal_modality?: string | null
+  price_range?: string | null
+  price?: number | null
+  status?: string | null
+  competitive_differentials?: string[] | null
+}
+
 type MarketplaceClientProps = {
-  initialMvps: any[]
+  initialMvps: MvpListItem[]
   initialFilters: FilterState
 }
 
@@ -72,8 +84,7 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
     publishedFrom: initialFilters.publishedFrom || '',
     publishedTo: initialFilters.publishedTo || ''
   })
-  const [mvps, setMvps] = useState<any[]>(initialMvps)
-  const [isLoading, setIsLoading] = useState(false)
+  const [mvps, setMvps] = useState<MvpListItem[]>(initialMvps)
   const [error, setError] = useState<string | null>(null)
   const isFirstLoad = useRef(true)
 
@@ -89,7 +100,6 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
     const handle = setTimeout(async () => {
       router.replace(urlQuery ? `${pathname}?${urlQuery}` : pathname, { scroll: false })
 
-      setIsLoading(true)
       setError(null)
 
       try {
@@ -106,8 +116,6 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al obtener MVPs')
         setMvps([])
-      } finally {
-        setIsLoading(false)
       }
     }, 400)
 
@@ -124,7 +132,6 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
   const handleClearFilters = () => {
     router.replace(pathname, { scroll: false })
     setError(null)
-    setIsLoading(false)
     setMvps(initialMvps)
     setFilters({
       q: '',
@@ -250,11 +257,7 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {mvps.map((mvp: any) => {
-            const tags = Array.isArray(mvp.competitive_differentials)
-              ? mvp.competitive_differentials
-              : []
-
+          {mvps.map((mvp) => {
             return (
               <Card key={mvp.id} className="border-2 hover:border-primary transition-colors">
                 <CardContent className="p-6 space-y-4">
