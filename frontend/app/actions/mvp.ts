@@ -291,7 +291,11 @@ export async function getPublicMvps(params: {
   category?: string
   dealModality?: string
   status?: string
-  sort?: 'recent' | 'price_low' | 'price_high'
+  sort?: 'recent' | 'oldest' | 'price_low' | 'price_high'
+  priceMin?: number
+  priceMax?: number
+  publishedFrom?: string
+  publishedTo?: string
   limit?: number
   offset?: number
 } = {}) {
@@ -303,6 +307,10 @@ export async function getPublicMvps(params: {
     if (params.dealModality) searchParams.set('deal_modality', params.dealModality)
     if (params.status) searchParams.set('status', params.status)
     if (params.sort) searchParams.set('sort', params.sort)
+    if (typeof params.priceMin === 'number') searchParams.set('price_min', String(params.priceMin))
+    if (typeof params.priceMax === 'number') searchParams.set('price_max', String(params.priceMax))
+    if (params.publishedFrom) searchParams.set('published_from', params.publishedFrom)
+    if (params.publishedTo) searchParams.set('published_to', params.publishedTo)
     if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit))
     if (typeof params.offset === 'number') searchParams.set('offset', String(params.offset))
 

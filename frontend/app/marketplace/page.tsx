@@ -4,19 +4,47 @@ import { getPublicMvps } from '@/app/actions/mvp'
 import { Navbar } from '@/components/navbar'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { MarketplaceClient } from './MarketplaceClient'
 
-export default async function MarketplacePage() {
+interface MarketplacePageProps {
+  searchParams?: Record<string, string | string[] | undefined>
+}
+
+function getSearchParam(
+  searchParams: MarketplacePageProps['searchParams'],
+  key: string
+) {
+  const value = searchParams?.[key]
+  return Array.isArray(value) ? value[0] : value
+}
+
+export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const user = await getUser()
 
   if (!user) {
     redirect('/login')
   }
 
+  const q = getSearchParam(searchParams, 'q')
+  const dealModality = getSearchParam(searchParams, 'deal_modality')
+  const sort = getSearchParam(searchParams, 'sort')
+  const priceMinRaw = getSearchParam(searchParams, 'price_min')
+  const priceMaxRaw = getSearchParam(searchParams, 'price_max')
+  const publishedFrom = getSearchParam(searchParams, 'published_from')
+  const publishedTo = getSearchParam(searchParams, 'published_to')
+
+  const priceMin = priceMinRaw ? Number(priceMinRaw) : undefined
+  const priceMax = priceMaxRaw ? Number(priceMaxRaw) : undefined
+
   const { data: mvps = [] } = await getPublicMvps({
     status: 'approved',
-    sort: 'recent',
+    q: q || undefined,
+    dealModality: dealModality || undefined,
+    sort: (sort as 'recent' | 'oldest' | 'price_low' | 'price_high') || 'recent',
+    priceMin: Number.isNaN(priceMin as number) ? undefined : priceMin,
+    priceMax: Number.isNaN(priceMax as number) ? undefined : priceMax,
+    publishedFrom: publishedFrom || undefined,
+    publishedTo: publishedTo || undefined,
     limit: 24
   })
 
@@ -36,58 +64,19 @@ export default async function MarketplacePage() {
             </Link>
           </div>
         </div>
-        
-        {mvps.length === 0 ? (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-            <p className="text-gray-500 text-lg">
-              Aún no hay MVPs aprobados para mostrar.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mvps.map((mvp: any) => {
-              const tags = Array.isArray(mvp.competitive_differentials)
-                ? mvp.competitive_differentials
-                : []
 
-              return (
-                <Card key={mvp.id} className="border-2 hover:border-primary transition-colors">
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">{mvp.category || 'Sin categoría'}</p>
-                        <h3 className="text-lg font-semibold">{mvp.title}</h3>
-                        {mvp.one_liner && (
-                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{mvp.one_liner}</p>
-                        )}
-                      </div>
-                      {mvp.deal_modality && (
-                        <Badge className="h-fit">{mvp.deal_modality}</Badge>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Precio</p>
-                        <p className="font-semibold">{mvp.price_range || (mvp.price ? `$${mvp.price}` : 'N/D')}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Estado</p>
-                        <p className="font-semibold text-green-600">{mvp.status}</p>
-                      </div>
-                    </div>
-
-                    <Link href={`/mvps/${mvp.id}`}>
-                      <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                        Ver detalles
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        )}
+        <MarketplaceClient
+          initialMvps={mvps}
+          initialFilters={{
+            q: q || '',
+            dealModality: dealModality || '',
+            sort: (sort as 'recent' | 'oldest' | 'price_low' | 'price_high') || 'recent',
+            priceMin: priceMinRaw || '',
+            priceMax: priceMaxRaw || '',
+            publishedFrom: publishedFrom || '',
+            publishedTo: publishedTo || ''
+          }}
+        />
       </div>
     </div>
   )
