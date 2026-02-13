@@ -25,16 +25,20 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     redirect('/login')
   }
 
-  const q = getSearchParam(searchParams, 'q')
-  const dealModality = getSearchParam(searchParams, 'deal_modality')
-  const sort = getSearchParam(searchParams, 'sort')
-  const priceMinRaw = getSearchParam(searchParams, 'price_min')
-  const priceMaxRaw = getSearchParam(searchParams, 'price_max')
-  const publishedFrom = getSearchParam(searchParams, 'published_from')
-  const publishedTo = getSearchParam(searchParams, 'published_to')
+  const searchParamsResolved = await searchParams
+
+  const q = getSearchParam(searchParamsResolved, 'q')
+  const dealModality = getSearchParam(searchParamsResolved, 'deal_modality')
+  const sort = getSearchParam(searchParamsResolved, 'sort')
+  const priceMinRaw = getSearchParam(searchParamsResolved, 'price_min')
+  const priceMaxRaw = getSearchParam(searchParamsResolved, 'price_max')
+  const publishedFrom = getSearchParam(searchParamsResolved, 'published_from')
+  const publishedTo = getSearchParam(searchParamsResolved, 'published_to')
+  const pageRaw = getSearchParam(searchParamsResolved, 'page')
 
   const priceMin = priceMinRaw ? Number(priceMinRaw) : undefined
   const priceMax = priceMaxRaw ? Number(priceMaxRaw) : undefined
+  const page = pageRaw ? Number(pageRaw) : 1
 
   const { data: mvps = [] } = await getPublicMvps({
     status: 'approved',
@@ -45,7 +49,8 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     priceMax: Number.isNaN(priceMax as number) ? undefined : priceMax,
     publishedFrom: publishedFrom || undefined,
     publishedTo: publishedTo || undefined,
-    limit: 24
+    limit: 24,
+    offset: page > 1 ? (page - 1) * 24 : undefined
   })
 
   return (
@@ -74,7 +79,9 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
             priceMin: priceMinRaw || '',
             priceMax: priceMaxRaw || '',
             publishedFrom: publishedFrom || '',
-            publishedTo: publishedTo || ''
+            publishedTo: publishedTo || '',
+            page: page,
+            limit: 24
           }}
         />
       </div>

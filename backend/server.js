@@ -8,6 +8,7 @@ import { getPublicMvps } from './api/mvps/public.js'
 import{getMvpDetails } from './api/mvps/details.js'
 import availabilityRoutes from './api/availability.routes.js'
 import { validateField, getQualitySignals } from './api/mvps/validate.js'
+import { forgotPassword, verifyCode, resetPassword } from './api/auth.js'
 
 dotenv.config()
 
@@ -29,6 +30,14 @@ app.get('/health', (req, res) => {
     service: 'MVP Marketplace Backend API'
   })
 })
+
+// ============================================================================
+// RUTAS DE AUTENTICACIÓN (públicas)
+// ============================================================================
+
+app.post('/api/auth/forgot-password', forgotPassword)
+app.post('/api/auth/verify-code', verifyCode)
+app.post('/api/auth/reset-password', resetPassword)
 
 // ============================================================================
 // RUTAS DE MVPs (requieren autenticación)
@@ -98,6 +107,9 @@ app.listen(PORT, () => {
 ║   Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}       ║
 ║                                                            ║
 ║   Endpoints disponibles:                                   ║
+║   - POST   /api/auth/forgot-password                      ║
+║   - POST   /api/auth/verify-code                          ║
+║   - POST   /api/auth/reset-password                       ║
 ║   - POST   /api/mvps/draft                                ║
 ║   - POST   /api/mvps/:id/publish                          ║
 ║   - GET    /api/mvps/:id                                  ║

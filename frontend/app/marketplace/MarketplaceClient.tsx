@@ -18,6 +18,8 @@ type FilterState = {
   priceMax: string
   publishedFrom: string
   publishedTo: string
+  page: number
+  limit: number
 }
 
 type MvpListItem = {
@@ -51,6 +53,8 @@ function buildApiParams(filters: FilterState) {
   if (filters.priceMax) params.set('price_max', filters.priceMax)
   if (filters.publishedFrom) params.set('published_from', filters.publishedFrom)
   if (filters.publishedTo) params.set('published_to', filters.publishedTo)
+  if (filters.page > 1) params.set('offset', ((filters.page - 1) * filters.limit).toString())
+  if (filters.limit !== 24) params.set('limit', filters.limit.toString())
 
   return params
 }
@@ -68,6 +72,7 @@ function buildUrlParams(filters: FilterState) {
   if (filters.priceMax) params.set('price_max', filters.priceMax)
   if (filters.publishedFrom) params.set('published_from', filters.publishedFrom)
   if (filters.publishedTo) params.set('published_to', filters.publishedTo)
+  if (filters.page > 1) params.set('page', filters.page.toString())
 
   return params
 }
@@ -82,10 +87,14 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
     priceMin: initialFilters.priceMin || '',
     priceMax: initialFilters.priceMax || '',
     publishedFrom: initialFilters.publishedFrom || '',
-    publishedTo: initialFilters.publishedTo || ''
+    publishedTo: initialFilters.publishedTo || '',
+    page: initialFilters.page || 1,
+    limit: 24
   })
   const [mvps, setMvps] = useState<MvpListItem[]>(initialMvps)
   const [error, setError] = useState<string | null>(null)
+  const [totalCount, setTotalCount] = useState<number>(0)
+  const [loading, setLoading] = useState<boolean>(false)
   const isFirstLoad = useRef(true)
 
   const apiQuery = useMemo(() => buildApiParams(filters).toString(), [filters])
@@ -101,6 +110,7 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
       router.replace(urlQuery ? `${pathname}?${urlQuery}` : pathname, { scroll: false })
 
       setError(null)
+      setLoading(true)
 
       try {
         const response = await fetch(`${BACKEND_URL}/api/mvps/public?${apiQuery}`, {
@@ -113,9 +123,13 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
         }
 
         setMvps(data.data || [])
+        setTotalCount(data.count || 0)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al obtener MVPs')
         setMvps([])
+        setTotalCount(0)
+      } finally {
+        setLoading(false)
       }
     }, 400)
 
@@ -133,6 +147,7 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
     router.replace(pathname, { scroll: false })
     setError(null)
     setMvps(initialMvps)
+    setTotalCount(0)
     setFilters({
       q: '',
       dealModality: '',
@@ -140,8 +155,17 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
       priceMin: '',
       priceMax: '',
       publishedFrom: '',
-      publishedTo: ''
+      publishedTo: '',
+      page: 1,
+      limit: 24
     })
+  }
+
+  const handlePageChange = (page: number) => {
+    setFilters(prev => ({
+      ...prev,
+      page
+    }))
   }
 
   return (
@@ -249,7 +273,16 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
         <div className="text-sm text-red-600 mb-4">{error}</div>
       )}
 
-      {mvps.length === 0 ? (
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <span>Cargando MVPs...</span>
+          </div>
+        </div>
+      )}
+
+      {mvps.length === 0 && !loading ? (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
           <p className="text-gray-500 text-lg">
             Aun no hay MVPs aprobados para mostrar.
@@ -294,6 +327,36 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
               </Card>
             )
           })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalCount > filters.limit && (
+        <div className="flex items-center justify-between mt-8">
+          <div className="text-sm text-muted-foreground">
+            Mostrando {((filters.page - 1) * filters.limit) + 1} - {Math.min(filters.page * filters.limit, totalCount)} de {totalCount} resultados
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(filters.page - 1)}
+              disabled={filters.page <= 1 || loading}
+            >
+              Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Página {filters.page} de {Math.ceil(totalCount / filters.limit)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(filters.page + 1)}
+              disabled={filters.page >= Math.ceil(totalCount / filters.limit) || loading}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       )}
     </>

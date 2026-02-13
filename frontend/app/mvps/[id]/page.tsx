@@ -7,7 +7,7 @@ import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, MessageCircle, Star, Eye, Heart, Calendar } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -37,6 +37,8 @@ favorites_count?: number
 status?: string
 published_at?: string
 created_at?: string
+avg_rating?: number
+evaluations_count?: number
 user_profiles?: {
 display_name?: string
 avatar_url?: string
@@ -259,32 +261,141 @@ No se han definido diferenciales competitivos para este MVP
 )}
 </CardContent>
 </Card>
+
+{/* Tech Stack */}
+{mvp.tech_stack && mvp.tech_stack.length > 0 && (
+<Card className="border-2">
+<CardContent className="p-6">
+<h2 className="text-2xl font-semibold mb-4">Tecnologías</h2>
+<div className="flex flex-wrap gap-2">
+{mvp.tech_stack.map((tech, index) => (
+<Badge key={index} variant="secondary" className="px-3 py-1">
+{tech}
+</Badge>
+))}
+</div>
+</CardContent>
+</Card>
+)}
+
+{/* Features */}
+{mvp.features && mvp.features.length > 0 && (
+<Card className="border-2">
+<CardContent className="p-6">
+<h2 className="text-2xl font-semibold mb-4">Características Principales</h2>
+<ul className="space-y-2">
+{mvp.features.map((feature, index) => (
+<li key={index} className="flex items-start gap-2">
+<div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+<span className="text-muted-foreground">{feature}</span>
+</li>
+))}
+</ul>
+</CardContent>
+</Card>
+)}
+
+{/* Metrics */}
+{mvp.metrics && Object.keys(mvp.metrics).length > 0 && (
+<Card className="border-2">
+<CardContent className="p-6">
+<h2 className="text-2xl font-semibold mb-4">Métricas</h2>
+<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+{Object.entries(mvp.metrics).map(([key, value]) => (
+<div key={key} className="text-center">
+<p className="text-2xl font-bold text-primary">{value}</p>
+<p className="text-sm text-muted-foreground capitalize">
+{key.replace(/_/g, ' ')}
+</p>
+</div>
+))}
+</div>
+</CardContent>
+</Card>
+)}
 </div>
 
 {/* Sidebar */}
 <div className="space-y-6">
-{/* Basic Info Card */}
-{(mvp.price_range || mvp.status) && (
-<Card className="border-2">
-<CardContent className="p-6 space-y-4">
-{mvp.price_range && (
-<div>
-<p className="text-sm text-muted-foreground">Rango de Precio</p>
-<p className="font-semibold text-lg text-primary">
-{mvp.price_range}
-</p>
-</div>
-)}
+  {/* Ratings and Stats */}
+  {(mvp.avg_rating || mvp.views_count || mvp.favorites_count) && (
+    <Card className="border-2">
+      <CardContent className="p-6 space-y-4">
+        {mvp.avg_rating && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+              <span className="font-semibold">{mvp.avg_rating.toFixed(1)}</span>
+              <span className="text-sm text-muted-foreground">
+                ({mvp.evaluations_count || 0} reseñas)
+              </span>
+            </div>
+          </div>
+        )}
 
-{mvp.status && (
-<div>
-<p className="text-sm text-muted-foreground">Estado</p>
-<Badge className="w-fit">{mvp.status}</Badge>
-</div>
-)}
-</CardContent>
-</Card>
-)}
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Eye className="w-4 h-4" />
+            <span>{mvp.views_count || 0} vistas</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Heart className="w-4 h-4" />
+            <span>{mvp.favorites_count || 0} favoritos</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )}
+
+  {/* Deal Information */}
+  <Card className="border-2">
+    <CardContent className="p-6 space-y-4">
+      <h3 className="text-lg font-semibold">Información del Deal</h3>
+
+      {mvp.deal_modality && (
+        <div>
+          <p className="text-sm text-muted-foreground">Modalidad</p>
+          <Badge className="mt-1">{mvp.deal_modality}</Badge>
+        </div>
+      )}
+
+      {mvp.price_range && (
+        <div>
+          <p className="text-sm text-muted-foreground">Rango de Precio</p>
+          <p className="font-semibold text-lg text-primary">{mvp.price_range}</p>
+        </div>
+      )}
+
+      {mvp.published_at && (
+        <div>
+          <p className="text-sm text-muted-foreground">Publicado</p>
+          <div className="flex items-center gap-2 mt-1">
+            <Calendar className="w-4 h-4" />
+            <span className="text-sm">
+              {new Date(mvp.published_at).toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </span>
+          </div>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+
+  {/* Contact Button */}
+  <Card className="border-2">
+    <CardContent className="p-6">
+      <Button className="w-full" size="lg">
+        <MessageCircle className="w-4 h-4 mr-2" />
+        Contactar Vendedor
+      </Button>
+      <p className="text-xs text-muted-foreground mt-2 text-center">
+        Inicia una conversación sobre este MVP
+      </p>
+    </CardContent>
+  </Card>
 
 {/* Links Card */}
 {mvp.demo_url && (
