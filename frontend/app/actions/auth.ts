@@ -12,11 +12,17 @@ export async function login(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  console.log('[LOGIN] Attempting login for:', data.email)
+  console.log('[LOGIN] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
+  const { data: authData, error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
+    console.error('[LOGIN] Error:', error.message, '| Status:', error.status, '| Code:', (error as any).code)
     return { error: error.message }
   }
+
+  console.log('[LOGIN] Success! User:', authData.user?.email)
 
   revalidatePath('/', 'layout')
   redirect('/marketplace')
@@ -50,6 +56,73 @@ export async function logout() {
   await supabase.auth.signOut()
   revalidatePath('/', 'layout')
   redirect('/login')
+}
+
+export async function forgotPassword(formData: FormData) {
+  const email = formData.get('email') as string
+  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return { error: data.message || 'Error al enviar el código' }
+    }
+
+    return { success: true, message: data.message }
+  } catch (error) {
+    return { error: 'Error de conexión con el servidor' }
+  }
+}
+
+export async function verifyResetCode(email: string, code: string) {
+  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/auth/verify-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return { error: data.message || 'Código incorrecto' }
+    }
+
+    return { success: true, resetToken: data.resetToken, message: data.message }
+  } catch (error) {
+    return { error: 'Error de conexión con el servidor' }
+  }
+}
+
+export async function resetPassword(email: string, resetToken: string, password: string) {
+  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, resetToken, password })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return { error: data.message || 'Error al actualizar la contraseña' }
+    }
+
+    return { success: true, message: data.message }
+  } catch (error) {
+    return { error: 'Error de conexión con el servidor' }
+  }
 }
 
 export async function getUser() {
