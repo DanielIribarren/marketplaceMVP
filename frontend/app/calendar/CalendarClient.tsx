@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -106,28 +106,28 @@ export function CalendarClient({ userId }: CalendarClientProps) {
   const weekStart = weekDays[0]
   const weekEnd = weekDays[6]
 
-  const fetchMeetings = useCallback(async () => {
-    setIsLoading(true)
-    const fromDate = new Date(weekStart)
-    fromDate.setDate(fromDate.getDate() - 7)
-    const toDate = new Date(weekEnd)
-    toDate.setDate(toDate.getDate() + 7)
-
-    const result = await getMyMeetings({
-      status: statusFilter === 'all' ? undefined : statusFilter,
-      from_date: fromDate.toISOString(),
-      to_date: toDate.toISOString(),
-    })
-
-    if (result.success) {
-      setMeetings(result.data)
-    }
-    setIsLoading(false)
-  }, [weekStart, weekEnd, statusFilter])
-
   useEffect(() => {
+    const fetchMeetings = async () => {
+      setIsLoading(true)
+      const fromDate = new Date(weekStart)
+      fromDate.setDate(fromDate.getDate() - 7)
+      const toDate = new Date(weekEnd)
+      toDate.setDate(toDate.getDate() + 7)
+
+      const result = await getMyMeetings({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        from_date: fromDate.toISOString(),
+        to_date: toDate.toISOString(),
+      })
+
+      if (result.success) {
+        setMeetings(result.data)
+      }
+      setIsLoading(false)
+    }
+
     fetchMeetings()
-  }, [fetchMeetings])
+  }, [weekStart, weekEnd, statusFilter])
 
   // Group meetings by date
   const meetingsByDate = useMemo(() => {

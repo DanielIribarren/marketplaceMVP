@@ -296,14 +296,14 @@ No se han definido diferenciales competitivos para este MVP
 )}
 
 {/* Metrics */}
-{mvp.metrics && Object.keys(mvp.metrics).length > 0 && (
+{mvp.metrics && typeof mvp.metrics === 'object' && Object.keys(mvp.metrics).length > 0 && (
 <Card className="border-2">
 <CardContent className="p-6">
 <h2 className="text-2xl font-semibold mb-4">Métricas</h2>
 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-{Object.entries(mvp.metrics).map(([key, value]) => (
+{Object.entries(mvp.metrics as Record<string, unknown>).map(([key, value]) => (
 <div key={key} className="text-center">
-<p className="text-2xl font-bold text-primary">{value}</p>
+<p className="text-2xl font-bold text-primary">{String(value)}</p>
 <p className="text-sm text-muted-foreground capitalize">
 {key.replace(/_/g, ' ')}
 </p>
