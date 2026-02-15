@@ -5,7 +5,8 @@ import { verifyAuth } from './middleware/auth.js'
 import { saveDraft } from './api/mvps/draft.js'
 import { publishMVP, getMVP, getMyDrafts } from './api/mvps/publish.js'
 import { getPublicMvps } from './api/mvps/public.js'
-import{getMvpDetails } from './api/mvps/details.js'
+import { getMvpDetails } from './api/mvps/details.js'
+import { recordMvpView } from './api/mvps/views.js'
 import availabilityRoutes from './api/availability.routes.js'
 import { validateField, getQualitySignals } from './api/mvps/validate.js'
 import { forgotPassword, verifyCode, resetPassword } from './api/auth.js'
@@ -25,7 +26,7 @@ app.use(express.json())
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'MVP Marketplace Backend API'
@@ -56,6 +57,9 @@ app.get('/api/mvps/public', getPublicMvps)
 //Detalles de un MVP especifico (público, no requiere auth)
 app.get('/api/mvps/public/:id', getMvpDetails)
 
+// Registrar vista única de un MVP (requiere auth)
+app.post('/api/mvps/:id/view', verifyAuth, recordMvpView)
+
 // Rutas de disponibilidad
 app.use('/api', availabilityRoutes)
 
@@ -83,16 +87,16 @@ app.post('/api/mvps/quality-signals', verifyAuth, getQualitySignals)
 
 // Ruta no encontrada
 app.use((req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'No encontrado',
-    message: `Ruta ${req.method} ${req.path} no existe` 
+    message: `Ruta ${req.method} ${req.path} no existe`
   })
 })
 
 // Error handler global
 app.use((err, req, res, next) => {
   console.error('Error no manejado:', err)
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Error del servidor',
     message: 'Ocurrió un error inesperado',
     details: process.env.NODE_ENV === 'development' ? err.message : undefined

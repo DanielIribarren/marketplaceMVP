@@ -15,44 +15,44 @@ function parseStatuses(statusParam) {
     .filter(Boolean)
 }
 
-  function parsePriceToken(value) {
-    if (!value) return null
-    const match = String(value).trim().match(/(\d+(?:\.\d+)?)(\s*[kKmM])?/) 
-    if (!match) return null
-    const base = Number(match[1])
-    if (Number.isNaN(base)) return null
-    const suffix = (match[2] || '').toLowerCase().trim()
-    if (suffix === 'k') return base * 1000
-    if (suffix === 'm') return base * 1000000
-    return base
-  }
+function parsePriceToken(value) {
+  if (!value) return null
+  const match = String(value).trim().match(/(\d+(?:\.\d+)?)(\s*[kKmM])?/)
+  if (!match) return null
+  const base = Number(match[1])
+  if (Number.isNaN(base)) return null
+  const suffix = (match[2] || '').toLowerCase().trim()
+  if (suffix === 'k') return base * 1000
+  if (suffix === 'm') return base * 1000000
+  return base
+}
 
-  function parsePriceRange(value) {
-    if (!value) return null
-    const tokens = String(value).match(/\d+(?:\.\d+)?\s*[kKmM]?/g) || []
-    const numbers = tokens
-      .map(parsePriceToken)
-      .filter(amount => typeof amount === 'number')
+function parsePriceRange(value) {
+  if (!value) return null
+  const tokens = String(value).match(/\d+(?:\.\d+)?\s*[kKmM]?/g) || []
+  const numbers = tokens
+    .map(parsePriceToken)
+    .filter(amount => typeof amount === 'number')
 
-    if (numbers.length === 0) return null
-    const min = Math.min(...numbers)
-    const max = Math.max(...numbers)
-    return { min, max }
-  }
+  if (numbers.length === 0) return null
+  const min = Math.min(...numbers)
+  const max = Math.max(...numbers)
+  return { min, max }
+}
 
-  function passesPriceFilter(row, priceMin, priceMax) {
-    const numericPrice = typeof row.price === 'number' ? row.price : null
-    const range = numericPrice === null ? parsePriceRange(row.price_range) : null
+function passesPriceFilter(row, priceMin, priceMax) {
+  const numericPrice = typeof row.price === 'number' ? row.price : null
+  const range = numericPrice === null ? parsePriceRange(row.price_range) : null
 
-    const minValue = numericPrice ?? range?.min ?? null
-    const maxValue = numericPrice ?? range?.max ?? null
+  const minValue = numericPrice ?? range?.min ?? null
+  const maxValue = numericPrice ?? range?.max ?? null
 
-    if (minValue === null || maxValue === null) return false
+  if (minValue === null || maxValue === null) return false
 
-    if (typeof priceMin === 'number' && minValue < priceMin) return false
-    if (typeof priceMax === 'number' && maxValue > priceMax) return false
-    return true
-  }
+  if (typeof priceMin === 'number' && minValue < priceMin) return false
+  if (typeof priceMax === 'number' && maxValue > priceMax) return false
+  return true
+}
 
 /**
  * GET /api/mvps/public
@@ -92,6 +92,7 @@ export async function getPublicMvps(req, res) {
           competitive_differentials,
           cover_image_url,
           images_urls,
+          views_count,
           status,
           published_at
         `,
