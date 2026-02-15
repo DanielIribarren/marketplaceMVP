@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MessageSquare, User } from 'lucide-react'
+import { MessageSquare, User, Calendar } from 'lucide-react'
 
 interface NavbarProps {
   unreadMessages?: number
@@ -34,11 +34,21 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
             <Link href="/how-it-works" className="text-sm font-medium hover:text-primary transition-colors">
               Cómo funciona
             </Link>
+            {isAuthenticated && (
+              <Link href="/calendar" className="text-sm font-medium hover:text-primary transition-colors">
+                Calendario
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
+                <Link href="/calendar">
+                  <Button variant="ghost" size="icon">
+                    <Calendar className="h-5 w-5" />
+                  </Button>
+                </Link>
                 <Link href="/messages" className="relative">
                   <Button variant="ghost" size="icon">
                     <MessageSquare className="h-5 w-5" />
