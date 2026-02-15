@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +32,7 @@ type MvpListItem = {
   price_range?: string | null
   price?: number | null
   status?: string | null
+  views_count?: number | null
   competitive_differentials?: string[] | null
 }
 
@@ -307,7 +309,7 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground">Precio</p>
                       <p className="font-semibold">{mvp.price_range || (mvp.price ? `$${mvp.price}` : 'N/D')}</p>
@@ -315,6 +317,13 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
                     <div>
                       <p className="text-xs text-muted-foreground">Estado</p>
                       <p className="font-semibold text-green-600">{mvp.status}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Vistas</p>
+                      <p className="font-semibold flex items-center gap-1">
+                        <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                        {mvp.views_count ?? 0}
+                      </p>
                     </div>
                   </div>
 
