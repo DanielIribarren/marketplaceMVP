@@ -375,7 +375,9 @@ CREATE TRIGGER update_favorites_count AFTER INSERT OR DELETE ON favorites
 
 -- Función para actualizar contador de vistas únicas
 CREATE OR REPLACE FUNCTION update_mvp_views_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
         UPDATE mvps SET views_count = views_count + 1 WHERE id = NEW.mvp_id;
