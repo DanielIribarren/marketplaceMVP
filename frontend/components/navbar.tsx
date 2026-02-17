@@ -1,16 +1,64 @@
-'use client'
+"use client"
 
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MessageSquare, User, Calendar } from 'lucide-react'
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import ProfileEditor from '@/components/ProfileEditor'
+import { createClient } from '@/lib/supabase/client'
 
 interface NavbarProps {
   unreadMessages?: number
   isAuthenticated?: boolean
 }
 
+
+
 export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarProps) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const supabase = createClient()
+        const { data: authData } = await supabase.auth.getUser()
+        const sessionRes = await supabase.auth.getSession()
+        const user = authData?.user
+        const session = sessionRes?.data?.session
+        if (!user) return
+
+        const base = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
+        const res = await fetch(`${base}/api/profile`, {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (mounted) setAvatarUrl(data?.avatar_url || null)
+      } catch (e) {
+        // ignore
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+  const handler = (e: any) => {
+    setAvatarUrl(e.detail.avatar_url)
+  }
+  window.addEventListener('profile:updated', handler)
+  return () => window.removeEventListener('profile:updated', handler)
+}, [])
   return (
     <nav className="border-b bg-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,11 +107,31 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                     )}
                   </Button>
                 </Link>
-                <Link href="/profile">
-                  <Button variant="ghost" size="icon">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </Link>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="p-0">
+                      {avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={avatarUrl} alt="avatar" className="h-8 w-8 rounded-full object-cover" />
+                      ) : (
+                        <User className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </DialogTrigger>
+
+                  <DialogContent>
+                    <div className="max-w-xl">
+                      <DialogTitle>Editar perfil</DialogTitle>
+                      <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
+
+                      <ProfileEditor />
+
+                      
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Link href="/marketplace">
                   <Button>Marketplace</Button>
                 </Link>

@@ -11,6 +11,7 @@ import availabilityRoutes from './api/availability.routes.js'
 import { validateField, getQualitySignals } from './api/mvps/validate.js'
 import { forgotPassword, verifyCode, resetPassword } from './api/auth.js'
 import { getMyMeetings } from './api/meetings.js'
+import { getProfile, updateProfile } from './api/profile.js'
 
 dotenv.config()
 
@@ -46,6 +47,10 @@ app.post('/api/auth/reset-password', resetPassword)
 // ============================================================================
 
 app.get('/api/meetings/my-meetings', verifyAuth, getMyMeetings)
+
+// Profile
+app.get('/api/profile', verifyAuth, getProfile)
+app.post('/api/profile', verifyAuth, updateProfile)
 
 // ============================================================================
 // RUTAS DE MVPs (requieren autenticación)
