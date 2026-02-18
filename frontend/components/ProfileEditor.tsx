@@ -36,7 +36,6 @@ export default function ProfileEditor() {
   const [authName, setAuthName] = useState<string | null>(null)
   const [authEmail, setAuthEmail] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
-  const [emailVerificationSent, setEmailVerificationSent] = useState(false)
   const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null)
 
   function getInitials(name?: string) {
@@ -211,17 +210,11 @@ export default function ProfileEditor() {
     setError(null)
     setSuccess(null)
 
-    const emailToCheck = authEmail || profile.email || ''
+    
     const bioToCheck = profile.bio || ''
     const linkedinToCheck = profile.linkedin_url || ''
     const githubToCheck = profile.github_url || ''
-    const emailRe = /^\S+@\S+\.\S+$/
-
-    if (emailToCheck && !emailRe.test(emailToCheck)) {
-      setLoading(false)
-      setError('Correo inválido')
-      return
-    }
+    
     if (bioToCheck.length > 300) {
       setLoading(false)
       setError('La bio debe tener como máximo 300 caracteres')
@@ -240,18 +233,15 @@ export default function ProfileEditor() {
 
     try {
       const supabase = createClient()
-      if (authEmail && authEmail !== profile.email) {
-        await supabase.auth.updateUser({
-          email: authEmail,
-          data: { display_name: authName || undefined },
-        })
-      }
+      await supabase.auth.updateUser({
+        data: { display_name: authName || undefined }
+      })
 
       const base = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
       const payload: UserProfile = {
         ...profile,
         display_name: authName || profile.display_name,
-        email: authEmail || profile.email,
+        email: authEmail,
       }
 
       const res = await fetch(`${base}/api/profile`, {
@@ -268,11 +258,6 @@ export default function ProfileEditor() {
         setError(txt || 'Error al guardar')
       } else {
         setProfile(payload)
-        if (authEmail && authEmail !== profile.email) {
-          setEmailVerificationSent(true)
-        } else {
-          setEmailVerificationSent(false)
-        }
         setSuccess('Perfil guardado correctamente')
         setTimeout(() => setSuccess(null), 3000)
       }
@@ -329,15 +314,7 @@ export default function ProfileEditor() {
 
       <div className="mb-3">
         <label className="block text-sm mb-1">Correo registrado</label>
-        <Input
-          value={authEmail || ''}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setAuthEmail(e.target.value)}
-        />
-        {emailVerificationSent && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Se envió un correo de verificación para confirmar el cambio de email
-          </p>
-        )}
+        <Input value={authEmail || ''} disabled />
       </div>
 
       <div className="mb-3">

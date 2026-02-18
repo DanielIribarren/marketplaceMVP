@@ -130,7 +130,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                   </DialogTrigger>
 
                   <DialogContent>
-                    <div className="max-w-xl">
+                    <div className="max-h-[90vh] overflow-y-auto">
                       <DialogTitle>Editar perfil</DialogTitle>
                       <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
                       <ProfileEditor />
