@@ -20,6 +20,7 @@ interface UserProfile {
   github_url?: string | null
   display_name?: string | null
   email?: string | null
+  birth_date?: string | null
 }
 
 interface ProfileUpdatedEvent extends CustomEvent {
@@ -36,6 +37,7 @@ export default function ProfileEditor() {
   const [authEmail, setAuthEmail] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [emailVerificationSent, setEmailVerificationSent] = useState(false)
+  const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null)
 
   function getInitials(name?: string) {
     const v = (name || '').trim()
@@ -61,6 +63,7 @@ export default function ProfileEditor() {
             (user.user_metadata?.name as string | undefined) ||
             null
           )
+          if (user.created_at) setAccountCreatedAt(user.created_at)
         }
         if (session?.access_token) setToken(session.access_token)
 
@@ -370,6 +373,30 @@ export default function ProfileEditor() {
           placeholder="https://github.com/tu-usuario"
         />
       </div>
+
+      <div className="mb-3">
+        <label className="block text-sm mb-1">Fecha de nacimiento (opcional)</label>
+        <Input
+          type="date"
+          value={profile.birth_date || ''}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setProfile({ ...profile, birth_date: e.target.value || null })
+          }
+        />
+      </div>
+
+      {accountCreatedAt && (
+        <div className="mb-3">
+          <label className="block text-sm mb-1 text-muted-foreground">Miembro desde</label>
+          <p className="text-sm px-3 py-2 rounded-md border bg-secondary/30 text-muted-foreground">
+            {new Date(accountCreatedAt).toLocaleDateString('es-ES', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="mb-2">

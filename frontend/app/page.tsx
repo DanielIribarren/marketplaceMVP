@@ -5,11 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, CheckCircle2, TrendingUp, Shield, Zap, Users } from 'lucide-react'
+import { getUser } from '@/app/actions/auth'
 
-export default function Home() {
+export default async function Home() {
+  const user = await getUser()
+  const isAuthenticated = !!user
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar isAuthenticated={isAuthenticated} />
 
       <main>
         <section className="relative overflow-hidden bg-gradient-to-b from-background to-secondary/30 py-20 px-4">
@@ -33,7 +37,7 @@ export default function Home() {
                 </p>
 
                 <div className="flex flex-wrap gap-4">
-                  <Link href="/marketplace">
+                  <Link href="/login">
                     <Button size="lg" className="gap-2">
                       Explorar Marketplace <ArrowRight className="h-4 w-4" />
                     </Button>
@@ -211,7 +215,7 @@ export default function Home() {
               Únete a cientos de creadores e inversionistas que confían en MVPMarket
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Link href="/marketplace">
+              <Link href="/login">
                 <Button size="lg" variant="secondary" className="gap-2">
                   Explorar proyectos <ArrowRight className="h-4 w-4" />
                 </Button>

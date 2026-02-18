@@ -28,6 +28,7 @@ export interface UserProfile {
   website: string | null
   linkedin_url: string | null
   github_url: string | null
+  birth_date: string | null
   created_at: string
   updated_at: string
 }
