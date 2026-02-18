@@ -56,13 +56,16 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
   return (
     <div className="min-h-screen bg-background">
       <Navbar isAuthenticated={true} />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">Marketplace</h1>
-            <p className="text-muted-foreground">Explora, compara y encuentra el MVP ideal.</p>
+            <p className="text-muted-foreground">
+              Explora, compara y encuentra el MVP ideal.
+            </p>
           </div>
+
           <div className="flex flex-wrap gap-3">
             <Link href="/publish">
               <Button size="lg">Publicar MVP</Button>

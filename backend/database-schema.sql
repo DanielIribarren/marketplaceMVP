@@ -302,6 +302,30 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 
 -- =====================================================
+-- TABLA: mvp_views
+-- Visualizaciones únicas por usuario (1 view por usuario por MVP)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS mvp_views (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    mvp_id UUID NOT NULL REFERENCES mvps(id) ON DELETE CASCADE,
+    viewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    first_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    UNIQUE (mvp_id, viewer_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mvp_views_mvp_id ON mvp_views(mvp_id);
+CREATE INDEX IF NOT EXISTS idx_mvp_views_viewer_id ON mvp_views(viewer_id);
+
+ALTER TABLE mvp_views ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can insert their own mvp view" ON mvp_views
+    FOR INSERT WITH CHECK (auth.uid() = viewer_id);
+
+CREATE POLICY "MVP views are readable for counting" ON mvp_views
+    FOR SELECT USING (true);
+
+-- =====================================================
 -- FUNCIONES Y TRIGGERS
 -- =====================================================
 
@@ -348,6 +372,24 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_favorites_count AFTER INSERT OR DELETE ON favorites
     FOR EACH ROW EXECUTE FUNCTION update_mvp_favorites_count();
+
+-- Función para actualizar contador de vistas únicas
+CREATE OR REPLACE FUNCTION update_mvp_views_count()
+RETURNS TRIGGER
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE mvps SET views_count = views_count + 1 WHERE id = NEW.mvp_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE mvps SET views_count = GREATEST(views_count - 1, 0) WHERE id = OLD.mvp_id;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_views_count AFTER INSERT OR DELETE ON mvp_views
+    FOR EACH ROW EXECUTE FUNCTION update_mvp_views_count();
 
 -- =====================================================
 -- ROW LEVEL SECURITY (RLS) - POLÍTICAS DE SEGURIDAD
@@ -407,6 +449,7 @@ CREATE POLICY "Users can view their own notifications" ON notifications
 
 CREATE POLICY "Users can update their own notifications" ON notifications
     FOR UPDATE USING (auth.uid() = user_id);
+
 
 -- =====================================================
 -- DATOS INICIALES (SEEDS)

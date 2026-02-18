@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getUser } from '@/app/actions/auth'
 import { getMVP } from '@/app/actions/mvp'
+import { recordMvpUniqueView, getMvpViewsCount } from '@/app/actions/mvpViews'
 import { Navbar } from '@/components/navbar'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -21,7 +22,7 @@ export default async function MVPDetailPage({ params }: PageProps) {
     redirect('/login')
   }
 
-  const { slug } = await params
+  const { slug } = params
   const { success, data: mvp, error } = await getMVP(slug)
 
   if (!success || !mvp) {
@@ -43,6 +44,13 @@ export default async function MVPDetailPage({ params }: PageProps) {
       </div>
     )
   }
+
+  // Registrar vista única (1 por usuario por MVP)
+  await recordMvpUniqueView(mvp.id)
+
+  // Obtener total de visualizaciones
+  const viewsRes = await getMvpViewsCount(mvp.id)
+  const viewsCount = viewsRes.ok ? viewsRes.count : 0
 
   const tags = Array.isArray(mvp.competitive_differentials)
     ? mvp.competitive_differentials
@@ -68,6 +76,9 @@ export default async function MVPDetailPage({ params }: PageProps) {
               {mvp.one_liner && (
                 <p className="text-lg text-muted-foreground mt-2">{mvp.one_liner}</p>
               )}
+              <p className="text-sm text-muted-foreground mt-2">
+                {viewsCount} visualizaciones
+              </p>
             </div>
             {mvp.deal_modality && (
               <Badge className="h-fit text-lg px-3 py-1">{mvp.deal_modality}</Badge>

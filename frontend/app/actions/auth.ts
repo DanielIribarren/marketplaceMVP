@@ -18,7 +18,7 @@ export async function login(formData: FormData) {
   const { data: authData, error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    console.error('[LOGIN] Error:', error.message, '| Status:', error.status, '| Code:', (error as any).code)
+    console.error('[LOGIN] Error:', error.message, '| Status:', error.status)
     return { error: error.message }
   }
 
@@ -159,3 +159,6 @@ export async function getUserRole() {
 
   return profile?.role || 'user'
 }
+
+
+
