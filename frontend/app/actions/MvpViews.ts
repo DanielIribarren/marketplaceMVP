@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { PostgrestError } from '@supabase/supabase-js'
 
 export async function recordMvpUniqueView(mvpId: string) {
   const supabase = await createClient()
@@ -19,11 +20,12 @@ export async function recordMvpUniqueView(mvpId: string) {
     .insert({ mvp_id: mvpId, viewer_id: user.id })
 
   if (error) {
-    const msg = (error as any)?.message?.toLowerCase?.() ?? ''
+    const pgError = error as PostgrestError
+    const msg = pgError?.message?.toLowerCase?.() ?? ''
     if (msg.includes('duplicate') || msg.includes('unique')) {
       return { ok: true, counted: false as const } // ya existía
     }
-    return { ok: false, reason: 'db_error' as const, error: error.message }
+    return { ok: false, reason: 'db_error' as const, error: pgError.message }
   }
 
   return { ok: true, counted: true as const }

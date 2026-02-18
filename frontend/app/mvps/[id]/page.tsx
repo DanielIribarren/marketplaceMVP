@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getMvpDetails } from '@/app/actions/mvp'
-import { recordMvpUniqueView } from '@/app/actions/MvpViews'
+import { recordMvpUniqueView } from '@/app/actions/mvpViews'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'

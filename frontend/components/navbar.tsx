@@ -11,8 +11,6 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
-  DialogClose,
-  DialogFooter,
 } from '@/components/ui/dialog'
 import ProfileEditor from '@/components/ProfileEditor'
 import { createClient } from '@/lib/supabase/client'
@@ -22,7 +20,9 @@ interface NavbarProps {
   isAuthenticated?: boolean
 }
 
-
+interface ProfileUpdatedEvent extends CustomEvent {
+  detail: { avatar_url: string | null }
+}
 
 export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -53,12 +53,14 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
   }, [])
 
   useEffect(() => {
-  const handler = (e: any) => {
-    setAvatarUrl(e.detail.avatar_url)
-  }
-  window.addEventListener('profile:updated', handler)
-  return () => window.removeEventListener('profile:updated', handler)
-}, [])
+    const handler = (e: Event) => {
+      const profileEvent = e as ProfileUpdatedEvent
+      setAvatarUrl(profileEvent.detail.avatar_url)
+    }
+    window.addEventListener('profile:updated', handler)
+    return () => window.removeEventListener('profile:updated', handler)
+  }, [])
+
   return (
     <nav className="border-b bg-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -124,10 +126,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                     <div className="max-w-xl">
                       <DialogTitle>Editar perfil</DialogTitle>
                       <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
-
                       <ProfileEditor />
-
-                      
                     </div>
                   </DialogContent>
                 </Dialog>
