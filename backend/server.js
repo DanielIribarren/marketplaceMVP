@@ -10,7 +10,13 @@ import { recordMvpView } from './api/mvps/views.js'
 import availabilityRoutes from './api/availability.routes.js'
 import { validateField, getQualitySignals } from './api/mvps/validate.js'
 import { forgotPassword, verifyCode, resetPassword } from './api/auth.js'
-import { getMyMeetings } from './api/meetings.js'
+import {
+  getMyMeetings,
+  confirmMeeting,
+  rejectMeeting,
+  counterproposeMeeting,
+  cancelMeeting
+} from './api/meetings.js'
 import { getProfile, updateProfile } from './api/profile.js'
 
 dotenv.config()
@@ -47,6 +53,10 @@ app.post('/api/auth/reset-password', resetPassword)
 // ============================================================================
 
 app.get('/api/meetings/my-meetings', verifyAuth, getMyMeetings)
+app.post('/api/meetings/:id/confirm', verifyAuth, confirmMeeting)
+app.post('/api/meetings/:id/reject', verifyAuth, rejectMeeting)
+app.post('/api/meetings/:id/counterproposal', verifyAuth, counterproposeMeeting)
+app.post('/api/meetings/:id/cancel', verifyAuth, cancelMeeting)
 
 // Profile
 app.get('/api/profile', verifyAuth, getProfile)
@@ -130,6 +140,11 @@ app.listen(PORT, () => {
 ║   - POST   /api/mvps/:id/publish                          ║
 ║   - GET    /api/mvps/:id                                  ║
 ║   - GET    /api/mvps/my-drafts                            ║
+║   - GET    /api/meetings/my-meetings                      ║
+║   - POST   /api/meetings/:id/confirm                      ║
+║   - POST   /api/meetings/:id/reject                       ║
+║   - POST   /api/meetings/:id/counterproposal              ║
+║   - POST   /api/meetings/:id/cancel                       ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
   `)
