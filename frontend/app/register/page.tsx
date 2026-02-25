@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
@@ -31,6 +32,10 @@ export default function RegisterPage() {
       setLoading(false)
       return
     }
+
+    // Clear any existing browser session before creating a new account
+    const supabase = createClient()
+    await supabase.auth.signOut()
 
     const result = await signup(formData)
 

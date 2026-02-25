@@ -28,6 +28,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!isAuthenticated) return
     let mounted = true
     ;(async () => {
       try {
@@ -50,7 +51,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
       }
     })()
     return () => { mounted = false }
-  }, [])
+  }, [isAuthenticated])
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -78,9 +79,15 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
             <Link href="/" className="text-sm font-medium hover:text-primary transition-colors">
               Inicio
             </Link>
-            <Link href="/marketplace" className="text-sm font-medium hover:text-primary transition-colors">
-              Marketplace
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/marketplace" className="text-sm font-medium hover:text-primary transition-colors">
+                Marketplace
+              </Link>
+            ) : (
+              <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
+                Marketplace
+              </Link>
+            )}
             <Link href="/how-it-works" className="text-sm font-medium hover:text-primary transition-colors">
               Cómo funciona
             </Link>
@@ -123,7 +130,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                   </DialogTrigger>
 
                   <DialogContent>
-                    <div className="max-w-xl">
+                    <div className="max-h-[90vh] overflow-y-auto">
                       <DialogTitle>Editar perfil</DialogTitle>
                       <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
                       <ProfileEditor />

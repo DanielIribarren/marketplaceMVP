@@ -80,6 +80,7 @@ export async function updateProfile(req, res) {
       website: body.website || null,
       linkedin_url: body.linkedin_url || null,
       github_url: body.github_url || null,
+      birth_date: body.birth_date || null,
     }
 
     // Prefer upserting using `id` as the key (current DB uses `id`).

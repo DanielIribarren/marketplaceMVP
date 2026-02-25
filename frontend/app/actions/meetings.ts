@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 
+
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
 
 async function getAuthToken(): Promise<string | null> {

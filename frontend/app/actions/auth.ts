@@ -31,20 +31,33 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = await createClient()
 
+  // Sign out any existing session before creating a new account
+  await supabase.auth.signOut()
+
+  const email = formData.get('email') as string
+  const displayName = formData.get('display_name') as string
+
   const data = {
-    email: formData.get('email') as string,
+    email,
     password: formData.get('password') as string,
     options: {
       data: {
-        display_name: formData.get('display_name') as string,
+        display_name: displayName,
       },
     },
   }
 
-  const { error } = await supabase.auth.signUp(data)
+  const { data: authData, error } = await supabase.auth.signUp(data)
 
   if (error) {
     return { error: error.message }
+  }
+
+  // Auto-create user_profiles record so the profile is ready immediately
+  if (authData?.user) {
+    await supabase
+      .from('user_profiles')
+      .upsert({ user_id: authData.user.id }, { onConflict: 'user_id', ignoreDuplicates: true })
   }
 
   revalidatePath('/', 'layout')
