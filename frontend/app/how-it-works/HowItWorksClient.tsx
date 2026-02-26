@@ -426,7 +426,7 @@ function MagnifierWidget({ activeIndex, color }: { activeIndex: number | null; c
 
       <div style={{
         width: 220, height: 220, position: 'relative',
-        opacity: isActive ? 1 : 0.55,
+        opacity: isActive ? 1 : 0.85,
         transform: isActive ? 'scale(1)' : 'scale(0.92)',
         transition: 'opacity 0.4s ease, transform 0.4s ease',
       }}>
@@ -605,7 +605,7 @@ function FaqSection() {
               // Posicion vertical: cuando hay seleccion, apunta a esa card
               const topOffset = openFaq !== null
                 ? openFaq * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2 - 110
-                : 120
+                : 60
 
               // Posicion horizontal: más a la derecha en reposo, corre a la izquierda al seleccionar
               const leftVal = openFaq !== null ? '10px' : '75%'
@@ -627,19 +627,20 @@ function FaqSection() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '0px',
                   }}>
                     <MagnifierWidget activeIndex={openFaq} color={activeColor} />
                     <p style={{
                       fontSize: '13px',
-                      fontWeight: 700,
-                      color: openFaq !== null ? activeColor : '#6b7280',
+                      fontWeight: 600,
+                      color: openFaq !== null ? activeColor : '#a0aec0',
                       textAlign: 'center',
                       letterSpacing: '0.02em',
                       transition: 'color 0.35s ease',
                       whiteSpace: 'nowrap',
+                      marginTop: '-25px',
                     }}>
-                      {openFaq !== null ? 'inspeccionando...' : 'selecciona una pregunta'}
+                      {openFaq !== null ? 'Inspeccionando...' : '¡Selecciona una pregunta!'}
                     </p>
                   </div>
                 </div>
