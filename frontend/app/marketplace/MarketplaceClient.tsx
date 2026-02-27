@@ -33,6 +33,8 @@ type MvpListItem = {
   title: string
   one_liner?: string | null
   category?: string | null
+  cover_image_url?: string | null
+  images_urls?: string[] | null
   deal_modality?: string | null
   price_range?: string | null
   price?: number | null
@@ -472,70 +474,104 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
             </p>
           </div>
         ) : (
-          <div className="relative z-0 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="relative z-0 grid gap-6">
             {mvps.map((mvp) => {
               const investorMeeting = meetingByMvp[mvp.id]
               const meetingMeta = investorMeeting
                 ? getInvestorMeetingStatusMeta(investorMeeting.status)
                 : null
               const meetingDateLabel = formatMeetingDateShort(investorMeeting?.scheduled_at)
+              const previewImage = mvp.cover_image_url || mvp.images_urls?.[0] || null
 
               return (
-                <Card key={mvp.id}>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">{mvp.category || 'Sin categoria'}</p>
-                        <h3 className="text-lg font-semibold">{mvp.title}</h3>
-                        {mvp.one_liner && (
-                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{mvp.one_liner}</p>
-                        )}
-                      </div>
-                      {mvp.deal_modality && (
-                        <Badge className="h-fit">{mvp.deal_modality}</Badge>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Precio</p>
-                        <p className="font-semibold">{mvp.price_range || (mvp.price ? `$${mvp.price}` : 'N/D')}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Estado</p>
-                        <p className="font-semibold text-primary capitalize">{mvp.status}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Vistas</p>
-                        <p className="font-semibold flex items-center gap-1">
-                          <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                          {mvp.views_count ?? 0}
-                        </p>
-                      </div>
-                    </div>
-
-                    {meetingMeta && (
-                      <div className="rounded-lg border p-3 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CalendarClock className="w-4 h-4 text-muted-foreground" />
-                          <Badge variant="outline" className={meetingMeta.badgeClassName}>
-                            {meetingMeta.label}
+                <Card key={mvp.id} className="rounded-2xl">
+                  <CardContent className="p-4 md:p-5">
+                    <div className="grid gap-4 md:grid-cols-[360px_1fr] md:items-stretch">
+                      <div className="relative min-h-[220px] md:h-[270px] md:min-h-[270px] overflow-hidden rounded-xl">
+                        <div
+                          className="absolute inset-0 bg-gradient-to-br from-brand-100 via-brand-50 to-background"
+                          style={
+                            previewImage
+                              ? {
+                                  backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.32), rgba(0,0,0,0.08)), url(${previewImage})`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center'
+                                }
+                              : undefined
+                          }
+                        />
+                        <div className="relative flex h-full min-h-[220px] flex-col justify-between p-5 md:p-6">
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-brand-200 bg-brand-50/95 text-brand-800"
+                          >
+                            {mvp.category || 'Sin categoria'}
                           </Badge>
+                          {!previewImage && (
+                            <p className="max-w-[18ch] text-sm font-medium text-muted-foreground">
+                              Agrega portada para destacar este MVP en el marketplace.
+                            </p>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{meetingMeta.description}</p>
-                        {meetingDateLabel && (
-                          <p className="text-xs text-muted-foreground">
-                            Fecha: {meetingDateLabel}
-                          </p>
-                        )}
                       </div>
-                    )}
 
-                    <Link href={`/mvps/${mvp.id}`}>
-                      <Button className="w-full">
-                        {meetingMeta?.isActive ? 'Ver estado de mi reunión' : 'Ver detalles'}
-                      </Button>
-                    </Link>
+                      <div className="space-y-4 p-3 md:p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-2xl font-bold tracking-tight line-clamp-1">{mvp.title}</h3>
+                            {mvp.one_liner && (
+                              <p className="mt-2 text-base text-muted-foreground line-clamp-2 leading-relaxed">{mvp.one_liner}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Precio</p>
+                            <p className="font-semibold text-lg leading-tight">{mvp.price_range || (mvp.price ? `$${mvp.price}` : 'N/D')}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado</p>
+                            <p className="font-semibold text-primary capitalize leading-tight">{mvp.status}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vistas</p>
+                            <p className="font-semibold flex items-center gap-1 leading-tight">
+                              <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                              {mvp.views_count ?? 0}
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Oferta</p>
+                            <p className="font-semibold leading-tight capitalize">{mvp.deal_modality || 'N/D'}</p>
+                          </div>
+                        </div>
+
+                        {meetingMeta && (
+                          <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <CalendarClock className="w-4 h-4 text-muted-foreground" />
+                              <Badge variant="outline" className={meetingMeta.badgeClassName}>
+                                {meetingMeta.label}
+                              </Badge>
+                              {meetingDateLabel && (
+                                <span className="text-xs text-muted-foreground">
+                                  {meetingDateLabel}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end">
+                          <Link href={`/mvps/${mvp.id}`} className="w-full sm:w-auto">
+                            <Button className="w-full sm:w-[220px]">
+                              {meetingMeta?.isActive ? 'Ver estado de mi reunión' : 'Ver detalles'}
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )
