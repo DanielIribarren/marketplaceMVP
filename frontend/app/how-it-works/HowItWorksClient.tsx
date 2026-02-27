@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import useEmblaCarousel from 'embla-carousel-react'
 import AutoScroll from 'embla-carousel-auto-scroll'
+import { motion } from 'framer-motion'
 
 // ─── Hook: detectar cuando un elemento entra en viewport ────────────────────
 function useInView(threshold = 0.15) {
@@ -95,6 +96,193 @@ function Counter({ target, suffix = '' }: { target: number; suffix?: string }) {
 
 // ─── Tipos de roles ──────────────────────────────────────────────────────────
 type Role = 'entrepreneur' | 'investor'
+
+// ─── Componente: Selector de rol con animación de path ──────────────────────
+interface RoleSelectorProps {
+  role: Role
+  setRole: (role: Role) => void
+}
+
+function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
+  // Define el color del punto según el rol actual
+  const dotColor = role === 'entrepreneur' ? '#FF6B35' : '#1a1a1a'
+
+  // Path curvo ondulado que sigue la trayectoria del marcador amarillo
+  const pathD = "M 120 100 Q 200 40, 300 110 Q 400 180, 500 90 Q 600 30, 680 100"
+
+  // Puntos calculados usando la fórmula de curva Bézier cuadrática
+  // Path: M 120 100 Q 200 40, 300 110 Q 400 180, 500 90 Q 600 30, 680 100
+  // Son 3 curvas cuadráticas concatenadas
+  const pathPoints = {
+    // Primera curva: (120,100) -> control(200,40) -> (300,110)
+    // Segunda curva: (300,110) -> control(400,180) -> (500,90)
+    // Tercera curva: (500,90) -> control(600,30) -> (680,100)
+    cx: [120, 140, 160, 180, 196, 213, 230, 248, 266, 284, 300, 330, 360, 390, 418, 444, 468, 488, 500, 530, 560, 588, 615, 640, 662, 680],
+    cy: [100, 81, 66, 54, 47, 44, 46, 52, 62, 77, 94, 110, 126, 142, 156, 168, 176, 180, 177, 168, 152, 130, 102, 72, 54, 100],
+  }
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      maxWidth: '1100px',
+      margin: '0 auto',
+      padding: '40px 20px',
+      minHeight: '280px',
+    }}>
+      {/* SVG con la línea punteada curva tipo mapa */}
+      <svg
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '100%',
+          height: '280px',
+          pointerEvents: 'none',
+          overflow: 'visible',
+        }}
+        viewBox="0 0 800 280"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {/* Línea punteada curva que conecta ambos lados */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke="#cbd5e0"
+          strokeWidth="3"
+          strokeDasharray="8 8"
+          strokeLinecap="round"
+        />
+
+        {/* Punto animado que sigue el path EXACTAMENTE */}
+        <motion.circle
+          r="16"
+          fill={dotColor}
+          initial={false}
+          animate={
+            role === 'entrepreneur'
+              ? {
+                  // De derecha a izquierda siguiendo el path exacto
+                  cx: [...pathPoints.cx].reverse(),
+                  cy: [...pathPoints.cy].reverse(),
+                }
+              : {
+                  // De izquierda a derecha siguiendo el path exacto
+                  cx: pathPoints.cx,
+                  cy: pathPoints.cy,
+                }
+          }
+          transition={{
+            duration: 1.4,
+            ease: [0.43, 0.13, 0.23, 0.96],
+          }}
+          filter={`drop-shadow(0 4px 12px ${dotColor}60)`}
+        />
+      </svg>
+
+      {/* Contenedor de las dos cajas */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'relative',
+        zIndex: 1,
+        paddingTop: '20px',
+      }}>
+        {/* Caja Emprendedor */}
+        <motion.button
+          onClick={() => setRole('entrepreneur')}
+          animate={{
+            background: role === 'entrepreneur'
+              ? 'linear-gradient(135deg, #FF6B35, #e85a22)'
+              : '#ffffff',
+            color: role === 'entrepreneur' ? '#ffffff' : '#6b7280',
+            scale: role === 'entrepreneur' ? 1.05 : 1,
+          }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          style={{
+            width: '280px',
+            padding: '32px 24px',
+            borderRadius: '20px',
+            border: role === 'entrepreneur' ? 'none' : '2px solid #e5e7eb',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: role === 'entrepreneur'
+              ? '0 12px 32px rgba(255,107,53,0.4)'
+              : '0 4px 12px rgba(0,0,0,0.05)',
+            position: 'relative',
+          }}
+        >
+          <span style={{ fontSize: '48px', lineHeight: 1 }}>🚀</span>
+          <span style={{
+            fontSize: '22px',
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+          }}>
+            Emprendedor
+          </span>
+          <span style={{
+            fontSize: '13px',
+            opacity: role === 'entrepreneur' ? 0.9 : 0.6,
+            fontWeight: 500,
+            textAlign: 'center',
+          }}>
+            Quiero vender mi MVP
+          </span>
+        </motion.button>
+
+        {/* Caja Inversor */}
+        <motion.button
+          onClick={() => setRole('investor')}
+          animate={{
+            background: role === 'investor'
+              ? 'linear-gradient(135deg, #1a1a1a, #333333)'
+              : '#ffffff',
+            color: role === 'investor' ? '#ffffff' : '#6b7280',
+            scale: role === 'investor' ? 1.05 : 1,
+          }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          style={{
+            width: '280px',
+            padding: '32px 24px',
+            borderRadius: '20px',
+            border: role === 'investor' ? 'none' : '2px solid #e5e7eb',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: role === 'investor'
+              ? '0 12px 32px rgba(0,0,0,0.3)'
+              : '0 4px 12px rgba(0,0,0,0.05)',
+            position: 'relative',
+          }}
+        >
+          <span style={{ fontSize: '48px', lineHeight: 1 }}>💼</span>
+          <span style={{
+            fontSize: '22px',
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+          }}>
+            Inversor
+          </span>
+          <span style={{
+            fontSize: '13px',
+            opacity: role === 'investor' ? 0.9 : 0.6,
+            fontWeight: 500,
+            textAlign: 'center',
+          }}>
+            Busco oportunidades
+          </span>
+        </motion.button>
+      </div>
+    </div>
+  )
+}
 
 // ─── Datos de pasos ──────────────────────────────────────────────────────────
 const entrepreneurSteps = [
@@ -233,7 +421,7 @@ function MeetingCarouselSection() {
   )
 
   return (
-    <section style={{ padding: '80px 0', background: '#ffffff', overflow: 'hidden' }}>
+    <section style={{ padding: '80px 0', background: '#ffffff', overflowX: 'hidden', overflowY: 'visible' }}>
       {/* Título — con padding lateral */}
       <div style={{ padding: '0 16px', maxWidth: '1280px', margin: '0 auto' }}>
         <FadeIn>
@@ -253,8 +441,8 @@ function MeetingCarouselSection() {
       </div>
 
       {/* Carrusel — full width sin padding */}
-      <div ref={emblaRef} style={{ overflow: 'hidden', cursor: 'grab' }}>
-        <div style={{ display: 'flex', gap: '16px', paddingLeft: '40px' }}>
+      <div ref={emblaRef} style={{ overflowX: 'hidden', overflowY: 'visible', cursor: 'grab' }}>
+        <div style={{ display: 'flex', gap: '16px', paddingLeft: '40px', paddingTop: '8px', paddingBottom: '40px' }}>
           {meetingStatusesDouble.map((ms, i) => (
             <div
               key={i}
@@ -873,59 +1061,9 @@ export function HowItWorksClient() {
             </div>
           </FadeIn>
 
-          {/* Toggle — prominente */}
+          {/* Selector de rol con animación */}
           <FadeIn delay={0.1}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '56px' }}>
-              <div style={{
-                background: '#ffffff', borderRadius: '20px',
-                border: '1px solid #e5e7eb', padding: '6px',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-                display: 'flex', gap: '6px',
-              }}>
-                {([
-                  { key: 'entrepreneur', label: '🚀 Emprendedor', subtitle: 'Quiero vender mi MVP' },
-                  { key: 'investor', label: '💼 Inversor', subtitle: 'Busco oportunidades' },
-                ] as { key: Role; label: string; subtitle: string }[]).map(({ key, label, subtitle }) => (
-                  <button
-                    key={key}
-                    onClick={() => setRole(key)}
-                    style={{
-                      padding: '20px 48px', borderRadius: '14px', border: 'none', cursor: 'pointer',
-                      background: role === key
-                        ? (key === 'entrepreneur'
-                          ? 'linear-gradient(135deg, #FF6B35, #e85a22)'
-                          : 'linear-gradient(135deg, #1a1a1a, #333)')
-                        : 'transparent',
-                      color: role === key ? '#ffffff' : '#9ca3af',
-                      fontWeight: role === key ? 800 : 500,
-                      transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                      boxShadow: role === key
-                        ? (key === 'entrepreneur'
-                          ? '0 8px 24px rgba(255,107,53,0.35)'
-                          : '0 8px 24px rgba(0,0,0,0.25)')
-                        : 'none',
-                      transform: role === key ? 'scale(1.02)' : 'scale(1)',
-                      minWidth: '180px',
-                    }}
-                  >
-                    <span style={{ fontSize: '20px', lineHeight: 1 }}>
-                      {key === 'entrepreneur' ? '🚀' : '💼'}
-                    </span>
-                    <span style={{ fontSize: '17px', letterSpacing: '-0.01em' }}>
-                      {key === 'entrepreneur' ? 'Emprendedor' : 'Inversor'}
-                    </span>
-                    <span style={{
-                      fontSize: '12px',
-                      opacity: role === key ? 0.85 : 0.5,
-                      fontWeight: 400,
-                    }}>
-                      {subtitle}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <RoleSelectorWithPath role={role} setRole={setRole} />
           </FadeIn>
 
           {/* Steps */}
