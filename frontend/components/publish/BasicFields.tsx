@@ -65,7 +65,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
           onChange={(e) => onChange({ ...data, name: e.target.value })}
           maxLength={100}
         />
-        <p className="text-sm text-gray-500 mt-1">{MICROCOPYS.name.help}</p>
+        <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.name.help}</p>
       </div>
 
       {/* Campo 2: One-liner */}
@@ -79,8 +79,8 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
           maxLength={120}
         />
         <div className="flex justify-between items-center mt-1">
-          <p className="text-sm text-gray-500">{MICROCOPYS.oneLiner.help}</p>
-          <span className="text-xs text-gray-400">
+          <p className="text-sm text-muted-foreground">{MICROCOPYS.oneLiner.help}</p>
+          <span className="text-xs text-ink-300">
             {data.oneLiner?.length || 0}/120
           </span>
         </div>
@@ -97,8 +97,8 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
           rows={6}
         />
         <div className="flex justify-between items-center mt-1">
-          <p className="text-sm text-gray-500">{MICROCOPYS.description.help}</p>
-          <span className="text-xs text-gray-400">
+          <p className="text-sm text-muted-foreground">{MICROCOPYS.description.help}</p>
+          <span className="text-xs text-ink-300">
             {wordCount(data.description || '')} palabras
           </span>
         </div>
@@ -114,7 +114,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
           value={data.demoUrl || ''}
           onChange={(e) => onChange({ ...data, demoUrl: e.target.value })}
         />
-        <p className="text-sm text-gray-500 mt-1">{MICROCOPYS.demoUrl.help}</p>
+        <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.demoUrl.help}</p>
       </div>
 
       {/* Campo 5: Screenshots */}
@@ -140,7 +140,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
           {data.screenshots && data.screenshots.length > 0 && (
             <div className="space-y-2">
               {data.screenshots.map((url, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                <div key={index} className="flex items-center gap-2 p-2 bg-brand-50 rounded">
                   <span className="text-sm flex-1 truncate">{url}</span>
                   <Button
                     type="button"
@@ -155,7 +155,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
             </div>
           )}
         </div>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           {MICROCOPYS.screenshots.help} ({data.screenshots?.length || 0}/3)
         </p>
       </div>
@@ -178,7 +178,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
             ))}
           </SelectContent>
         </Select>
-        <p className="text-sm text-gray-500 mt-1">{MICROCOPYS.monetizationModel.help}</p>
+        <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.monetizationModel.help}</p>
       </div>
 
       {/* Campo 7: Evidencia mínima */}
@@ -192,8 +192,8 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
           rows={4}
         />
         <div className="flex justify-between items-center mt-1">
-          <p className="text-sm text-gray-500">{MICROCOPYS.minimalEvidence.help}</p>
-          <span className="text-xs text-gray-400">
+          <p className="text-sm text-muted-foreground">{MICROCOPYS.minimalEvidence.help}</p>
+          <span className="text-xs text-ink-300">
             {wordCount(data.minimalEvidence || '')} palabras
           </span>
         </div>
@@ -212,7 +212,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
             />
           ))}
         </div>
-        <p className="text-sm text-gray-500 mt-1">{MICROCOPYS.competitiveDifferentials.help}</p>
+        <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.competitiveDifferentials.help}</p>
       </div>
 
       {/* Campo 9: Deal y Precio */}
@@ -234,7 +234,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-sm text-gray-500 mt-1">{MICROCOPYS.dealModality.help}</p>
+          <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.dealModality.help}</p>
         </div>
 
         <div>
@@ -245,7 +245,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
             value={data.priceRange || ''}
             onChange={(e) => onChange({ ...data, priceRange: e.target.value })}
           />
-          <p className="text-sm text-gray-500 mt-1">{MICROCOPYS.priceRange.help}</p>
+          <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.priceRange.help}</p>
         </div>
       </div>
 
@@ -279,7 +279,7 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
             </div>
           ))}
         </div>
-        <p className="text-sm text-gray-500 mt-2">{MICROCOPYS.transferChecklist.help}</p>
+        <p className="text-sm text-muted-foreground mt-2">{MICROCOPYS.transferChecklist.help}</p>
       </div>
     </div>
   )

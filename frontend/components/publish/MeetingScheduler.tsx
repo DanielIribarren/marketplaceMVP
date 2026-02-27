@@ -250,14 +250,14 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
         <CardContent>
           <div className="py-6 space-y-3">
             {loadError ? (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800 font-medium">No se pudo mostrar la agenda</p>
-                <p className="text-sm text-red-700 mt-1">{loadError}</p>
+              <div className="p-4 bg-destructive/10 border border-destructive/40 rounded-lg">
+                <p className="text-sm text-destructive font-medium">No se pudo mostrar la agenda</p>
+                <p className="text-sm text-destructive mt-1">{loadError}</p>
               </div>
             ) : (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-sm text-amber-800 font-medium">Aún no hay horarios visibles</p>
-                <p className="text-sm text-amber-700 mt-1">
+              <div className="p-4 bg-brand-50 border border-brand-200 rounded-lg">
+                <p className="text-sm text-brand-800 font-medium">Aún no hay horarios visibles</p>
+                <p className="text-sm text-brand-700 mt-1">
                   {loadInfo || 'Este MVP no tiene disponibilidad activa para reuniones.'}
                 </p>
               </div>
@@ -291,8 +291,8 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
         </CardHeader>
         <CardContent className="space-y-6">
           {loadInfo && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">{loadInfo}</p>
+            <div className="p-3 bg-brand-50 border border-brand-200 rounded-lg">
+              <p className="text-sm text-brand-800">{loadInfo}</p>
             </div>
           )}
 
@@ -466,13 +466,13 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
 
           {message && (
             <div className={`p-4 rounded-lg flex items-start gap-3 ${
-              message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+              message.type === 'success' ? 'bg-brand-50 border border-brand-200' : 'bg-destructive/10 border border-destructive/40'
             }`}>
               {message.type === 'success'
-                ? <Check className="h-5 w-5 text-green-600 mt-0.5" />
-                : <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                ? <Check className="h-5 w-5 text-brand-700 mt-0.5" />
+                : <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
               }
-              <p className={`text-sm ${message.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+              <p className={`text-sm ${message.type === 'success' ? 'text-brand-800' : 'text-destructive'}`}>
                 {message.text}
               </p>
             </div>

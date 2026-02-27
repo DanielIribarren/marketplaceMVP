@@ -159,8 +159,8 @@ export default function MVPDetailsPage() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-            <p className="text-gray-500 text-lg">{error || 'MVP no encontrado'}</p>
+          <div className="border-2 border-dashed border-border rounded-lg p-12 text-center">
+            <p className="text-muted-foreground text-lg">{error || 'MVP no encontrado'}</p>
           </div>
         </div>
       </div>
@@ -219,7 +219,7 @@ export default function MVPDetailsPage() {
             {/* Imagen de portada */}
             {mvp.cover_image_url && isValidUrl(mvp.cover_image_url) && !imageErrors.has(mvp.cover_image_url) && (
               <Card className="border-2 overflow-hidden">
-                <div className="relative w-full h-96 bg-gray-100">
+                <div className="relative w-full h-96 bg-brand-50">
                   <Image
                     src={mvp.cover_image_url}
                     alt={mvp.title}
@@ -250,7 +250,7 @@ export default function MVPDetailsPage() {
                   <h2 className="text-2xl font-semibold mb-4">Galería</h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {mvp.images_urls.map((imageUrl, index) => (
-                      <div key={index} className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                      <div key={index} className="relative w-full h-48 bg-brand-50 rounded-lg overflow-hidden flex items-center justify-center">
                         {isValidUrl(imageUrl) && !imageErrors.has(imageUrl) ? (
                           <Image
                             src={imageUrl}
@@ -430,7 +430,7 @@ export default function MVPDetailsPage() {
                 <CardContent className="p-6 space-y-4">
                   {mvp.avg_rating && (
                     <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      <Star className="w-5 h-5 fill-brand-400 text-brand-400" />
                       <span className="font-semibold">{mvp.avg_rating.toFixed(1)}</span>
                       <span className="text-sm text-muted-foreground">({mvp.evaluations_count || 0} reseñas)</span>
                     </div>

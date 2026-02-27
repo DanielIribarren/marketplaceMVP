@@ -31,7 +31,7 @@ export default async function MVPDetailPage({ params }: PageProps) {
         <Navbar isAuthenticated={true} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-red-600">Error</h1>
+            <h1 className="text-2xl font-bold text-destructive">Error</h1>
             <p className="text-muted-foreground">{error || 'MVP no encontrado'}</p>
             <Link href="/marketplace">
               <Button className="mt-4">
@@ -104,14 +104,14 @@ export default async function MVPDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Estado</p>
-                  <p className="font-semibold text-green-600">{mvp.status}</p>
+                  <p className="font-semibold text-brand-700">{mvp.status}</p>
                 </div>
               </div>
 
               {mvp.demo_url && (
                 <div>
                   <p className="text-sm text-muted-foreground">Demo URL</p>
-                  <a href={mvp.demo_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  <a href={mvp.demo_url} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
                     {mvp.demo_url}
                   </a>
                 </div>

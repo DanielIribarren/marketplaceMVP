@@ -58,18 +58,21 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
       <Navbar isAuthenticated={true} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Marketplace</h1>
-            <p className="text-muted-foreground">
-              Explora, compara y encuentra el MVP ideal.
-            </p>
-          </div>
+        <div className="brand-surface border border-brand-100/90 rounded-2xl p-6 mb-8 relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 orange-grid opacity-[0.14]" />
+          <div className="relative flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Marketplace</h1>
+              <p className="text-muted-foreground mt-1">
+                Explora, compara y encuentra el MVP ideal.
+              </p>
+            </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Link href="/publish">
-              <Button size="lg">Publicar MVP</Button>
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/publish">
+                <Button size="lg">Publicar MVP</Button>
+              </Link>
+            </div>
           </div>
         </div>
 

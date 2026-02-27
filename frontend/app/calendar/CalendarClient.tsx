@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -32,9 +31,30 @@ const DIAS   = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MESES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
-function semana(ref: Date): Date[] {
-  const d = new Date(ref); d.setDate(d.getDate() - d.getDay()); d.setHours(0,0,0,0)
-  return Array.from({ length: 7 }, (_, i) => { const x = new Date(d); x.setDate(d.getDate()+i); return x })
+type VistaCalendario = '1w' | '2w' | '3w' | '4w'
+
+const VISTAS: Record<VistaCalendario, { label: string; weeks: number }> = {
+  '1w': { label: '1 semana', weeks: 1 },
+  '2w': { label: '2 semanas', weeks: 2 },
+  '3w': { label: '3 semanas', weeks: 3 },
+  '4w': { label: 'Mensual', weeks: 4 },
+}
+
+function inicioSemana(ref: Date): Date {
+  const d = new Date(ref)
+  d.setDate(d.getDate() - d.getDay())
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function rangoDias(ref: Date, weeks: number): Date[] {
+  const start = inicioSemana(ref)
+  const totalDias = weeks * 7
+  return Array.from({ length: totalDias }, (_, i) => {
+    const x = new Date(start)
+    x.setDate(start.getDate() + i)
+    return x
+  })
 }
 
 function mismodia(a: Date, b: Date) {
@@ -82,13 +102,13 @@ function formatOfferSummary(meeting: Meeting): string | null {
 }
 
 const STATUS: Record<string,{label:string;dot:string;bg:string;text:string}> = {
-  pending:                      {label:'Pendiente',         dot:'bg-amber-400',  bg:'bg-amber-50 border-amber-200',   text:'text-amber-800'},
-  confirmed:                    {label:'Confirmada',        dot:'bg-blue-400',   bg:'bg-blue-50 border-blue-200',     text:'text-blue-800'},
-  completed:                    {label:'Completada',        dot:'bg-green-400',  bg:'bg-green-50 border-green-200',   text:'text-green-800'},
-  cancelled:                    {label:'Cancelada',         dot:'bg-gray-300',   bg:'bg-gray-50 border-gray-200',     text:'text-gray-500'},
-  rejected:                     {label:'Rechazada',         dot:'bg-red-400',    bg:'bg-red-50 border-red-200',       text:'text-red-800'},
-  counterproposal_entrepreneur: {label:'Contrapropuesta',  dot:'bg-purple-400', bg:'bg-purple-50 border-purple-200', text:'text-purple-800'},
-  counterproposal_investor:     {label:'Contrapropuesta',  dot:'bg-purple-400', bg:'bg-purple-50 border-purple-200', text:'text-purple-800'},
+  pending:                      {label:'Pendiente',         dot:'bg-brand-500',  bg:'bg-brand-50 border-brand-200',   text:'text-brand-800'},
+  confirmed:                    {label:'Confirmada',        dot:'bg-brand-600',   bg:'bg-brand-50 border-brand-200',     text:'text-brand-800'},
+  completed:                    {label:'Completada',        dot:'bg-brand-700',  bg:'bg-brand-50 border-brand-200',   text:'text-brand-800'},
+  cancelled:                    {label:'Cancelada',         dot:'bg-ink-300',   bg:'bg-brand-50 border-border',     text:'text-muted-foreground'},
+  rejected:                     {label:'Rechazada',         dot:'bg-destructive',    bg:'bg-destructive/10 border-destructive/40',       text:'text-destructive'},
+  counterproposal_entrepreneur: {label:'Contrapropuesta',  dot:'bg-ink-500', bg:'bg-ink-50 border-ink-100', text:'text-ink-900'},
+  counterproposal_investor:     {label:'Contrapropuesta',  dot:'bg-ink-500', bg:'bg-ink-50 border-ink-100', text:'text-ink-900'},
 }
 
 function esmiturno(m: Meeting, uid: string) {
@@ -108,6 +128,7 @@ function rolLabel(m: Meeting, uid: string): { texto: string; Icono: React.Elemen
 
 export function CalendarClient({ userId }: { userId: string }) {
   const [cursor,      setCursor]   = useState(new Date())
+  const [vista,       setVista]    = useState<VistaCalendario>('1w')
   const [meetings,    setMeetings] = useState<Meeting[]>([])
   const [loading,     setLoading]  = useState(true)
   const [selMeeting,  setSel]      = useState<Meeting | null>(null)
@@ -116,8 +137,9 @@ export function CalendarClient({ userId }: { userId: string }) {
   const [actMsg,      setActMsg]   = useState<{ok:boolean;txt:string}|null>(null)
 
   const hoy   = useMemo(() => { const h = new Date(); h.setHours(0,0,0,0); return h }, [])
-  const dias  = useMemo(() => semana(cursor), [cursor])
-  const inicio = dias[0], fin = dias[6]
+  const semanasVisibles = VISTAS[vista].weeks
+  const dias  = useMemo(() => rangoDias(cursor, semanasVisibles), [cursor, semanasVisibles])
+  const inicio = dias[0], fin = dias[dias.length - 1]
   const inicioKey = inicio.toISOString().split('T')[0]
   const finKey    = fin.toISOString().split('T')[0]
 
@@ -128,10 +150,12 @@ export function CalendarClient({ userId }: { userId: string }) {
     const r = await getMyMeetings({ from_date: from.toISOString(), to_date: to.toISOString() })
     if (r.success) setMeetings(r.data)
     setLoading(false)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicioKey, finKey])
 
-  useEffect(() => { recargar() }, [recargar])
+  useEffect(() => {
+    const timer = setTimeout(() => { void recargar() }, 0)
+    return () => clearTimeout(timer)
+  }, [recargar])
 
   // Agrupar reuniones por día
   const porDia = useMemo(() => {
@@ -166,9 +190,9 @@ export function CalendarClient({ userId }: { userId: string }) {
     setActLoad(false)
   }
 
-  const headerMes = `${MESES[inicio.getMonth()]}${
-    inicio.getMonth()!==fin.getMonth() ? ' – '+MESES[fin.getMonth()] : ''
-  } ${fin.getFullYear()}`
+  const headerMes = `${inicio.getDate()} ${MESES[inicio.getMonth()]}${
+    inicio.getFullYear() !== fin.getFullYear() ? ` ${inicio.getFullYear()}` : ''
+  } – ${fin.getDate()} ${MESES[fin.getMonth()]} ${fin.getFullYear()}`
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-10">
@@ -176,60 +200,81 @@ export function CalendarClient({ userId }: { userId: string }) {
       {/* ── Cabecera ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Calendario de reuniones</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Gestiona tus reuniones como emprendedor o inversor</p>
+          <h1 className="text-2xl font-bold text-foreground">Calendario de reuniones</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Gestiona tus reuniones como emprendedor o inversor</p>
         </div>
-        {loading && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
+        {loading && <Loader2 className="w-5 h-5 animate-spin text-ink-300" />}
       </div>
 
-      {/* ── Navegación semana ── */}
-      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+      {/* ── Navegación y filtros de rango ── */}
+      <div className="bg-background rounded-2xl border shadow-sm overflow-hidden">
         {/* Controles */}
-        <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
+        <div className="flex flex-col gap-3 px-5 py-3 border-b bg-brand-50">
+          <div className="flex flex-wrap items-center gap-2">
+            {(Object.entries(VISTAS) as [VistaCalendario, { label: string; weeks: number }][]).map(([key, opt]) => (
+              <Button
+                key={key}
+                variant={vista === key ? 'default' : 'outline'}
+                size="sm"
+                className="text-xs"
+                onClick={() => setVista(key)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="icon" className="h-8 w-8"
-              onClick={() => setCursor(d => { const n=new Date(d); n.setDate(n.getDate()-7); return n })}>
+              onClick={() => setCursor(d => { const n=new Date(d); n.setDate(n.getDate()-(semanasVisibles*7)); return n })}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <Button variant="outline" size="sm" className="text-xs px-3" onClick={() => setCursor(new Date())}>
               Hoy
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8"
-              onClick={() => setCursor(d => { const n=new Date(d); n.setDate(n.getDate()+7); return n })}>
+              onClick={() => setCursor(d => { const n=new Date(d); n.setDate(n.getDate()+(semanasVisibles*7)); return n })}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          <span className="text-sm font-semibold text-gray-700">{headerMes}</span>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block"/>Pendiente</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block"/>Confirmada</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-400 inline-block"/>Contrapropuesta</span>
+          <span className="text-sm font-semibold text-foreground">{headerMes}</span>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-500 inline-block"/>Pendiente</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-600 inline-block"/>Confirmada</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-ink-500 inline-block"/>Contrapropuesta</span>
           </div>
         </div>
+        </div>
 
-        {/* Rejilla de días */}
+        {/* Cabecera de días de semana */}
         <div className="grid grid-cols-7 divide-x border-b">
-          {dias.map((dia, i) => {
-            const esHoy = mismodia(dia, hoy)
+          {DIAS.map((dia, i) => {
             return (
-              <div key={i} className="text-center py-2 bg-gray-50">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{DIAS[i]}</p>
-                <div className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold mt-0.5 ${esHoy ? 'bg-primary text-white' : 'text-gray-700'}`}>
-                  {dia.getDate()}
-                </div>
+              <div key={i} className="text-center py-2 bg-brand-50">
+                <p className="text-[10px] font-semibold text-ink-300 uppercase tracking-wide">{dia}</p>
               </div>
             )
           })}
         </div>
 
-        <div className="grid grid-cols-7 divide-x min-h-[200px]">
+        <div className="grid grid-cols-7 auto-rows-[150px] min-h-[220px]">
           {dias.map((dia, i) => {
             const key = `${dia.getFullYear()}-${String(dia.getMonth()+1).padStart(2,'0')}-${String(dia.getDate()).padStart(2,'0')}`
             const reuniones = porDia.get(key) || []
             const esPasado  = dia < hoy && !mismodia(dia,hoy)
+            const esHoy = mismodia(dia, hoy)
+            const esInicioSemana = i % 7 === 0
 
             return (
-              <div key={`c${i}`} className={`p-1 space-y-1 ${esPasado ? 'bg-gray-50/60' : ''}`}>
+              <div
+                key={`c${i}`}
+                className={`p-1.5 space-y-1 border-r border-b overflow-y-auto ${esPasado ? 'bg-brand-50/60' : ''} ${esInicioSemana ? 'border-l' : ''}`}
+              >
+                <div className="mb-1">
+                  <div className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${esHoy ? 'bg-primary text-white' : 'text-foreground'}`}>
+                    {dia.getDate()}
+                  </div>
+                </div>
                 {reuniones.map(m => {
                   const cfg  = STATUS[m.status] || STATUS.pending
                   const rol  = rolLabel(m, userId)
@@ -239,7 +284,7 @@ export function CalendarClient({ userId }: { userId: string }) {
 
                   return (
                     <button key={m.id} onClick={() => abrirDetalle(m)}
-                      className={`w-full text-left rounded-lg border px-2 py-1.5 transition-all hover:shadow-md ${cfg.bg} ${accion ? 'ring-2 ring-amber-300' : ''}`}>
+                      className={`w-full text-left rounded-lg border px-2 py-1.5 transition-all hover:shadow-md ${cfg.bg} ${accion ? 'ring-2 ring-brand-300' : ''}`}>
                       <div className="flex items-center gap-1 mb-0.5">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`}/>
                         <span className={`text-[10px] font-bold truncate ${cfg.text}`}>
@@ -247,21 +292,21 @@ export function CalendarClient({ userId }: { userId: string }) {
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Icono className="w-3 h-3 text-gray-400 shrink-0"/>
-                        <p className="text-[10px] text-gray-600 font-semibold truncate leading-tight">
+                        <Icono className="w-3 h-3 text-ink-300 shrink-0"/>
+                        <p className="text-[10px] text-muted-foreground font-semibold truncate leading-tight">
                           {rol.texto}
                         </p>
                       </div>
-                      <p className="text-[10px] text-gray-500 truncate leading-tight">
+                      <p className="text-[10px] text-muted-foreground truncate leading-tight">
                         {m.mvp?.title || 'Reunión'}
                       </p>
                       {offerSummary && (
-                        <p className="text-[9px] text-gray-500 truncate leading-tight">
+                        <p className="text-[9px] text-muted-foreground truncate leading-tight">
                           {m.offer_type === 'economic' ? 'Oferta:' : 'Aporte:'} {offerSummary}
                         </p>
                       )}
                       {accion && (
-                        <p className="text-[9px] text-amber-600 font-bold mt-0.5">⚡ Tu turno</p>
+                        <p className="text-[9px] text-brand-700 font-bold mt-0.5">⚡ Tu turno</p>
                       )}
                     </button>
                   )
@@ -273,16 +318,16 @@ export function CalendarClient({ userId }: { userId: string }) {
       </div>
 
       {/* ── Leyenda de roles ── */}
-      <div className="flex gap-6 text-xs text-gray-500">
-        <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-gray-400"/> Emprendedor = eres el creador del MVP</span>
-        <span className="flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-gray-400"/> Inversor = estás evaluando el MVP</span>
+      <div className="flex gap-6 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-ink-300"/> Emprendedor = eres el creador del MVP</span>
+        <span className="flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-ink-300"/> Inversor = estás evaluando el MVP</span>
       </div>
 
       {/* ── Sin reuniones ── */}
       {!loading && meetings.length === 0 && (
-        <div className="text-center py-16 text-gray-400">
-          <CalendarDays className="w-14 h-14 mx-auto mb-3 text-gray-200"/>
-          <p className="font-medium text-gray-500">No tienes reuniones registradas</p>
+        <div className="text-center py-16 text-ink-300">
+          <CalendarDays className="w-14 h-14 mx-auto mb-3 text-brand-100"/>
+          <p className="font-medium text-muted-foreground">No tienes reuniones registradas</p>
           <p className="text-sm mt-1">Las reuniones se agendan desde la vista de detalle de un MVP en el marketplace.</p>
         </div>
       )}
@@ -291,8 +336,8 @@ export function CalendarClient({ userId }: { userId: string }) {
       {pendientesAccion.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-amber-500"/>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <AlertCircle className="w-5 h-5 text-brand-600"/>
+            <h2 className="text-lg font-semibold text-foreground">
               Requieren tu atención ({pendientesAccion.length})
             </h2>
           </div>
@@ -306,27 +351,27 @@ export function CalendarClient({ userId }: { userId: string }) {
               const offerSummary = formatOfferSummary(m)
 
               return (
-                <div key={m.id} className="bg-white border-2 border-amber-200 rounded-2xl p-5 flex flex-col gap-3">
+                <div key={m.id} className="bg-background border border-brand-200 rounded-2xl p-5 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-0.5 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.text}`}>
                           {cfg.label}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Icono className="w-3 h-3"/> {rol.texto}
                         </span>
                       </div>
-                      <p className="font-bold text-gray-900 text-sm mt-1 truncate">{m.mvp?.title || 'MVP'}</p>
+                      <p className="font-bold text-foreground text-sm mt-1 truncate">{m.mvp?.title || 'MVP'}</p>
                       {m.scheduled_at && (
-                        <p className="text-xs text-gray-500 capitalize">{fmtFechaLarga(m.scheduled_at)} · {fmtHora(m.scheduled_at)}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{fmtFechaLarga(m.scheduled_at)} · {fmtHora(m.scheduled_at)}</p>
                       )}
                       {otro && (
-                        <p className="text-xs text-gray-400">Con: {otro.display_name || otro.email || 'Participante'}</p>
+                        <p className="text-xs text-ink-300">Con: {otro.display_name || otro.email || 'Participante'}</p>
                       )}
                       {offerSummary && (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                          <span className="font-semibold text-gray-600">
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          <span className="font-semibold text-muted-foreground">
                             {m.offer_type === 'economic' ? 'Oferta inicial: ' : 'Aporte inicial: '}
                           </span>
                           {offerSummary}
@@ -336,7 +381,7 @@ export function CalendarClient({ userId }: { userId: string }) {
                   </div>
 
                   {esCont && m.counterproposal_notes && (
-                    <p className="text-xs bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-purple-700">
+                    <p className="text-xs bg-ink-50 border border-ink-100 rounded-lg px-3 py-2 text-ink-500">
                       💬 &quot;{m.counterproposal_notes}&quot;
                     </p>
                   )}
@@ -346,18 +391,18 @@ export function CalendarClient({ userId }: { userId: string }) {
                     {/* Emprendedor ve solicitud pendiente o contrapropuesta del inversor */}
                     {m.owner_id === userId && (
                       <>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                        <Button size="sm" className="bg-brand-700 hover:bg-brand-800 text-white flex-1"
                           disabled={actLoading}
                           onClick={() => accion(() => confirmMeeting(m.id))}>
                           <CheckCircle2 className="w-3.5 h-3.5 mr-1"/> Aceptar
                         </Button>
                         <Button size="sm" variant="outline"
-                          className="border-purple-300 text-purple-700 flex-1"
+                          className="border-ink-200 text-ink-500 flex-1"
                           onClick={() => abrirDetalle(m)}>
                           <RefreshCw className="w-3.5 h-3.5 mr-1"/> Contraproponer
                         </Button>
                         <Button size="sm" variant="outline"
-                          className="border-red-300 text-red-700 flex-1"
+                          className="border-destructive/40 text-destructive flex-1"
                           disabled={actLoading}
                           onClick={() => accion(() => rejectMeeting(m.id))}>
                           <XCircle className="w-3.5 h-3.5 mr-1"/> Rechazar
@@ -367,18 +412,18 @@ export function CalendarClient({ userId }: { userId: string }) {
                     {/* Inversor ve contrapropuesta del emprendedor */}
                     {m.requester_id === userId && (
                       <>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                        <Button size="sm" className="bg-brand-700 hover:bg-brand-800 text-white flex-1"
                           disabled={actLoading}
                           onClick={() => accion(() => confirmMeeting(m.id))}>
                           <CheckCircle2 className="w-3.5 h-3.5 mr-1"/> Aceptar nueva fecha
                         </Button>
                         <Button size="sm" variant="outline"
-                          className="border-purple-300 text-purple-700 flex-1"
+                          className="border-ink-200 text-ink-500 flex-1"
                           onClick={() => abrirDetalle(m)}>
                           <RefreshCw className="w-3.5 h-3.5 mr-1"/> Otra fecha
                         </Button>
                         <Button size="sm" variant="outline"
-                          className="border-red-300 text-red-700 flex-1"
+                          className="border-destructive/40 text-destructive flex-1"
                           disabled={actLoading}
                           onClick={() => accion(() => rejectMeeting(m.id))}>
                           <XCircle className="w-3.5 h-3.5 mr-1"/> Rechazar
@@ -460,7 +505,7 @@ function DetalleReunion({
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.text}`}>
             {cfg.label}
           </span>
-          <span className="flex items-center gap-1 text-xs text-gray-500">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Icono className="w-3.5 h-3.5"/> {rol.texto}
           </span>
         </div>
@@ -474,8 +519,8 @@ function DetalleReunion({
       {actMsg && (
         <div className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${
           actMsg.ok
-            ? 'bg-green-50 border-green-200 text-green-800'
-            : 'bg-red-50 border-red-200 text-red-800'
+            ? 'bg-brand-50 border-brand-200 text-brand-800'
+            : 'bg-destructive/10 border-destructive/40 text-destructive'
         }`}>
           {actMsg.ok ? <CheckCircle2 className="w-4 h-4 shrink-0"/> : <XCircle className="w-4 h-4 shrink-0"/>}
           {actMsg.txt}
@@ -486,19 +531,19 @@ function DetalleReunion({
       {vista === 'detalle' && (
         <div className="space-y-4 mt-1">
           {m.scheduled_at && (
-            <Row icon={<Clock className="w-4 h-4 text-gray-400"/>}>
-              <p className="text-sm font-semibold text-gray-900 capitalize">{fmtFechaLarga(m.scheduled_at)}</p>
-              <p className="text-xs text-gray-500">{fmtHora(m.scheduled_at)} · {m.duration_minutes} min · {m.timezone || 'UTC'}</p>
+            <Row icon={<Clock className="w-4 h-4 text-ink-300"/>}>
+              <p className="text-sm font-semibold text-foreground capitalize">{fmtFechaLarga(m.scheduled_at)}</p>
+              <p className="text-xs text-muted-foreground">{fmtHora(m.scheduled_at)} · {m.duration_minutes} min · {m.timezone || 'UTC'}</p>
             </Row>
           )}
           {otro && (
-            <Row icon={<User className="w-4 h-4 text-gray-400"/>}>
+            <Row icon={<User className="w-4 h-4 text-ink-300"/>}>
               <p className="text-sm font-semibold">{otro.display_name || otro.email}</p>
-              {otro.email && <p className="text-xs text-gray-500">{otro.email}</p>}
+              {otro.email && <p className="text-xs text-muted-foreground">{otro.email}</p>}
             </Row>
           )}
           {m.meeting_url && m.status === 'confirmed' && (
-            <Row icon={<Video className="w-4 h-4 text-gray-400"/>}>
+            <Row icon={<Video className="w-4 h-4 text-ink-300"/>}>
               <a href={m.meeting_url} target="_blank" rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline flex items-center gap-1">
                 Unirse a la reunión <ExternalLink className="w-3 h-3"/>
@@ -506,9 +551,9 @@ function DetalleReunion({
             </Row>
           )}
           {offerSummary && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
-              <p className="text-xs font-semibold text-blue-700 uppercase mb-1">Oferta inicial</p>
-              <p className="text-sm text-blue-900">
+            <div className="p-3 bg-brand-50 border border-brand-200 rounded-xl">
+              <p className="text-xs font-semibold text-brand-700 uppercase mb-1">Oferta inicial</p>
+              <p className="text-sm text-brand-900">
                 {offerSummary}
               </p>
             </div>
@@ -516,37 +561,37 @@ function DetalleReunion({
 
           {/* Bloque contrapropuesta */}
           {esCont && (
-            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-sm">
-              <p className="font-semibold text-purple-800 mb-1">📩 Contrapropuesta recibida</p>
-              {m.scheduled_at && <p className="text-purple-700 capitalize">{fmtFechaLarga(m.scheduled_at)} · {fmtHora(m.scheduled_at)}</p>}
-              {m.counterproposal_notes && <p className="text-purple-600 mt-1 text-xs italic">&quot;{m.counterproposal_notes}&quot;</p>}
+            <div className="p-3 bg-ink-50 border border-ink-100 rounded-xl text-sm">
+              <p className="font-semibold text-ink-900 mb-1">📩 Contrapropuesta recibida</p>
+              {m.scheduled_at && <p className="text-ink-500 capitalize">{fmtFechaLarga(m.scheduled_at)} · {fmtHora(m.scheduled_at)}</p>}
+              {m.counterproposal_notes && <p className="text-ink-500 mt-1 text-xs italic">&quot;{m.counterproposal_notes}&quot;</p>}
             </div>
           )}
 
           {/* Notas */}
           {(m.notes || m.requester_notes) && (
             <div className="border-t pt-3">
-              <p className="text-xs font-medium text-gray-400 uppercase mb-1">Mensaje del inversor</p>
-              <p className="text-sm text-gray-700">{m.requester_notes || m.notes}</p>
+              <p className="text-xs font-medium text-ink-300 uppercase mb-1">Mensaje del inversor</p>
+              <p className="text-sm text-foreground">{m.requester_notes || m.notes}</p>
             </div>
           )}
           {m.owner_notes && (
             <div className="border-t pt-3">
-              <p className="text-xs font-medium text-gray-400 uppercase mb-1">Nota del emprendedor</p>
-              <p className="text-sm text-gray-700">{m.owner_notes}</p>
+              <p className="text-xs font-medium text-ink-300 uppercase mb-1">Nota del emprendedor</p>
+              <p className="text-sm text-foreground">{m.owner_notes}</p>
             </div>
           )}
           {m.status === 'rejected' && m.rejection_reason && (
             <div className="border-t pt-3">
-              <p className="text-xs font-medium text-red-400 uppercase mb-1">Motivo del rechazo</p>
-              <p className="text-sm text-gray-700">{m.rejection_reason}</p>
+              <p className="text-xs font-medium text-destructive/80 uppercase mb-1">Motivo del rechazo</p>
+              <p className="text-sm text-foreground">{m.rejection_reason}</p>
             </div>
           )}
 
           {/* ── Acciones según quien eres y en qué estado está ── */}
           {activo && miTurno && (
             <div className="border-t pt-4 space-y-3">
-              <p className="text-sm font-semibold text-gray-700">¿Qué deseas hacer?</p>
+              <p className="text-sm font-semibold text-foreground">¿Qué deseas hacer?</p>
 
               {/* Emprendedor: pendiente o contrapropuesta del inversor → puede aceptar, rechazar, contraproponer */}
               {isOwner && (m.status === 'pending' || m.status === 'counterproposal_investor') && (
@@ -562,18 +607,18 @@ function DetalleReunion({
                       value={ownerNotes}
                       onChange={e => setONotes(e.target.value)}
                     />
-                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white" disabled={actLoading}
+                    <Button className="w-full bg-brand-700 hover:bg-brand-800 text-white" disabled={actLoading}
                       onClick={() => onConfirm({ meeting_url: meetUrl||undefined, owner_notes: ownerNotes||undefined })}>
                       {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <CheckCircle2 className="w-4 h-4 mr-2"/>}
                       Aceptar reunión
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                    <Button variant="outline" className="border-ink-200 text-ink-500 hover:bg-ink-50"
                       disabled={actLoading} onClick={() => setVista('contraproponer')}>
                       <RefreshCw className="w-4 h-4 mr-2"/> Proponer otra fecha
                     </Button>
-                    <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50"
+                    <Button variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10"
                       disabled={actLoading} onClick={() => setVista('rechazar')}>
                       <XCircle className="w-4 h-4 mr-2"/> Rechazar
                     </Button>
@@ -584,17 +629,17 @@ function DetalleReunion({
               {/* Inversor: contrapropuesta del emprendedor → acepta, otra fecha, o rechaza */}
               {isReq && m.status === 'counterproposal_entrepreneur' && (
                 <div className="space-y-2">
-                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white" disabled={actLoading}
+                  <Button className="w-full bg-brand-700 hover:bg-brand-800 text-white" disabled={actLoading}
                     onClick={() => onConfirm()}>
                     {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <CheckCircle2 className="w-4 h-4 mr-2"/>}
                     Aceptar la nueva fecha
                   </Button>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                    <Button variant="outline" className="border-ink-200 text-ink-500 hover:bg-ink-50"
                       disabled={actLoading} onClick={() => setVista('contraproponer')}>
                       <RefreshCw className="w-4 h-4 mr-2"/> Otra fecha
                     </Button>
-                    <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50"
+                    <Button variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10"
                       disabled={actLoading} onClick={() => setVista('rechazar')}>
                       <XCircle className="w-4 h-4 mr-2"/> Rechazar definitivamente
                     </Button>
@@ -607,7 +652,7 @@ function DetalleReunion({
           {/* Inversor puede cancelar lo suyo (cuando no es su turno de acción) */}
           {isReq && activo && !miTurno && (
             <div className="border-t pt-3">
-              <Button variant="ghost" size="sm" className="text-gray-400 w-full hover:text-red-500"
+              <Button variant="ghost" size="sm" className="text-ink-300 w-full hover:text-destructive"
                 disabled={actLoading} onClick={() => setVista('cancelar')}>
                 Cancelar mi solicitud de reunión
               </Button>
@@ -630,7 +675,7 @@ function DetalleReunion({
       {vista === 'rechazar' && (
         <div className="space-y-4 mt-2">
           <div>
-            <Label htmlFor="motivo">Motivo del rechazo <span className="text-gray-400">(opcional)</span></Label>
+            <Label htmlFor="motivo">Motivo del rechazo <span className="text-ink-300">(opcional)</span></Label>
             <textarea id="motivo" rows={4}
               className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
               placeholder="Explica brevemente por qué rechazas esta reunión..."
@@ -638,7 +683,7 @@ function DetalleReunion({
             />
           </div>
           <div className="flex gap-2">
-            <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" disabled={actLoading}
+            <Button className="flex-1 bg-destructive hover:bg-destructive/90 text-white" disabled={actLoading}
               onClick={() => onReject(motivo||undefined)}>
               {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1"/> : <XCircle className="w-4 h-4 mr-1"/>}
               Confirmar rechazo
@@ -651,7 +696,7 @@ function DetalleReunion({
       {/* ── Vista: CONTRAPROPONER ── */}
       {vista === 'contraproponer' && (
         <div className="space-y-4 mt-2">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Propón una nueva fecha y hora. La otra parte podrá aceptarla, rechazarla o volver a contraproponer.
           </p>
           <div className="space-y-3">
@@ -680,7 +725,7 @@ function DetalleReunion({
               </div>
             </div>
             <div>
-              <Label htmlFor="cp-msg">Mensaje <span className="text-gray-400">(opcional)</span></Label>
+              <Label htmlFor="cp-msg">Mensaje <span className="text-ink-300">(opcional)</span></Label>
               <textarea id="cp-msg" rows={3}
                 className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
                 placeholder="Explica el motivo del cambio de fecha..."
@@ -703,7 +748,7 @@ function DetalleReunion({
       {vista === 'cancelar' && (
         <div className="space-y-4 mt-2">
           <div>
-            <Label htmlFor="cancel-r">Motivo de cancelación <span className="text-gray-400">(opcional)</span></Label>
+            <Label htmlFor="cancel-r">Motivo de cancelación <span className="text-ink-300">(opcional)</span></Label>
             <textarea id="cancel-r" rows={3}
               className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
               placeholder="¿Por qué deseas cancelar esta solicitud?"
@@ -711,7 +756,7 @@ function DetalleReunion({
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1 border-gray-300 text-gray-700" disabled={actLoading}
+            <Button variant="outline" className="flex-1 border-border text-foreground" disabled={actLoading}
               onClick={() => onCancel(cancelReason||undefined)}>
               {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1"/> : null}
               Confirmar cancelación

@@ -12,7 +12,7 @@ export default async function CalendarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-50">
       <Navbar isAuthenticated={true} />
       <CalendarClient userId={user.id} />
     </div>

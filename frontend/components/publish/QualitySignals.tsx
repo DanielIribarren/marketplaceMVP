@@ -22,8 +22,8 @@ export const QualitySignalsIndicator: React.FC<QualitySignalsProps> = ({ signals
   ]
 
   return (
-    <div className="bg-white rounded-lg border p-4">
-      <h3 className="font-semibold mb-3 text-green">Señales de calidad</h3>
+    <div className="rounded-lg border border-brand-200 bg-brand-50/65 p-4">
+      <h3 className="mb-3 font-semibold text-brand-800">Señales de calidad</h3>
       <ul className="space-y-2">
         {signalList.map(signal => {
           const isValid = signals[signal.key as keyof typeof signals]
@@ -31,10 +31,10 @@ export const QualitySignalsIndicator: React.FC<QualitySignalsProps> = ({ signals
             <li key={signal.key} className="flex items-center gap-2">
               <span
                 className={`w-4 h-4 rounded-full shrink-0 ${
-                  isValid ? 'bg-green-500' : 'bg-gray-300'
+                  isValid ? 'bg-brand-600' : 'bg-brand-200'
                 }`}
               />
-              <span className={`${isValid ? 'text-green-700' : 'text-gray-600'}`}>
+              <span className={`${isValid ? 'text-brand-800' : 'text-muted-foreground'}`}>
                 {signal.label}
               </span>
             </li>

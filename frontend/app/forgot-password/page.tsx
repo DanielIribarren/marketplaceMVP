@@ -180,8 +180,8 @@ export default function ForgotPasswordPage() {
                 <div key={s} className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
                     step === s ? 'bg-primary text-white' :
-                    (['email', 'code', 'password'].indexOf(step) > i) ? 'bg-green-500 text-white' :
-                    'bg-gray-200 text-gray-500'
+                    (['email', 'code', 'password'].indexOf(step) > i) ? 'bg-brand-700 text-white' :
+                    'bg-brand-100 text-muted-foreground'
                   }`}>
                     {(['email', 'code', 'password'].indexOf(step) > i) ? (
                       <CheckCircle2 className="w-4 h-4" />
@@ -189,7 +189,7 @@ export default function ForgotPasswordPage() {
                       i + 1
                     )}
                   </div>
-                  {i < 2 && <div className={`w-8 h-0.5 ${(['email', 'code', 'password'].indexOf(step) > i) ? 'bg-green-500' : 'bg-gray-200'}`} />}
+                  {i < 2 && <div className={`w-8 h-0.5 ${(['email', 'code', 'password'].indexOf(step) > i) ? 'bg-brand-700' : 'bg-brand-100'}`} />}
                 </div>
               ))}
             </div>
@@ -321,7 +321,7 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 {password && confirmPassword && password !== confirmPassword && (
-                  <p className="text-sm text-red-500">Las contraseñas no coinciden</p>
+                  <p className="text-sm text-destructive">Las contraseñas no coinciden</p>
                 )}
 
                 <Button

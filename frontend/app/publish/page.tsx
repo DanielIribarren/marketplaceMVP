@@ -1,31 +1,41 @@
-'use client'
+"use client"
 
-import * as React from 'react'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { BasicFields } from '@/components/publish/BasicFields'
-import { AvailabilityCalendar } from '@/components/publish/AvailabilityCalendar'
-import { saveDraft, publishMVP, calculateQualitySignals } from '@/app/actions/mvp'
-import { createEmptyDraft } from '@/lib/types/mvp-publication'
-import type { MVPPublication, QualitySignals } from '@/lib/types/mvp-publication'
-import { Loader2, Send, CheckCircle2, Calendar } from 'lucide-react'
-import { QualitySignalsIndicator } from '@/components/publish/QualitySignals'
+import * as React from "react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { AnimatePresence, motion } from "framer-motion"
+import { Calendar, CheckCircle2, Loader2, Send } from "lucide-react"
+import { calculateQualitySignals, publishMVP, saveDraft } from "@/app/actions/mvp"
+import { AvailabilityCalendar } from "@/components/publish/AvailabilityCalendar"
+import { BasicFields } from "@/components/publish/BasicFields"
+import { QualitySignalsIndicator } from "@/components/publish/QualitySignals"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { createEmptyDraft } from "@/lib/types/mvp-publication"
+import type { MVPPublication, QualitySignals } from "@/lib/types/mvp-publication"
 
-type Step = 'basics' | 'availability' | 'review'
+type Step = "basics" | "availability" | "review"
 
 const STEPS = [
-  { id: 'basics', label: 'Información Básica', icon: CheckCircle2 },
-  { id: 'availability', label: 'Disponibilidad', icon: Calendar },
-  { id: 'review', label: 'Revisar y Publicar', icon: Send }
-]
+  { id: "basics", label: "Información Básica", icon: CheckCircle2 },
+  { id: "availability", label: "Disponibilidad", icon: Calendar },
+  { id: "review", label: "Revisar y Publicar", icon: Send },
+] as const
+
+const stepTransition = {
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 },
+  transition: { duration: 0.26, ease: [0.18, 0.95, 0.3, 1] as const },
+}
 
 export default function PublishPage() {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState<Step>('basics')
-  const [mvpData, setMvpData] = useState<Partial<MVPPublication> & { id?: string }>(() => createEmptyDraft(''))
+  const [currentStep, setCurrentStep] = useState<Step>("basics")
+  const [mvpData, setMvpData] = useState<Partial<MVPPublication> & { id?: string }>(
+    () => createEmptyDraft("")
+  )
   const [isSaving, setIsSaving] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,12 +45,10 @@ export default function PublishPage() {
     hasConcreteUseCase: false,
     hasDemoOrScreenshot: false,
     hasMinimalEvidence: false,
-    hasDealModality: false
+    hasDealModality: false,
   })
-
   const [hasAvailability, setHasAvailability] = useState(false)
 
-  // Recalculate quality signals when data changes
   React.useEffect(() => {
     const calculateSignals = async () => {
       try {
@@ -48,7 +56,7 @@ export default function PublishPage() {
         if (result.success && result.signals) {
           setSignals(result.signals)
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
@@ -62,43 +70,42 @@ export default function PublishPage() {
   const goToNextStep = async () => {
     setError(null)
 
-    if (currentStep === 'basics') {
+    if (currentStep === "basics") {
       if (!canProceedToAvailability()) {
-        setError('Por favor completa los campos básicos antes de continuar')
+        setError("Por favor completa los campos básicos antes de continuar")
         return
       }
 
-      // Create the MVP record now (only once)
       if (!mvpData.id) {
         setIsSaving(true)
         try {
           const result = await saveDraft(mvpData)
           if (!result.success || !result.data?.id) {
-            setError(result.message || 'Error al guardar el MVP')
+            setError(result.message || "Error al guardar el MVP")
             return
           }
-          setMvpData(prev => ({ ...prev, id: result.data.id }))
-        } catch (e) {
-          setError('Error de conexión al guardar')
+          setMvpData((prev) => ({ ...prev, id: result.data.id }))
+        } catch {
+          setError("Error de conexión al guardar")
           return
         } finally {
           setIsSaving(false)
         }
       }
 
-      setCurrentStep('availability')
-    } else if (currentStep === 'availability') {
+      setCurrentStep("availability")
+    } else if (currentStep === "availability") {
       if (!hasAvailability) {
-        setError('Debes guardar al menos un horario para continuar')
+        setError("Debes guardar al menos un horario para continuar")
         return
       }
-      setCurrentStep('review')
+      setCurrentStep("review")
     }
   }
 
   const handlePublish = async () => {
     if (!mvpData.id) {
-      setError('No hay un MVP guardado. Vuelve al paso anterior.')
+      setError("No hay un MVP guardado. Vuelve al paso anterior.")
       return
     }
 
@@ -108,34 +115,33 @@ export default function PublishPage() {
     try {
       const result = await publishMVP(mvpData.id)
       if (result.success) {
-        router.push('/marketplace')
+        router.push("/marketplace")
       } else {
-        setError(result.message || 'Error al publicar')
+        setError(result.message || "Error al publicar")
       }
-    } catch (e) {
-      setError('Error de conexión')
+    } catch {
+      setError("Error de conexión")
     } finally {
       setIsPublishing(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold">Publicar MVP</h1>
-            {currentStep === 'review' && (
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-10 border-b border-border/70 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
+        <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 lg:px-8">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold tracking-tight">Publicar MVP</h1>
+            {currentStep === "review" && (
               <Button onClick={handlePublish} disabled={isPublishing}>
                 {isPublishing ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Publicando...
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4 mr-2" />
+                    <Send className="mr-2 h-4 w-4" />
                     Publicar MVP
                   </>
                 )}
@@ -143,32 +149,46 @@ export default function PublishPage() {
             )}
           </div>
 
-          {/* Progress Steps */}
           <div className="flex items-center justify-center gap-2">
             {STEPS.map((step, index) => {
               const Icon = step.icon
               const isCurrent = currentStep === step.id
               const isCompleted =
-                (step.id === 'basics' && (currentStep === 'availability' || currentStep === 'review')) ||
-                (step.id === 'availability' && currentStep === 'review')
+                (step.id === "basics" &&
+                  (currentStep === "availability" || currentStep === "review")) ||
+                (step.id === "availability" && currentStep === "review")
 
               return (
                 <React.Fragment key={step.id}>
                   <div className="flex flex-col items-center">
-                    <div className={`
-                      w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors
-                      ${isCurrent ? 'border-primary bg-primary text-white' : ''}
-                      ${isCompleted ? 'border-green-500 bg-green-500 text-white' : ''}
-                      ${!isCurrent && !isCompleted ? 'border-gray-300 bg-white text-gray-400' : ''}
-                    `}>
-                      <Icon className="w-5 h-5" />
+                    <div
+                      className={[
+                        "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors duration-200",
+                        isCurrent && "border-primary bg-primary text-white",
+                        isCompleted && "border-brand-700 bg-brand-700 text-white",
+                        !isCurrent &&
+                          !isCompleted &&
+                          "border-brand-200 bg-background text-muted-foreground",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <span className={`text-xs mt-1 ${isCurrent ? 'font-semibold' : 'text-gray-500'}`}>
+                    <span
+                      className={`mt-1 text-xs ${
+                        isCurrent ? "font-semibold text-primary" : "text-muted-foreground"
+                      }`}
+                    >
                       {step.label}
                     </span>
                   </div>
                   {index < STEPS.length - 1 && (
-                    <div className={`h-0.5 w-16 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <div
+                      className={`h-0.5 w-16 ${
+                        isCompleted ? "bg-brand-700" : "bg-brand-200"
+                      }`}
+                    />
                   )}
                 </React.Fragment>
               )
@@ -176,146 +196,158 @@ export default function PublishPage() {
           </div>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentStep === 'basics' && (
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-6">Información del MVP</h2>
-                <BasicFields data={mvpData} onChange={setMvpData} />
-                <div className="mt-6 flex justify-end">
-                  <Button
-                    onClick={goToNextStep}
-                    disabled={!canProceedToAvailability() || isSaving}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Guardando...
-                      </>
-                    ) : (
-                      'Continuar a Disponibilidad'
-                    )}
-                  </Button>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <AnimatePresence mode="wait">
+          {currentStep === "basics" && (
+            <motion.div key="basics" {...stepTransition}>
+              <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                  <Card className="p-6">
+                    <h2 className="mb-6 text-xl font-semibold">Información del MVP</h2>
+                    <BasicFields data={mvpData} onChange={setMvpData} />
+                    <div className="mt-6 flex justify-end">
+                      <Button
+                        onClick={goToNextStep}
+                        disabled={!canProceedToAvailability() || isSaving}
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          "Continuar a Disponibilidad"
+                        )}
+                      </Button>
+                    </div>
+                  </Card>
                 </div>
-              </Card>
-            </div>
 
-            <div className="lg:col-span-1 sticky top-24">
-              <QualitySignalsIndicator signals={signals} />
-              {!Object.values(signals).every(Boolean) && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
-                  <p className="text-sm text-yellow-800 font-medium mb-2">
-                    Completa los campos requeridos
-                  </p>
-                  <p className="text-xs text-yellow-700">
-                    Completa las 5 señales de calidad para poder publicar.
-                  </p>
+                <div className="sticky top-24 lg:col-span-1">
+                  <QualitySignalsIndicator signals={signals} />
+                  {!Object.values(signals).every(Boolean) && (
+                    <div className="mt-4 rounded-lg border border-brand-200 bg-brand-50 p-4">
+                      <p className="mb-2 text-sm font-medium text-brand-800">
+                        Completa los campos requeridos
+                      </p>
+                      <p className="text-xs text-brand-700">
+                        Completa las 5 señales de calidad para poder publicar.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {currentStep === 'availability' && mvpData.id && (
-          <div className="space-y-4">
-            <Card className="p-6">
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2">Configura tu Disponibilidad</h2>
-                <p className="text-gray-600">
-                  Define cuándo estás disponible para reuniones con inversionistas interesados en tu MVP
-                </p>
               </div>
-              <Badge variant="secondary" className="mb-4">
-                Requerido para continuar
-              </Badge>
-            </Card>
+            </motion.div>
+          )}
 
-            <AvailabilityCalendar mvpId={mvpData.id} onHasAvailabilityChange={setHasAvailability} />
-
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep('basics')}>
-                Volver
-              </Button>
-              <Button onClick={goToNextStep} disabled={!hasAvailability}>
-                Continuar a Revisión
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 'review' && (
-          <div className="space-y-4">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-6">Revisa tu Publicación</h2>
-
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg">{mvpData.name}</h3>
-                  <p className="text-gray-600 italic">{mvpData.oneLiner}</p>
+          {currentStep === "availability" && mvpData.id && (
+            <motion.div key="availability" {...stepTransition} className="space-y-4">
+              <Card className="p-6">
+                <div className="mb-6">
+                  <h2 className="mb-2 text-xl font-semibold">
+                    Configura tu Disponibilidad
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Define cuándo estás disponible para reuniones con
+                    inversionistas interesados en tu MVP.
+                  </p>
                 </div>
+                <Badge variant="secondary" className="mb-2">
+                  Requerido para continuar
+                </Badge>
+              </Card>
 
-                <div>
-                  <h4 className="font-medium mb-2">Descripción</h4>
-                  <p className="text-gray-700 whitespace-pre-wrap">{mvpData.description}</p>
-                </div>
+              <AvailabilityCalendar
+                mvpId={mvpData.id}
+                onHasAvailabilityChange={setHasAvailability}
+              />
 
-                {mvpData.demoUrl && (
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setCurrentStep("basics")}>
+                  Volver
+                </Button>
+                <Button onClick={goToNextStep} disabled={!hasAvailability}>
+                  Continuar a Revisión
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {currentStep === "review" && (
+            <motion.div key="review" {...stepTransition} className="space-y-4">
+              <Card className="p-6">
+                <h2 className="mb-6 text-xl font-semibold">Revisa tu Publicación</h2>
+
+                <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium mb-2">Demo</h4>
-                    <a
-                      href={mvpData.demoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {mvpData.demoUrl}
-                    </a>
+                    <h3 className="text-lg font-semibold">{mvpData.name}</h3>
+                    <p className="italic text-muted-foreground">{mvpData.oneLiner}</p>
                   </div>
-                )}
 
-                {mvpData.monetizationModel && (
                   <div>
-                    <h4 className="font-medium mb-2">Monetización</h4>
-                    <Badge>{mvpData.monetizationModel}</Badge>
-                  </div>
-                )}
-
-                {mvpData.dealModality && mvpData.priceRange && (
-                  <div>
-                    <h4 className="font-medium mb-2">Deal</h4>
-                    <p className="text-gray-700">
-                      {mvpData.dealModality} - {mvpData.priceRange}
+                    <h4 className="mb-2 font-medium">Descripción</h4>
+                    <p className="whitespace-pre-wrap text-muted-foreground">
+                      {mvpData.description}
                     </p>
                   </div>
-                )}
-              </div>
 
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  Tu MVP será enviado a revisión. El equipo de Dame Dos lo evaluará y te notificará cuando sea aprobado.
-                </p>
-              </div>
-            </Card>
+                  {mvpData.demoUrl && (
+                    <div>
+                      <h4 className="mb-2 font-medium">Demo</h4>
+                      <a
+                        href={mvpData.demoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {mvpData.demoUrl}
+                      </a>
+                    </div>
+                  )}
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep('availability')}>
-                Volver
-              </Button>
-              <Button onClick={handlePublish} disabled={isPublishing}>
-                {isPublishing ? 'Publicando...' : 'Publicar MVP'}
-              </Button>
-            </div>
-          </div>
-        )}
+                  {mvpData.monetizationModel && (
+                    <div>
+                      <h4 className="mb-2 font-medium">Monetización</h4>
+                      <Badge>{mvpData.monetizationModel}</Badge>
+                    </div>
+                  )}
+
+                  {mvpData.dealModality && mvpData.priceRange && (
+                    <div>
+                      <h4 className="mb-2 font-medium">Deal</h4>
+                      <p className="text-muted-foreground">
+                        {mvpData.dealModality} - {mvpData.priceRange}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 rounded-lg border border-brand-200 bg-brand-50 p-4">
+                  <p className="text-sm text-brand-800">
+                    Tu MVP será enviado a revisión. El equipo de Dame Dos lo
+                    evaluará y te notificará cuando sea aprobado.
+                  </p>
+                </div>
+              </Card>
+
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setCurrentStep("availability")}>
+                  Volver
+                </Button>
+                <Button onClick={handlePublish} disabled={isPublishing}>
+                  {isPublishing ? "Publicando..." : "Publicar MVP"}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

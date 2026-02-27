@@ -272,7 +272,7 @@ export default function ProfileEditor() {
   return (
     <div className="max-w-xl">
       <div className="flex items-center gap-4 mb-4">
-        <div className="w-20 h-20 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+        <div className="w-20 h-20 rounded-full bg-brand-200 overflow-hidden flex items-center justify-center">
           {filePreview || profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -391,7 +391,7 @@ export default function ProfileEditor() {
 
       {success && (
         <div aria-live="polite" className="fixed right-4 bottom-6 z-50">
-          <div className="bg-green-600 text-white px-4 py-2 rounded-md shadow-lg">{success}</div>
+          <div className="bg-brand-700 text-white px-4 py-2 rounded-md shadow-lg">{success}</div>
         </div>
       )}
 
