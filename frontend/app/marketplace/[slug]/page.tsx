@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getUser } from '@/app/actions/auth'
 import { getMVP } from '@/app/actions/mvp'
-import { recordMvpUniqueView, getMvpViewsCount } from '@/app/actions/mvpViews'
+import { recordMvpUniqueView, getMvpViewsCount } from '@/app/actions/MvpViews'
 import { Navbar } from '@/components/navbar'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'

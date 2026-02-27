@@ -1,4 +1,5 @@
 import { supabase } from '../../utils/supabase-client.js'
+import { ensureDefaultAvailabilityForMvp } from '../../services/default-availability.js'
 
 /**
  * POST /api/mvps/:id/publish
@@ -38,6 +39,13 @@ export async function publishMVP(req, res) {
         message: `El MVP ya está en estado: ${mvp.status}` 
       })
     }
+
+    // Garantizar disponibilidad inicial por defecto para nuevos MVPs
+    await ensureDefaultAvailabilityForMvp({
+      supabase,
+      mvpId,
+      ownerId: userId
+    })
 
     // Publicar MVP (cambiar estado a pending_review)
     const { data: published, error: publishError } = await supabase

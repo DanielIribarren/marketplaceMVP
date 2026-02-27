@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getMvpDetails } from '@/app/actions/mvp'
-import { recordMvpUniqueView } from '@/app/actions/mvpViews'
+import { recordMvpUniqueView } from '@/app/actions/MvpViews'
+import { getMyMeetings } from '@/app/actions/meetings'
+import type { Meeting } from '@/app/actions/meetings'
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,11 +13,12 @@ import { Badge } from '@/components/ui/badge'
 import { MeetingScheduler } from '@/components/publish/MeetingScheduler'
 import {
   Loader2, ArrowLeft, ExternalLink, Star, Eye,
-  Heart, Calendar, MessageCircle
+  Heart, Calendar, CalendarClock
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { getInvestorMeetingStatusMeta, pickLatestMeetingByMvp } from '@/lib/investor-meeting-status'
 
 interface MVP {
   id: string
@@ -63,6 +66,8 @@ export default function MVPDetailsPage() {
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [showScheduler, setShowScheduler] = useState(false)
+  const [investorMeeting, setInvestorMeeting] = useState<Meeting | null>(null)
+  const [meetingStatusLoading, setMeetingStatusLoading] = useState(false)
 
   const isValidUrl = (url: string): boolean => {
     if (!url || url.trim() === '') return false
@@ -101,6 +106,39 @@ export default function MVPDetailsPage() {
     fetchMVPDetails()
   }, [params.id])
 
+  useEffect(() => {
+    if (!mvp?.id || !currentUserId) return
+    if (mvp.owner_id === currentUserId) return
+
+    let mounted = true
+
+    const loadInvestorMeetingStatus = async () => {
+      setMeetingStatusLoading(true)
+      const meetingsResult = await getMyMeetings()
+
+      if (!mounted) return
+
+      if (!meetingsResult.success) {
+        setInvestorMeeting(null)
+        setMeetingStatusLoading(false)
+        return
+      }
+
+      const byMvp = pickLatestMeetingByMvp(
+        meetingsResult.data.filter((meeting) => meeting.mvp_id === mvp.id)
+      )
+
+      setInvestorMeeting(byMvp[mvp.id] || null)
+      setMeetingStatusLoading(false)
+    }
+
+    loadInvestorMeetingStatus()
+
+    return () => {
+      mounted = false
+    }
+  }, [mvp?.id, mvp?.owner_id, currentUserId])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -131,6 +169,20 @@ export default function MVPDetailsPage() {
 
   // El usuario es dueño del MVP? → no puede agendar reunión consigo mismo
   const isOwner = currentUserId !== null && mvp.owner_id === currentUserId
+  const meetingMeta = !isOwner && investorMeeting
+    ? getInvestorMeetingStatusMeta(investorMeeting.status)
+    : null
+  const hasActiveMeeting = !!meetingMeta?.isActive
+  const canRequestMeeting = !meetingStatusLoading && !hasActiveMeeting
+  const meetingDateLabel = investorMeeting?.scheduled_at
+    ? new Date(investorMeeting.scheduled_at).toLocaleString('es-MX', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    : null
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,9 +200,16 @@ export default function MVPDetailsPage() {
               <p className="text-lg text-muted-foreground">{mvp.one_liner}</p>
             </div>
           </div>
-          {mvp.deal_modality && (
-            <Badge className="h-fit text-base px-4 py-2">{mvp.deal_modality}</Badge>
-          )}
+          <div className="flex flex-col items-end gap-2">
+            {mvp.deal_modality && (
+              <Badge className="h-fit text-base px-4 py-2">{mvp.deal_modality}</Badge>
+            )}
+            {meetingMeta && (
+              <Badge variant="outline" className={meetingMeta.badgeClassName}>
+                Mi reunión: {meetingMeta.label}
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -276,22 +335,57 @@ export default function MVPDetailsPage() {
 
             {/* ── AGENDADOR DE REUNIÓN (solo visible para inversores) ── */}
             {!isOwner && currentUserId && (
-              <div id="agendar-reunion">
-                {!showScheduler ? (
+              <div id="agendar-reunion" className="space-y-4">
+                {meetingMeta && (
+                  <Card className="border-2">
+                    <CardContent className="p-5 space-y-3">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <CalendarClock className="w-4 h-4 text-muted-foreground" />
+                          <p className="text-sm font-semibold">Tu estado con este MVP</p>
+                        </div>
+                        <Badge variant="outline" className={meetingMeta.badgeClassName}>
+                          {meetingMeta.label}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{meetingMeta.description}</p>
+                      {meetingDateLabel && (
+                        <p className="text-sm text-muted-foreground">
+                          Fecha de reunión: {meetingDateLabel}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <Link href="/calendar">
+                          <Button variant="outline" size="sm">Ver reunión en calendario</Button>
+                        </Link>
+                        {hasActiveMeeting && (
+                          <p className="text-xs text-muted-foreground self-center">
+                            Ya tienes una reunión activa para este MVP
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {canRequestMeeting && !showScheduler ? (
                   <Card className="border-2 border-primary/30 bg-primary/5">
                     <CardContent className="p-6 text-center">
                       <Calendar className="w-10 h-10 text-primary mx-auto mb-3" />
                       <h2 className="text-xl font-semibold mb-2">¿Te interesa este MVP?</h2>
                       <p className="text-muted-foreground mb-4 text-sm">
-                        Agenda una reunión con el emprendedor para conocer más detalles y evaluar la oportunidad de inversión.
+                        {meetingMeta
+                          ? 'Ya tuviste interacción con este MVP. Si quieres, agenda un nuevo seguimiento con oferta inicial.'
+                          : 'Agenda una reunión con el emprendedor y envía tu oferta inicial para discutirla durante la llamada.'
+                        }
                       </p>
                       <Button size="lg" onClick={() => setShowScheduler(true)}>
                         <Calendar className="w-4 h-4 mr-2" />
-                        Agendar reunión con el emprendedor
+                        {meetingMeta ? 'Agendar seguimiento con oferta inicial' : 'Agendar reunión con oferta inicial'}
                       </Button>
                     </CardContent>
                   </Card>
-                ) : (
+                ) : canRequestMeeting && showScheduler ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-semibold">Agendar Reunión</h2>
@@ -305,6 +399,14 @@ export default function MVPDetailsPage() {
                       ownerName={mvp.user_profiles?.display_name}
                     />
                   </div>
+                ) : (
+                  <Card className="border-2 border-dashed">
+                    <CardContent className="p-6 text-center text-muted-foreground">
+                      <p className="text-sm">
+                        Tienes una reunión activa para este MVP. Gestiona el estado desde tu calendario.
+                      </p>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             )}

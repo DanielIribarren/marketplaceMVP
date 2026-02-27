@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Eye } from 'lucide-react'
+import { CalendarClock, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { getMyMeetings } from '@/app/actions/meetings'
+import type { Meeting } from '@/app/actions/meetings'
+import { getInvestorMeetingStatusMeta, pickLatestMeetingByMvp } from '@/lib/investor-meeting-status'
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
 
@@ -39,6 +42,16 @@ type MvpListItem = {
 type MarketplaceClientProps = {
   initialMvps: MvpListItem[]
   initialFilters: FilterState
+}
+
+function formatMeetingDateShort(iso: string | null | undefined) {
+  if (!iso) return null
+  return new Date(iso).toLocaleString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 function buildApiParams(filters: FilterState) {
@@ -97,10 +110,27 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
   const [error, setError] = useState<string | null>(null)
   const [totalCount, setTotalCount] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(false)
+  const [meetingByMvp, setMeetingByMvp] = useState<Record<string, Meeting>>({})
   const isFirstLoad = useRef(true)
 
   const apiQuery = useMemo(() => buildApiParams(filters).toString(), [filters])
   const urlQuery = useMemo(() => buildUrlParams(filters).toString(), [filters])
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadMeetingStatuses = async () => {
+      const result = await getMyMeetings()
+      if (!result.success || !mounted) return
+      setMeetingByMvp(pickLatestMeetingByMvp(result.data))
+    }
+
+    loadMeetingStatuses()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   useEffect(() => {
     if (isFirstLoad.current) {
@@ -293,6 +323,12 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {mvps.map((mvp) => {
+            const investorMeeting = meetingByMvp[mvp.id]
+            const meetingMeta = investorMeeting
+              ? getInvestorMeetingStatusMeta(investorMeeting.status)
+              : null
+            const meetingDateLabel = formatMeetingDateShort(investorMeeting?.scheduled_at)
+
             return (
               <Card key={mvp.id} className="border-2 hover:border-primary transition-colors">
                 <CardContent className="p-6 space-y-4">
@@ -327,9 +363,26 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
                     </div>
                   </div>
 
+                  {meetingMeta && (
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="w-4 h-4 text-muted-foreground" />
+                        <Badge variant="outline" className={meetingMeta.badgeClassName}>
+                          {meetingMeta.label}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{meetingMeta.description}</p>
+                      {meetingDateLabel && (
+                        <p className="text-xs text-muted-foreground">
+                          Fecha: {meetingDateLabel}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <Link href={`/mvps/${mvp.id}`}>
                     <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                      Ver detalles
+                      {meetingMeta?.isActive ? 'Ver estado de mi reunión' : 'Ver detalles'}
                     </Button>
                   </Link>
                 </CardContent>

@@ -44,6 +44,12 @@ export interface Meeting {
   confirmed_at: string | null
   rejected_at: string | null
   availability_slot_id: string | null
+  offer_type: 'economic' | 'non_economic' | null
+  offer_amount: number | null
+  offer_equity_percent: number | null
+  offer_note: string | null
+  offer_status: string | null
+  offer_discussed_at: string | null
   // Campos enriquecidos
   user_role?: 'entrepreneur' | 'investor'
   mvp: {

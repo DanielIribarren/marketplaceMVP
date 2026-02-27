@@ -1,7 +1,14 @@
 export type UserRole = 'user' | 'admin'
 export type UserStatus = 'active' | 'inactive' | 'banned' | 'pending_verification'
 export type MvpStatus = 'draft' | 'pending_review' | 'approved' | 'rejected' | 'archived'
-export type MeetingStatus = 'pending' | 'confirmed' | 'rejected' | 'completed' | 'cancelled'
+export type MeetingStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'rejected'
+  | 'completed'
+  | 'cancelled'
+  | 'counterproposal_entrepreneur'
+  | 'counterproposal_investor'
 export type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
 export type SupportTicketType = 'bug_report' | 'technical_support' | 'suggestion' | 'other'
 
@@ -82,14 +89,27 @@ export interface Meeting {
   scheduled_at: string | null
   duration_minutes: number
   meeting_url: string | null
+  meeting_type: string
+  timezone: string
   notes: string | null
   requester_notes: string | null
   owner_notes: string | null
+  counterproposal_notes: string | null
+  counterproposal_by: string | null
   created_at: string
   updated_at: string
   confirmed_at: string | null
   rejected_at: string | null
   rejection_reason: string | null
+  cancellation_reason: string | null
+  cancelled_by: string | null
+  availability_slot_id: string | null
+  offer_type: 'economic' | 'non_economic' | null
+  offer_amount: number | null
+  offer_equity_percent: number | null
+  offer_note: string | null
+  offer_status: string | null
+  offer_discussed_at: string | null
 }
 
 export interface Favorite {

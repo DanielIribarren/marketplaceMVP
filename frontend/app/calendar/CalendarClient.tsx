@@ -49,6 +49,38 @@ function fmtFechaLarga(iso: string) {
   return new Date(iso).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
 }
 
+function parseMaybeNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatCurrencyUSD(value: number): string {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2
+  }).format(value)
+}
+
+function formatOfferSummary(meeting: Meeting): string | null {
+  if (meeting.offer_type === 'economic') {
+    const amount = parseMaybeNumber(meeting.offer_amount)
+    const equityPercent = parseMaybeNumber(meeting.offer_equity_percent)
+
+    if (amount !== null && equityPercent !== null) {
+      return `${formatCurrencyUSD(amount)} por ${equityPercent}% del MVP`
+    }
+    return null
+  }
+
+  if (meeting.offer_type === 'non_economic' && meeting.offer_note) {
+    return meeting.offer_note
+  }
+
+  return null
+}
+
 const STATUS: Record<string,{label:string;dot:string;bg:string;text:string}> = {
   pending:                      {label:'Pendiente',         dot:'bg-amber-400',  bg:'bg-amber-50 border-amber-200',   text:'text-amber-800'},
   confirmed:                    {label:'Confirmada',        dot:'bg-blue-400',   bg:'bg-blue-50 border-blue-200',     text:'text-blue-800'},
@@ -203,6 +235,7 @@ export function CalendarClient({ userId }: { userId: string }) {
                   const rol  = rolLabel(m, userId)
                   const Icono = rol.Icono
                   const accion = esmiturno(m, userId)
+                  const offerSummary = formatOfferSummary(m)
 
                   return (
                     <button key={m.id} onClick={() => abrirDetalle(m)}
@@ -222,6 +255,11 @@ export function CalendarClient({ userId }: { userId: string }) {
                       <p className="text-[10px] text-gray-500 truncate leading-tight">
                         {m.mvp?.title || 'Reunión'}
                       </p>
+                      {offerSummary && (
+                        <p className="text-[9px] text-gray-500 truncate leading-tight">
+                          {m.offer_type === 'economic' ? 'Oferta:' : 'Aporte:'} {offerSummary}
+                        </p>
+                      )}
                       {accion && (
                         <p className="text-[9px] text-amber-600 font-bold mt-0.5">⚡ Tu turno</p>
                       )}
@@ -265,6 +303,7 @@ export function CalendarClient({ userId }: { userId: string }) {
               const cfg   = STATUS[m.status] || STATUS.pending
               const otro  = m.requester_id === userId ? m.owner : m.requester
               const esCont = m.status.startsWith('counterproposal')
+              const offerSummary = formatOfferSummary(m)
 
               return (
                 <div key={m.id} className="bg-white border-2 border-amber-200 rounded-2xl p-5 flex flex-col gap-3">
@@ -284,6 +323,14 @@ export function CalendarClient({ userId }: { userId: string }) {
                       )}
                       {otro && (
                         <p className="text-xs text-gray-400">Con: {otro.display_name || otro.email || 'Participante'}</p>
+                      )}
+                      {offerSummary && (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                          <span className="font-semibold text-gray-600">
+                            {m.offer_type === 'economic' ? 'Oferta inicial: ' : 'Aporte inicial: '}
+                          </span>
+                          {offerSummary}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -404,6 +451,7 @@ function DetalleReunion({
   const otro    = isReq ? m.owner : m.requester
   const activo  = ['pending','confirmed','counterproposal_entrepreneur','counterproposal_investor'].includes(m.status)
   const esCont  = m.status.startsWith('counterproposal')
+  const offerSummary = formatOfferSummary(m)
 
   return (
     <>
@@ -456,6 +504,14 @@ function DetalleReunion({
                 Unirse a la reunión <ExternalLink className="w-3 h-3"/>
               </a>
             </Row>
+          )}
+          {offerSummary && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+              <p className="text-xs font-semibold text-blue-700 uppercase mb-1">Oferta inicial</p>
+              <p className="text-sm text-blue-900">
+                {offerSummary}
+              </p>
+            </div>
           )}
 
           {/* Bloque contrapropuesta */}
