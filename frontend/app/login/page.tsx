@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { login } from '@/app/actions/auth'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -10,15 +11,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam === 'verification_failed') {
+      setError('Error al verificar tu email. Por favor intenta registrarte nuevamente.')
+    }
+  }, [searchParams])
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
-    
+
     const result = await login(formData)
-    
+
     if (result?.error) {
       setError(result.error)
       setLoading(false)
@@ -82,7 +91,7 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-md text-sm">
                   {error}
                 </div>
               )}

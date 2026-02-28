@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClient } from "@/lib/supabase/client"
 import type { StorageError } from "@supabase/storage-js"
+import { X } from "lucide-react"
 
 interface UserProfile {
   id?: string
@@ -33,10 +34,12 @@ export default function ProfileEditor() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [filePreview, setFilePreview] = useState<string | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [authName, setAuthName] = useState<string | null>(null)
   const [authEmail, setAuthEmail] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null)
+  const [showImageModal, setShowImageModal] = useState(false)
 
   function getInitials(name?: string) {
     const v = (name || '').trim()
@@ -50,6 +53,10 @@ export default function ProfileEditor() {
     let mounted = true
     ;(async () => {
       try {
+        // Limpiar preview local y archivo pendiente al cargar
+        setFilePreview(null)
+        setPendingFile(null)
+
         const supabase = createClient()
         const { data: authData } = await supabase.auth.getUser()
         const sessionRes = await supabase.auth.getSession()
@@ -86,45 +93,9 @@ export default function ProfileEditor() {
     const f = e.target.files?.[0]
     if (!f) return
 
+    // Solo crear preview local, no subir todavía
     setFilePreview(URL.createObjectURL(f))
-
-    try {
-      setLoading(true)
-      const supabase = createClient()
-      const { data: authData } = await supabase.auth.getUser()
-      const user = authData?.user
-      const userId = user?.id || 'anonymous'
-      const safeName = f.name.replace(/\s+/g, '_')
-      const path = `avatars/${userId}/${Date.now()}_${safeName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(path, f, { upsert: true })
-
-      if (uploadError) {
-        setError(uploadError.message || 'Error subiendo avatar')
-        return
-      }
-
-      const { data: publicData } = await supabase.storage
-        .from('avatars')
-        .getPublicUrl(path)
-
-      const publicUrl = publicData?.publicUrl || ''
-
-      setProfile((p) => ({ ...p, avatar_url: publicUrl }))
-      setFilePreview(publicUrl)
-      window.dispatchEvent(
-        new CustomEvent<{ avatar_url: string | null }>('profile:updated', {
-          detail: { avatar_url: publicUrl },
-        })
-      )
-    } catch (err) {
-      const storageErr = err as StorageError
-      setError(storageErr.message || 'Error al subir archivo')
-    } finally {
-      setLoading(false)
-    }
+    setPendingFile(f)
   }
 
   async function handleDeleteAvatar() {
@@ -210,11 +181,11 @@ export default function ProfileEditor() {
     setError(null)
     setSuccess(null)
 
-    
+
     const bioToCheck = profile.bio || ''
     const linkedinToCheck = profile.linkedin_url || ''
     const githubToCheck = profile.github_url || ''
-    
+
     if (bioToCheck.length > 300) {
       setLoading(false)
       setError('La bio debe tener como máximo 300 caracteres')
@@ -233,6 +204,34 @@ export default function ProfileEditor() {
 
     try {
       const supabase = createClient()
+
+      let newAvatarUrl = profile.avatar_url
+
+      // Si hay un archivo pendiente, subirlo ahora
+      if (pendingFile) {
+        const { data: authData } = await supabase.auth.getUser()
+        const user = authData?.user
+        const userId = user?.id || 'anonymous'
+        const safeName = pendingFile.name.replace(/\s+/g, '_')
+        const path = `avatars/${userId}/${Date.now()}_${safeName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(path, pendingFile, { upsert: true })
+
+        if (uploadError) {
+          setError(uploadError.message || 'Error subiendo avatar')
+          setLoading(false)
+          return
+        }
+
+        const { data: publicData } = await supabase.storage
+          .from('avatars')
+          .getPublicUrl(path)
+
+        newAvatarUrl = publicData?.publicUrl || profile.avatar_url
+      }
+
       await supabase.auth.updateUser({
         data: { display_name: authName || undefined }
       })
@@ -240,6 +239,7 @@ export default function ProfileEditor() {
       const base = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
       const payload: UserProfile = {
         ...profile,
+        avatar_url: newAvatarUrl,
         display_name: authName || profile.display_name,
         email: authEmail,
       }
@@ -258,6 +258,16 @@ export default function ProfileEditor() {
         setError(txt || 'Error al guardar')
       } else {
         setProfile(payload)
+        setPendingFile(null)
+        setFilePreview(newAvatarUrl)
+
+        // Ahora sí disparar el evento para actualizar el navbar
+        window.dispatchEvent(
+          new CustomEvent<{ avatar_url: string | null }>('profile:updated', {
+            detail: { avatar_url: newAvatarUrl },
+          })
+        )
+
         setSuccess('Perfil guardado correctamente')
         setTimeout(() => setSuccess(null), 3000)
       }
@@ -272,7 +282,16 @@ export default function ProfileEditor() {
   return (
     <div className="max-w-xl">
       <div className="flex items-center gap-4 mb-4">
-        <div className="w-20 h-20 rounded-full bg-brand-200 overflow-hidden flex items-center justify-center">
+        <div
+          className={`w-20 h-20 rounded-full bg-brand-200 overflow-hidden flex items-center justify-center ${
+            (filePreview || profile.avatar_url) ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''
+          }`}
+          onClick={() => {
+            if (filePreview || profile.avatar_url) {
+              setShowImageModal(true)
+            }
+          }}
+        >
           {filePreview || profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -290,16 +309,14 @@ export default function ProfileEditor() {
           <label className="text-sm text-muted-foreground block mb-1">Foto de perfil</label>
           <Input type="file" accept="image/*" onChange={handleFile} />
           {(filePreview || profile.avatar_url) && (
-            <Button
+            <button
               type="button"
-              variant="destructive"
-              size="sm"
-              className="mt-2"
+              className="mt-2 px-3 py-1.5 text-sm bg-red-100 text-red-800 border border-red-300 rounded-md hover:bg-red-700 hover:text-white transition-colors disabled:opacity-50"
               onClick={handleDeleteAvatar}
               disabled={loading}
             >
               Eliminar foto
-            </Button>
+            </button>
           )}
         </div>
       </div>
@@ -383,10 +400,14 @@ export default function ProfileEditor() {
         </div>
       )}
 
-      <div className="flex gap-2">
-        <Button onClick={handleSave} disabled={loading}>
+      <div className="flex gap-2 mt-4">
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-primary hover:border-primary hover:text-white transition-colors disabled:opacity-50 font-medium"
+        >
           {loading ? 'Guardando...' : 'Guardar'}
-        </Button>
+        </button>
       </div>
 
       {success && (
@@ -395,10 +416,10 @@ export default function ProfileEditor() {
         </div>
       )}
 
-      <div className="border-t pt-4">
-        <Button
+      <div className="border-t pt-4 mt-6 flex justify-center">
+        <button
           type="button"
-          variant="destructive"
+          className="px-4 py-2 bg-red-100 text-red-800 border border-red-300 rounded-md hover:bg-red-700 hover:text-white transition-colors font-medium"
           onClick={async () => {
             const supabase = createClient()
             await supabase.auth.signOut()
@@ -406,8 +427,30 @@ export default function ProfileEditor() {
           }}
         >
           Cerrar sesión
-        </Button>
+        </button>
       </div>
+
+      {/* Modal para ver imagen en grande */}
+      {showImageModal && (filePreview || profile.avatar_url) && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <button
+            onClick={() => setShowImageModal(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={filePreview || profile.avatar_url!}
+            alt="avatar ampliado"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }

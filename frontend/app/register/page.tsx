@@ -10,25 +10,67 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
+interface FieldErrors {
+  display_name?: string
+  email?: string
+  password?: string
+  confirm_password?: string
+}
+
 export default function RegisterPage() {
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [loading, setLoading] = useState(false)
+
+  function validatePassword(password: string): string | null {
+    if (password.length < 8) {
+      return 'Mínimo 8 caracteres'
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Debe contener al menos una mayúscula'
+    }
+    if (!/[a-z]/.test(password)) {
+      return 'Debe contener letras minúsculas'
+    }
+    if (!/[0-9]/.test(password)) {
+      return 'Debe contener números'
+    }
+    return null
+  }
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
-    setError(null)
+    setFieldErrors({})
 
+    const displayName = formData.get('display_name') as string
+    const email = formData.get('email') as string
     const password = formData.get('password') as string
     const confirmPassword = formData.get('confirm_password') as string
 
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden')
-      setLoading(false)
-      return
+    const errors: FieldErrors = {}
+
+    // Validate display name
+    if (!displayName || displayName.trim().length === 0) {
+      errors.display_name = 'El nombre es requerido'
     }
 
-    if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres')
+    // Validate email
+    if (!email || !email.includes('@')) {
+      errors.email = 'Email inválido'
+    }
+
+    // Validate password
+    const passwordError = validatePassword(password)
+    if (passwordError) {
+      errors.password = passwordError
+    }
+
+    // Validate confirm password
+    if (password !== confirmPassword) {
+      errors.confirm_password = 'Las contraseñas no coinciden'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
       setLoading(false)
       return
     }
@@ -40,7 +82,12 @@ export default function RegisterPage() {
     const result = await signup(formData)
 
     if (result?.error) {
-      setError(result.error)
+      // Check for duplicate email error
+      if (result.error.includes('already registered') || result.error.includes('already exists')) {
+        setFieldErrors({ email: 'Este correo ya está en uso' })
+      } else {
+        setFieldErrors({ email: result.error })
+      }
       setLoading(false)
     }
   }
@@ -81,7 +128,13 @@ export default function RegisterPage() {
                   placeholder="Juan Pérez"
                   required
                   disabled={loading}
+                  className={fieldErrors.display_name ? 'border-red-500' : ''}
                 />
+                {fieldErrors.display_name && (
+                  <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-md text-xs">
+                    {fieldErrors.display_name}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -93,7 +146,13 @@ export default function RegisterPage() {
                   placeholder="tu@email.com"
                   required
                   disabled={loading}
+                  className={fieldErrors.email ? 'border-red-500' : ''}
                 />
+                {fieldErrors.email && (
+                  <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-md text-xs">
+                    {fieldErrors.email}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -104,11 +163,16 @@ export default function RegisterPage() {
                   type="password"
                   placeholder="••••••••"
                   required
-                  minLength={8}
                   disabled={loading}
+                  className={fieldErrors.password ? 'border-red-500' : ''}
                 />
+                {fieldErrors.password && (
+                  <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-md text-xs">
+                    {fieldErrors.password}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Mínimo 8 caracteres
+                  Mínimo 8 caracteres, con letras, números y al menos una mayúscula
                 </p>
               </div>
 
@@ -120,16 +184,15 @@ export default function RegisterPage() {
                   type="password"
                   placeholder="••••••••"
                   required
-                  minLength={8}
                   disabled={loading}
+                  className={fieldErrors.confirm_password ? 'border-red-500' : ''}
                 />
+                {fieldErrors.confirm_password && (
+                  <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-md text-xs">
+                    {fieldErrors.confirm_password}
+                  </div>
+                )}
               </div>
-
-              {error && (
-                <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
 
               <div className="bg-secondary/50 border border-border rounded-lg p-4 space-y-2">
                 <p className="text-sm font-medium">Al registrarte obtienes:</p>

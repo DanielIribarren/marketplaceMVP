@@ -87,8 +87,26 @@ export default function ForgotPasswordPage() {
       return
     }
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
+      setIsLoading(false)
+      return
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError('La contraseña debe contener al menos una mayúscula')
+      setIsLoading(false)
+      return
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError('La contraseña debe contener letras minúsculas')
+      setIsLoading(false)
+      return
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError('La contraseña debe contener números')
       setIsLoading(false)
       return
     }
@@ -197,9 +215,9 @@ export default function ForgotPasswordPage() {
 
           <CardContent>
             {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-md text-sm mb-4">
+                {error}
+              </div>
             )}
 
             {success && step === 'code' && (
@@ -292,7 +310,7 @@ export default function ForgotPasswordPage() {
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Mínimo 8 caracteres"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pr-20"
@@ -305,6 +323,9 @@ export default function ForgotPasswordPage() {
                       {showPassword ? 'Ocultar' : 'Mostrar'}
                     </button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Mínimo 8 caracteres, con letras, números y al menos una mayúscula
+                  </p>
                 </div>
 
                 <div>
@@ -321,7 +342,9 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 {password && confirmPassword && password !== confirmPassword && (
-                  <p className="text-sm text-destructive">Las contraseñas no coinciden</p>
+                  <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-md text-xs">
+                    Las contraseñas no coinciden
+                  </div>
                 )}
 
                 <Button

@@ -63,6 +63,11 @@ export async function signup(formData: FormData) {
     return { error: error.message }
   }
 
+  // Check if email already exists (Supabase returns empty identities array for duplicates)
+  if (authData?.user && (!authData.user.identities || authData.user.identities.length === 0)) {
+    return { error: 'Este correo ya está registrado. Por favor inicia sesión o usa otro correo.' }
+  }
+
   // Auto-create user_profiles record so the profile is ready immediately
   if (authData?.user) {
     await supabase
