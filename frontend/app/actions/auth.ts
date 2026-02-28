@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
+const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
+
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
@@ -20,6 +22,14 @@ export async function login(formData: FormData) {
   if (error) {
     console.error('[LOGIN] Error:', error.message, '| Status:', error.status)
     return { error: error.message }
+  }
+
+  const loggedEmail = authData.user?.email?.toLowerCase()
+
+  revalidatePath('/', 'layout')
+
+  if (loggedEmail === ADMIN_EMAIL) {
+    redirect('/admin')
   }
 
   console.log('[LOGIN] Success! User:', authData.user?.email)
