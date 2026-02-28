@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { CalendarClock, CalendarDays, Eye, SlidersHorizontal } from 'lucide-react'
+import { CalendarClock, CalendarDays, Eye, Heart, Share2, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { getMyMeetings } from '@/app/actions/meetings'
 import type { Meeting } from '@/app/actions/meetings'
 import { getInvestorMeetingStatusMeta, pickLatestMeetingByMvp } from '@/lib/investor-meeting-status'
+import { getMyFavorites, toggleFavorite } from '@/app/actions/favorites'
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
 
@@ -210,6 +211,9 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
   const [totalCount, setTotalCount] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(false)
   const [meetingByMvp, setMeetingByMvp] = useState<Record<string, Meeting>>({})
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [copiedMvpId, setCopiedMvpId] = useState<string | null>(null)
   const isFirstLoad = useRef(true)
 
   const apiQuery = useMemo(() => buildApiParams(filters).toString(), [filters])
@@ -222,12 +226,12 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
     () =>
       Boolean(
         filters.q ||
-          filters.dealModality ||
-          filters.priceMin ||
-          filters.priceMax ||
-          filters.publishedFrom ||
-          filters.publishedTo ||
-          filters.sort !== 'recent'
+        filters.dealModality ||
+        filters.priceMin ||
+        filters.priceMax ||
+        filters.publishedFrom ||
+        filters.publishedTo ||
+        filters.sort !== 'recent'
       ),
     [filters]
   )
@@ -241,12 +245,54 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
       setMeetingByMvp(pickLatestMeetingByMvp(result.data))
     }
 
+    const loadFavorites = async () => {
+      const result = await getMyFavorites()
+      if (!result.success || !mounted) return
+      setFavoriteIds(new Set(result.data))
+    }
+
     loadMeetingStatuses()
+    loadFavorites()
 
     return () => {
       mounted = false
     }
   }, [])
+
+  const handleToggleFavorite = useCallback(async (mvpId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    // Optimistic UI
+    setFavoriteIds(prev => {
+      const next = new Set(prev)
+      if (next.has(mvpId)) {
+        next.delete(mvpId)
+      } else {
+        next.add(mvpId)
+      }
+      return next
+    })
+
+    const result = await toggleFavorite(mvpId)
+    if (!result.success) {
+      // Revert on failure
+      setFavoriteIds(prev => {
+        const next = new Set(prev)
+        if (result.isFavorite) {
+          next.add(mvpId)
+        } else {
+          next.delete(mvpId)
+        }
+        return next
+      })
+    }
+  }, [])
+
+  const displayedMvps = useMemo(
+    () => showFavoritesOnly ? mvps.filter(mvp => favoriteIds.has(mvp.id)) : mvps,
+    [mvps, showFavoritesOnly, favoriteIds]
+  )
 
   useEffect(() => {
     if (isFirstLoad.current) {
@@ -360,11 +406,20 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
               </select>
             </div>
 
-            <div className="md:col-span-1">
+            <div className="flex gap-2 md:col-span-1">
+              <Button
+                type="button"
+                variant={showFavoritesOnly ? 'default' : 'outline'}
+                className="gap-1.5"
+                onClick={() => setShowFavoritesOnly(prev => !prev)}
+                title={showFavoritesOnly ? 'Mostrar todos' : 'Solo favoritos'}
+              >
+                <Heart className={`h-3.5 w-3.5 transition-colors ${showFavoritesOnly ? 'fill-white text-white' : ''}`} />
+              </Button>
               <Button
                 type="button"
                 variant={showAdvancedFilters ? 'secondary' : 'outline'}
-                className="w-full gap-1.5"
+                className="gap-1.5"
                 onClick={() => setShowAdvancedFilters(prev => !prev)}
                 aria-expanded={showAdvancedFilters}
               >
@@ -475,7 +530,7 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
           </div>
         ) : (
           <div className="relative z-0 grid gap-6">
-            {mvps.map((mvp) => {
+            {displayedMvps.map((mvp) => {
               const investorMeeting = meetingByMvp[mvp.id]
               const meetingMeta = investorMeeting
                 ? getInvestorMeetingStatusMeta(investorMeeting.status)
@@ -493,20 +548,35 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
                           style={
                             previewImage
                               ? {
-                                  backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.32), rgba(0,0,0,0.08)), url(${previewImage})`,
-                                  backgroundSize: 'cover',
-                                  backgroundPosition: 'center'
-                                }
+                                backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.32), rgba(0,0,0,0.08)), url(${previewImage})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center'
+                              }
                               : undefined
                           }
                         />
                         <div className="relative flex h-full min-h-[220px] flex-col justify-between p-5 md:p-6">
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-brand-200 bg-brand-50/95 text-brand-800"
-                          >
-                            {mvp.category || 'Sin categoria'}
-                          </Badge>
+                          <div className="flex items-start justify-between">
+                            <Badge
+                              variant="outline"
+                              className="w-fit border-brand-200 bg-brand-50/95 text-brand-800"
+                            >
+                              {mvp.category || 'Sin categoria'}
+                            </Badge>
+                            <button
+                              type="button"
+                              onClick={(e) => handleToggleFavorite(mvp.id, e)}
+                              className="group flex h-9 w-9 items-center justify-center rounded-full bg-background/80 shadow-md backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-background/95 active:scale-95"
+                              title={favoriteIds.has(mvp.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                            >
+                              <Heart
+                                className={`h-5 w-5 transition-colors duration-200 ${favoriteIds.has(mvp.id)
+                                  ? 'fill-red-500 text-red-500'
+                                  : 'text-muted-foreground group-hover:text-red-400'
+                                  }`}
+                              />
+                            </button>
+                          </div>
                           {!previewImage && (
                             <p className="max-w-[18ch] text-sm font-medium text-muted-foreground">
                               Agrega portada para destacar este MVP en el marketplace.
@@ -563,7 +633,28 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
                           </div>
                         )}
 
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              const url = `${window.location.origin}/mvps/${mvp.id}`
+                              navigator.clipboard.writeText(url).then(() => {
+                                setCopiedMvpId(mvp.id)
+                                setTimeout(() => setCopiedMvpId(null), 2000)
+                              })
+                            }}
+                            className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-border/80 bg-background/80 text-muted-foreground shadow-sm transition-all duration-200 hover:border-brand-300 hover:text-brand-600 active:scale-95"
+                            title="Compartir link"
+                          >
+                            <Share2 className="h-4 w-4" />
+                            {copiedMvpId === mvp.id && (
+                              <span className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg fade-in-up">
+                                Link copiado!
+                              </span>
+                            )}
+                          </button>
                           <Link href={`/mvps/${mvp.id}`} className="w-full sm:w-auto">
                             <Button className="w-full sm:w-[220px]">
                               {meetingMeta?.isActive ? 'Ver estado de mi reunión' : 'Ver detalles'}

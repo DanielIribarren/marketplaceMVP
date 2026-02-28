@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getMvpDetails } from '@/app/actions/mvp'
-import { recordMvpUniqueView } from '@/app/actions/mvpViews'
+import { recordMvpUniqueView } from '@/app/actions/MvpViews'
 import { getMyMeetings } from '@/app/actions/meetings'
 import type { Meeting } from '@/app/actions/meetings'
 import { Navbar } from '@/components/navbar'
@@ -13,12 +13,13 @@ import { Badge } from '@/components/ui/badge'
 import { MeetingScheduler } from '@/components/publish/MeetingScheduler'
 import {
   Loader2, ArrowLeft, ExternalLink, Star, Eye,
-  Heart, Calendar, CalendarClock
+  Heart, Calendar, CalendarClock, Share2
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getInvestorMeetingStatusMeta, pickLatestMeetingByMvp } from '@/lib/investor-meeting-status'
+import { getMyFavorites, toggleFavorite } from '@/app/actions/favorites'
 
 interface MVP {
   id: string
@@ -68,6 +69,8 @@ export default function MVPDetailsPage() {
   const [showScheduler, setShowScheduler] = useState(false)
   const [investorMeeting, setInvestorMeeting] = useState<Meeting | null>(null)
   const [meetingStatusLoading, setMeetingStatusLoading] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const isValidUrl = (url: string): boolean => {
     if (!url || url.trim() === '') return false
@@ -84,7 +87,14 @@ export default function MVPDetailsPage() {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null)
     })
-  }, [])
+
+    // Cargar favoritos
+    getMyFavorites().then((result) => {
+      if (result.success && params.id) {
+        setIsFavorite(result.data.includes(params.id as string))
+      }
+    })
+  }, [params.id])
 
   useEffect(() => {
     const fetchMVPDetails = async () => {
@@ -93,7 +103,7 @@ export default function MVPDetailsPage() {
         const result = await getMvpDetails(params.id as string)
         if (result.success && result.data) {
           setMvp(result.data)
-          recordMvpUniqueView(params.id as string).catch(() => {})
+          recordMvpUniqueView(params.id as string).catch(() => { })
         } else {
           setError(result.error || 'No se pudo cargar el MVP')
         }
@@ -176,12 +186,12 @@ export default function MVPDetailsPage() {
   const canRequestMeeting = !meetingStatusLoading && !hasActiveMeeting
   const meetingDateLabel = investorMeeting?.scheduled_at
     ? new Date(investorMeeting.scheduled_at).toLocaleString('es-MX', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
     : null
 
   return (
@@ -201,6 +211,51 @@ export default function MVPDetailsPage() {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              {/* Boton Compartir */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href).then(() => {
+                      setLinkCopied(true)
+                      setTimeout(() => setLinkCopied(false), 2000)
+                    })
+                  }}
+                  className="group flex h-11 w-11 items-center justify-center rounded-full border-2 border-border/80 bg-background shadow-sm transition-all duration-200 hover:scale-110 hover:border-brand-300 active:scale-95"
+                  title="Compartir link"
+                >
+                  <Share2 className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-brand-600" />
+                </button>
+                {linkCopied && (
+                  <span className="absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg animate-in fade-in slide-in-from-top-1 duration-200">
+                    Link copiado!
+                  </span>
+                )}
+              </div>
+              {/* Boton Favorito */}
+              {currentUserId && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsFavorite(prev => !prev)
+                    const result = await toggleFavorite(mvp.id)
+                    if (!result.success) {
+                      setIsFavorite(result.isFavorite)
+                    }
+                  }}
+                  className="group flex h-11 w-11 items-center justify-center rounded-full border-2 border-border/80 bg-background shadow-sm transition-all duration-200 hover:scale-110 hover:border-red-300 active:scale-95"
+                  title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                >
+                  <Heart
+                    className={`h-6 w-6 transition-colors duration-200 ${isFavorite
+                      ? 'fill-red-500 text-red-500'
+                      : 'text-muted-foreground group-hover:text-red-400'
+                      }`}
+                  />
+                </button>
+              )}
+            </div>
             {mvp.deal_modality && (
               <Badge className="h-fit text-base px-4 py-2">{mvp.deal_modality}</Badge>
             )}
