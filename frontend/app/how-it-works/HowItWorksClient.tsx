@@ -362,11 +362,11 @@ const investorSteps = [
 ]
 
 const meetingStatuses = [
-  { status: 'pending', label: 'Pendiente', desc: 'El inversor solicitó la reunión. El emprendedor debe responder.', color: '#F59E0B', bg: '#FEF3C7' },
-  { status: 'confirmed', label: 'Confirmada', desc: 'Ambas partes acordaron el horario. El link de reunión está disponible.', color: '#3B82F6', bg: '#EFF6FF' },
-  { status: 'counterproposal', label: 'Contrapropuesta', desc: 'Una de las partes propuso un horario alternativo. La otra debe responder.', color: '#8B5CF6', bg: '#F5F3FF' },
-  { status: 'rejected', label: 'Rechazada', desc: 'Una de las partes rechazó definitivamente la reunión.', color: '#EF4444', bg: '#FEF2F2' },
-  { status: 'completed', label: 'Completada', desc: 'La reunión ocurrió. El deal puede proceder al cierre.', color: '#10B981', bg: '#ECFDF5' },
+  { status: 'pending', label: 'Pendiente', desc: 'El inversor solicitó la reunión. El emprendedor debe responder.', color: '#f97316', bg: '#ffedd5' },
+  { status: 'confirmed', label: 'Confirmada', desc: 'Ambas partes acordaron el horario. El link de reunión está disponible.', color: '#16a34a', bg: '#dcfce7' },
+  { status: 'counterproposal', label: 'Contrapropuesta', desc: 'Una de las partes propuso un horario alternativo. La otra debe responder.', color: '#fbbf24', bg: '#fef9c3' },
+  { status: 'rejected', label: 'Rechazada', desc: 'Una de las partes rechazó definitivamente la reunión.', color: '#ef4444', bg: '#fee2e2' },
+  { status: 'completed', label: 'Completada', desc: 'La reunión ocurrió. El deal puede proceder al cierre.', color: '#52525b', bg: '#f4f4f5' },
 ]
 
 const dealModalities = [
@@ -384,7 +384,7 @@ const dealModalities = [
     icon: TrendingUp,
     desc: 'El inversor entra al cap table a cambio de capital. El fundador mantiene el control operativo.',
     range: '5% – 30%',
-    color: '#3B82F6',
+    color: '#ef4444',
   },
   {
     key: 'license',
@@ -392,7 +392,7 @@ const dealModalities = [
     icon: Lock,
     desc: 'El comprador usa el software bajo licencia. El creador mantiene la propiedad intelectual.',
     range: '$500 – $5k/año',
-    color: '#8B5CF6',
+    color: '#fbbf24',
   },
   {
     key: 'rev_share',
@@ -400,7 +400,7 @@ const dealModalities = [
     icon: RefreshCw,
     desc: 'El inversor aporta capital a cambio de un porcentaje de los ingresos generados.',
     range: '10% – 25% ingresos',
-    color: '#10B981',
+    color: '#16a34a',
   },
 ]
 
@@ -523,12 +523,12 @@ function MeetingCarouselSection() {
               {Array.from({ length: 31 }, (_, i) => {
                 const day = i + 1
                 const events: Record<number, { color: string; label: string }> = {
-                  5: { color: '#3B82F6', label: 'Confirmada' },
-                  8: { color: '#F59E0B', label: 'Pendiente' },
-                  12: { color: '#8B5CF6', label: 'Contrapr.' },
-                  17: { color: '#10B981', label: 'Completada' },
-                  22: { color: '#3B82F6', label: 'Confirmada' },
-                  26: { color: '#F59E0B', label: 'Pendiente' },
+                  5: { color: '#16a34a', label: 'Confirmada' },
+                  8: { color: '#f97316', label: 'Pendiente' },
+                  12: { color: '#fbbf24', label: 'Contrapr.' },
+                  17: { color: '#52525b', label: 'Completada' },
+                  22: { color: '#16a34a', label: 'Confirmada' },
+                  26: { color: '#f97316', label: 'Pendiente' },
                 }
                 const ev = events[day]
                 return (
@@ -685,7 +685,7 @@ function MagnifierWidget({ activeIndex, color }: { activeIndex: number | null; c
 function FaqSection() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
 
-  const colors = ['#FF6B35', '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444']
+  const colors = ['#FF6B35', '#ef4444', '#fbbf24', '#16a34a', '#fb923c', '#1a1a1a']
   const activeColor = openFaq !== null ? colors[openFaq % colors.length] : '#FF6B35'
 
   return (
@@ -985,9 +985,9 @@ export function HowItWorksClient() {
                     display: 'flex', alignItems: 'center', gap: '6px',
                     background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)',
                     borderRadius: '999px', padding: '5px 12px',
-                    color: '#10B981', fontSize: '12px', fontWeight: 600,
+                    color: '#16a34a', fontSize: '12px', fontWeight: 600,
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'pulse 2s infinite', display: 'inline-block' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', animation: 'pulse 2s infinite', display: 'inline-block' }} />
                     En vivo
                   </div>
                 </div>
@@ -995,10 +995,10 @@ export function HowItWorksClient() {
                 {/* Stats grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                   {[
-                    { label: 'MVPs activos', value: 150, suffix: '+', color: '#FF6B35' },
-                    { label: 'En transacciones', value: 2, suffix: '.5M+', color: '#10B981', prefix: '$' },
-                    { label: 'Inversores', value: 340, suffix: '+', color: '#3B82F6' },
-                    { label: 'Tasa de cierre', value: 89, suffix: '%', color: '#8B5CF6' },
+                    { label: 'MVPs activos', value: 150, suffix: '+', color: '#f97316' },
+                    { label: 'En transacciones', value: 2, suffix: '.5M+', color: '#22c55e', prefix: '$' },
+                    { label: 'Inversores', value: 340, suffix: '+', color: '#f05252' },
+                    { label: 'Tasa de cierre', value: 89, suffix: '%', color: '#fcd34d' },
                   ].map(({ label, value, suffix, color, prefix }) => (
                     <div key={label} style={{
                       background: 'rgba(255,255,255,0.04)', borderRadius: '12px', padding: '16px',
@@ -1018,9 +1018,9 @@ export function HowItWorksClient() {
                     Actividad reciente
                   </div>
                   {[
-                    { dot: '#10B981', text: 'AutoConcilia Pro — Reunión confirmada', time: '2m' },
+                    { dot: '#16a34a', text: 'AutoConcilia Pro — Reunión confirmada', time: '2m' },
                     { dot: '#FF6B35', text: 'DataSync API — Nuevo inversor interesado', time: '15m' },
-                    { dot: '#3B82F6', text: 'ShipFast Tool — Deal cerrado', time: '1h' },
+                    { dot: '#ef4444', text: 'ShipFast Tool — Deal cerrado', time: '1h' },
                   ].map(({ dot, text, time }) => (
                     <div key={text} style={{
                       display: 'flex', alignItems: 'center', gap: '10px',
@@ -1154,11 +1154,11 @@ export function HowItWorksClient() {
                     <div style={{ color: '#6b7280', fontSize: '12px' }}>revisión manual</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10B981' }}>0</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#16a34a' }}>0</div>
                     <div style={{ color: '#6b7280', fontSize: '12px' }}>perfiles falsos</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#3B82F6' }}>&lt;24h</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>&lt;24h</div>
                     <div style={{ color: '#6b7280', fontSize: '12px' }}>respuesta media</div>
                   </div>
                 </div>
@@ -1191,7 +1191,7 @@ export function HowItWorksClient() {
                     <div key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                       <div style={{
                         width: 22, height: 22, borderRadius: '50%', flexShrink: 0, marginTop: '1px',
-                        background: done ? '#10B981' : 'rgba(255,255,255,0.08)',
+                        background: done ? '#16a34a' : 'rgba(255,255,255,0.08)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         border: done ? 'none' : '1px solid rgba(255,255,255,0.15)',
                       }}>
@@ -1307,13 +1307,13 @@ export function HowItWorksClient() {
                 stat: '100%', statLabel: 'revisión manual',
               },
               {
-                icon: BadgeCheck, color: '#10B981',
+                icon: BadgeCheck, color: '#16a34a',
                 title: 'Usuarios verificados',
                 desc: 'Cada cuenta pasa por verificación de email. No hay bots, no hay perfiles falsos. La comunicación es siempre entre personas reales con intención real.',
                 stat: '0', statLabel: 'perfiles falsos',
               },
               {
-                icon: MessageSquare, color: '#3B82F6',
+                icon: MessageSquare, color: '#ef4444',
                 title: 'Comunicación directa',
                 desc: 'Emprendedores e inversores se comunican directamente a través del sistema de reuniones integrado. Sin intermediarios, sin comisiones ocultas.',
                 stat: '<24h', statLabel: 'respuesta media',
