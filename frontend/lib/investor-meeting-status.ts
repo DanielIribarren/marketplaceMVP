@@ -21,42 +21,42 @@ export function getInvestorMeetingStatusMeta(status: string): InvestorMeetingSta
         label: 'Solicitud enviada',
         description: 'El emprendedor aún no responde tu solicitud.',
         isActive: true,
-        badgeClassName: 'bg-amber-100 text-amber-800 border-amber-200'
+        badgeClassName: 'bg-orange-100 text-orange-800 border-orange-300'
       }
     case 'confirmed':
       return {
         label: 'Reunión confirmada',
         description: 'Tu reunión está confirmada. Revisa fecha y detalles.',
         isActive: true,
-        badgeClassName: 'bg-blue-100 text-blue-800 border-blue-200'
+        badgeClassName: 'bg-green-100 text-green-900 border-green-400'
       }
     case 'counterproposal_entrepreneur':
       return {
         label: 'Contrapropuesta recibida',
         description: 'El emprendedor propuso otra fecha y espera tu respuesta.',
         isActive: true,
-        badgeClassName: 'bg-purple-100 text-purple-800 border-purple-200'
+        badgeClassName: 'bg-yellow-100 text-yellow-900 border-yellow-400'
       }
     case 'counterproposal_investor':
       return {
         label: 'Esperando respuesta',
         description: 'Tu contrapropuesta fue enviada. Espera confirmación.',
         isActive: true,
-        badgeClassName: 'bg-indigo-100 text-indigo-800 border-indigo-200'
+        badgeClassName: 'bg-yellow-100 text-yellow-900 border-yellow-400'
       }
     case 'completed':
       return {
         label: 'Reunión completada',
         description: 'La reunión ya ocurrió. Puedes agendar seguimiento.',
         isActive: false,
-        badgeClassName: 'bg-emerald-100 text-emerald-800 border-emerald-200'
+        badgeClassName: 'bg-gray-200 text-gray-800 border-gray-400'
       }
     case 'rejected':
       return {
         label: 'Reunión rechazada',
         description: 'La solicitud fue rechazada. Puedes intentar nuevamente.',
         isActive: false,
-        badgeClassName: 'bg-red-100 text-red-800 border-red-200'
+        badgeClassName: 'bg-red-200 text-red-900 border-red-500'
       }
     case 'cancelled':
       return {

@@ -30,11 +30,11 @@ export const QualitySignalsIndicator: React.FC<QualitySignalsProps> = ({ signals
           return (
             <li key={signal.key} className="flex items-center gap-2">
               <span
-                className={`w-4 h-4 rounded-full shrink-0 ${
-                  isValid ? 'bg-brand-600' : 'bg-brand-200'
+                className={`w-4 h-4 rounded-full shrink-0 border transition-all ${
+                  isValid ? 'bg-green-600 border-gray-400' : 'bg-brand-50 border-gray-300'
                 }`}
               />
-              <span className={`${isValid ? 'text-brand-800' : 'text-muted-foreground'}`}>
+              <span className={`${isValid ? 'text-gray-800 font-medium' : 'text-muted-foreground'}`}>
                 {signal.label}
               </span>
             </li>

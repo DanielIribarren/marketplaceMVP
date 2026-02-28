@@ -204,6 +204,15 @@
     transform: translateY(-3px);
   }
 
+  /* Ensure all buttons and clickable elements have pointer cursor */
+  button,
+  [role="button"],
+  [onClick],
+  .cursor-pointer,
+  a {
+    cursor: pointer;
+  }
+
   .orange-grid {
     background-image:
       linear-gradient(rgba(var(--brand-rgb), 0.08) 1px, transparent 1px),

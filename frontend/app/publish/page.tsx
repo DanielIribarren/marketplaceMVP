@@ -165,7 +165,7 @@ export default function PublishPage() {
                       className={[
                         "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors duration-200",
                         isCurrent && "border-primary bg-primary text-white",
-                        isCompleted && "border-brand-700 bg-brand-700 text-white",
+                        isCompleted && "border-green-600 bg-green-600 text-white",
                         !isCurrent &&
                           !isCompleted &&
                           "border-brand-200 bg-background text-muted-foreground",
@@ -186,7 +186,7 @@ export default function PublishPage() {
                   {index < STEPS.length - 1 && (
                     <div
                       className={`h-0.5 w-16 ${
-                        isCompleted ? "bg-brand-700" : "bg-brand-200"
+                        isCompleted ? "bg-green-600" : "bg-brand-200"
                       }`}
                     />
                   )}
