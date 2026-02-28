@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { login } from '@/app/actions/auth'
 import Link from 'next/link'
@@ -12,15 +12,13 @@ import { ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
   const searchParams = useSearchParams()
-  const [error, setError] = useState<string | null>(null)
+  const errorParam = searchParams.get('error')
+  const [error, setError] = useState<string | null>(
+    errorParam === 'verification_failed'
+      ? 'Error al verificar tu email. Por favor intenta registrarte nuevamente.'
+      : null
+  )
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    const errorParam = searchParams.get('error')
-    if (errorParam === 'verification_failed') {
-      setError('Error al verificar tu email. Por favor intenta registrarte nuevamente.')
-    }
-  }, [searchParams])
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
