@@ -53,10 +53,6 @@ export default function ProfileEditor() {
     let mounted = true
     ;(async () => {
       try {
-        // Limpiar preview local y archivo pendiente al cargar
-        setFilePreview(null)
-        setPendingFile(null)
-
         const supabase = createClient()
         const { data: authData } = await supabase.auth.getUser()
         const sessionRes = await supabase.auth.getSession()
@@ -81,7 +77,12 @@ export default function ProfileEditor() {
         })
         if (!res.ok) return
         const data: UserProfile = await res.json()
-        if (mounted) setProfile(data || {})
+        if (mounted) {
+          setProfile(data || {})
+          // Limpiar preview local cuando cargamos el perfil real
+          setFilePreview(null)
+          setPendingFile(null)
+        }
       } catch {
         // ignore
       }
@@ -205,7 +206,7 @@ export default function ProfileEditor() {
     try {
       const supabase = createClient()
 
-      let newAvatarUrl = profile.avatar_url
+      let newAvatarUrl: string | null = profile.avatar_url || null
 
       // Si hay un archivo pendiente, subirlo ahora
       if (pendingFile) {
@@ -229,7 +230,7 @@ export default function ProfileEditor() {
           .from('avatars')
           .getPublicUrl(path)
 
-        newAvatarUrl = publicData?.publicUrl || profile.avatar_url
+        newAvatarUrl = publicData?.publicUrl || null
       }
 
       await supabase.auth.updateUser({
