@@ -488,29 +488,27 @@ export default function MVPDetailsPage() {
           <div className="space-y-6">
 
             {/* Estadísticas */}
-            {(mvp.avg_rating || mvp.views_count || mvp.favorites_count) && (
-              <Card className="border-2">
-                <CardContent className="p-6 space-y-4">
-                  {mvp.avg_rating && (
-                    <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 fill-brand-400 text-brand-400" />
-                      <span className="font-semibold">{mvp.avg_rating.toFixed(1)}</span>
-                      <span className="text-sm text-muted-foreground">({mvp.evaluations_count || 0} reseñas)</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      <span>{mvp.views_count || 0} vistas</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Heart className="w-4 h-4" />
-                      <span>{mvp.favorites_count || 0} favoritos</span>
-                    </div>
+            <Card className="border-2">
+              <CardContent className="p-6 space-y-4">
+                {mvp.avg_rating && (
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 fill-brand-400 text-brand-400" />
+                    <span className="font-semibold">{mvp.avg_rating.toFixed(1)}</span>
+                    <span className="text-sm text-muted-foreground">({mvp.evaluations_count || 0} reseñas)</span>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Eye className="w-4 h-4" />
+                    <span>{mvp.views_count || 0} vistas</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Heart className="w-4 h-4" />
+                    <span>{mvp.favorites_count || 0} favoritos</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Info del deal */}
             <Card className="border-2">
