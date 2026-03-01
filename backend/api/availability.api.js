@@ -1,5 +1,4 @@
 import { supabase } from '../utils/supabase-client.js'
-import { ensureDefaultAvailabilityForMvp } from '../services/default-availability.js'
 
 const TERMINAL_MEETING_STATUSES = ['rejected', 'cancelled', 'completed']
 
@@ -94,7 +93,6 @@ export async function getAvailabilityByMVP(req, res) {
   try {
     const { mvpId } = req.params
     const { from_date, to_date, available_only } = req.query
-    let defaultsGenerated = false
 
     const { data: mvp, error: mvpError } = await supabase
       .from('mvps')
@@ -127,25 +125,11 @@ export async function getAvailabilityByMVP(req, res) {
     let { data: slots, error } = await buildQuery()
     if (error) throw error
 
-    // Si no hay slots, se generan automáticamente para mantener consistencia.
-    if ((!slots || slots.length === 0) && mvp.owner_id) {
-      await ensureDefaultAvailabilityForMvp({
-        supabase,
-        mvpId,
-        ownerId: mvp.owner_id
-      })
-
-      defaultsGenerated = true
-      const refreshed = await buildQuery()
-      slots = refreshed.data || []
-      if (refreshed.error) throw refreshed.error
-    }
-
+    // Retornar los slots tal como están (sin auto-generación)
     res.status(200).json({
       success: true,
-      data: slots,
-      count: slots.length,
-      defaults_generated: defaultsGenerated
+      data: slots || [],
+      count: slots ? slots.length : 0
     })
 
   } catch (error) {

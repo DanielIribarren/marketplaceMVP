@@ -1,5 +1,4 @@
 import { supabase } from '../../utils/supabase-client.js'
-import { ensureDefaultAvailabilityForMvp } from '../../services/default-availability.js'
 
 /**
  * POST /api/mvps/:id/publish
@@ -34,18 +33,11 @@ export async function publishMVP(req, res) {
 
     // Verificar que esté en estado draft
     if (mvp.status !== 'draft') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Estado inválido',
-        message: `El MVP ya está en estado: ${mvp.status}` 
+        message: `El MVP ya está en estado: ${mvp.status}`
       })
     }
-
-    // Garantizar disponibilidad inicial por defecto para nuevos MVPs
-    await ensureDefaultAvailabilityForMvp({
-      supabase,
-      mvpId,
-      ownerId: userId
-    })
 
     // Publicar MVP (cambiar estado a pending_review)
     const { data: published, error: publishError } = await supabase
@@ -161,9 +153,71 @@ export async function getMyDrafts(req, res) {
 
   } catch (error) {
     console.error('Error al obtener borradores:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error del servidor',
       message: 'No se pudieron obtener los borradores',
+      details: error.message
+    })
+  }
+}
+
+/**
+ * DELETE /api/mvps/:id
+ * Eliminar un borrador de MVP
+ */
+export async function deleteMVP(req, res) {
+  try {
+    const userId = req.user.id
+    const mvpId = req.params.id
+
+    // Obtener MVP para verificar permisos
+    const { data: mvp, error: fetchError } = await supabase
+      .from('mvps')
+      .select('*')
+      .eq('id', mvpId)
+      .single()
+
+    if (fetchError || !mvp) {
+      return res.status(404).json({
+        error: 'No encontrado',
+        message: 'MVP no encontrado'
+      })
+    }
+
+    // Verificar que el usuario sea el owner
+    if (mvp.owner_id !== userId) {
+      return res.status(403).json({
+        error: 'Acceso denegado',
+        message: 'No tienes permiso para eliminar este MVP'
+      })
+    }
+
+    // Solo se pueden eliminar borradores
+    if (mvp.status !== 'draft') {
+      return res.status(400).json({
+        error: 'Estado inválido',
+        message: 'Solo puedes eliminar MVPs en estado borrador'
+      })
+    }
+
+    // Eliminar MVP
+    const { error: deleteError } = await supabase
+      .from('mvps')
+      .delete()
+      .eq('id', mvpId)
+
+    if (deleteError) throw deleteError
+
+    res.status(200).json({
+      success: true,
+      message: 'Borrador eliminado correctamente'
+    })
+
+  } catch (error) {
+    console.error('Error al eliminar MVP:', error)
+    res.status(500).json({
+      error: 'Error del servidor',
+      message: 'No se pudo eliminar el borrador',
       details: error.message
     })
   }

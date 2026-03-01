@@ -83,30 +83,44 @@ export default function ForgotPasswordPage() {
 
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden')
+      // Solo borrar confirmPassword si no coinciden
+      setConfirmPassword('')
       setIsLoading(false)
       return
     }
 
     if (password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres')
+      // Borrar ambas contraseñas si hay error de validación
+      setPassword('')
+      setConfirmPassword('')
       setIsLoading(false)
       return
     }
 
     if (!/[A-Z]/.test(password)) {
       setError('La contraseña debe contener al menos una mayúscula')
+      // Borrar ambas contraseñas si hay error de validación
+      setPassword('')
+      setConfirmPassword('')
       setIsLoading(false)
       return
     }
 
     if (!/[a-z]/.test(password)) {
       setError('La contraseña debe contener letras minúsculas')
+      // Borrar ambas contraseñas si hay error de validación
+      setPassword('')
+      setConfirmPassword('')
       setIsLoading(false)
       return
     }
 
     if (!/[0-9]/.test(password)) {
       setError('La contraseña debe contener números')
+      // Borrar ambas contraseñas si hay error de validación
+      setPassword('')
+      setConfirmPassword('')
       setIsLoading(false)
       return
     }

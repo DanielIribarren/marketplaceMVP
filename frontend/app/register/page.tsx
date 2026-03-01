@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signup } from '@/app/actions/auth'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -17,9 +17,51 @@ interface FieldErrors {
   confirm_password?: string
 }
 
+const STORAGE_KEY = 'register-form'
+
 export default function RegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [loading, setLoading] = useState(false)
+  const [formValues, setFormValues] = useState(() => {
+    // Cargar datos guardados (excepto contraseñas por seguridad)
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          const { display_name, email } = JSON.parse(saved)
+          return {
+            display_name: display_name || '',
+            email: email || '',
+            password: '',
+            confirm_password: ''
+          }
+        } catch {
+          return {
+            display_name: '',
+            email: '',
+            password: '',
+            confirm_password: ''
+          }
+        }
+      }
+    }
+    return {
+      display_name: '',
+      email: '',
+      password: '',
+      confirm_password: ''
+    }
+  })
+
+  // Guardar nombre y email en localStorage (no contraseñas)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        display_name: formValues.display_name,
+        email: formValues.email
+      }))
+    }
+  }, [formValues.display_name, formValues.email])
 
   function validatePassword(password: string): string | null {
     if (password.length < 8) {
@@ -37,14 +79,15 @@ export default function RegisterPage() {
     return null
   }
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setLoading(true)
     setFieldErrors({})
 
-    const displayName = formData.get('display_name') as string
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const confirmPassword = formData.get('confirm_password') as string
+    const displayName = formValues.display_name
+    const email = formValues.email
+    const password = formValues.password
+    const confirmPassword = formValues.confirm_password
 
     const errors: FieldErrors = {}
 
@@ -62,11 +105,15 @@ export default function RegisterPage() {
     const passwordError = validatePassword(password)
     if (passwordError) {
       errors.password = passwordError
+      // Solo borrar contraseñas si hay error de contraseña
+      setFormValues(prev => ({ ...prev, password: '', confirm_password: '' }))
     }
 
     // Validate confirm password
     if (password !== confirmPassword) {
       errors.confirm_password = 'Las contraseñas no coinciden'
+      // Solo borrar confirm_password si no coinciden
+      setFormValues(prev => ({ ...prev, confirm_password: '' }))
     }
 
     if (Object.keys(errors).length > 0) {
@@ -79,21 +126,33 @@ export default function RegisterPage() {
     const supabase = createClient()
     await supabase.auth.signOut()
 
+    const formData = new FormData()
+    formData.append('display_name', displayName)
+    formData.append('email', email)
+    formData.append('password', password)
+
     const result = await signup(formData)
 
     if (result?.error) {
       // Check for duplicate email error
       if (result.error.includes('already registered') || result.error.includes('already exists')) {
         setFieldErrors({ email: 'Este correo ya está en uso' })
+        // Solo borrar el email si está en uso
+        setFormValues(prev => ({ ...prev, email: '' }))
       } else {
         setFieldErrors({ email: result.error })
       }
       setLoading(false)
+    } else {
+      // Limpiar localStorage al registrarse exitosamente
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY)
+      }
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4">
+    <div suppressHydrationWarning className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -118,7 +177,7 @@ export default function RegisterPage() {
           </CardHeader>
 
           <CardContent>
-            <form action={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="display_name">Nombre completo</Label>
                 <Input
@@ -128,6 +187,8 @@ export default function RegisterPage() {
                   placeholder="Juan Pérez"
                   required
                   disabled={loading}
+                  value={formValues.display_name}
+                  onChange={(e) => setFormValues(prev => ({ ...prev, display_name: e.target.value }))}
                   className={fieldErrors.display_name ? 'border-red-500' : ''}
                 />
                 {fieldErrors.display_name && (
@@ -146,6 +207,8 @@ export default function RegisterPage() {
                   placeholder="tu@email.com"
                   required
                   disabled={loading}
+                  value={formValues.email}
+                  onChange={(e) => setFormValues(prev => ({ ...prev, email: e.target.value }))}
                   className={fieldErrors.email ? 'border-red-500' : ''}
                 />
                 {fieldErrors.email && (
@@ -164,6 +227,8 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   required
                   disabled={loading}
+                  value={formValues.password}
+                  onChange={(e) => setFormValues(prev => ({ ...prev, password: e.target.value }))}
                   className={fieldErrors.password ? 'border-red-500' : ''}
                 />
                 {fieldErrors.password && (
@@ -185,6 +250,8 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   required
                   disabled={loading}
+                  value={formValues.confirm_password}
+                  onChange={(e) => setFormValues(prev => ({ ...prev, confirm_password: e.target.value }))}
                   className={fieldErrors.confirm_password ? 'border-red-500' : ''}
                 />
                 {fieldErrors.confirm_password && (

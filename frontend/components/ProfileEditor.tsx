@@ -424,7 +424,7 @@ export default function ProfileEditor() {
           onClick={async () => {
             const supabase = createClient()
             await supabase.auth.signOut()
-            window.location.reload()
+            window.location.href = '/login'
           }}
         >
           Cerrar sesión

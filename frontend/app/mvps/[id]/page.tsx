@@ -103,7 +103,15 @@ export default function MVPDetailsPage() {
         const result = await getMvpDetails(params.id as string)
         if (result.success && result.data) {
           setMvp(result.data)
-          recordMvpUniqueView(params.id as string).catch(() => { })
+          // Registrar vista y actualizar contador optimísticamente
+          recordMvpUniqueView(params.id as string)
+            .then((viewResult) => {
+              if (viewResult.ok && viewResult.counted) {
+                // Incrementar el contador de vistas localmente solo si es una vista nueva
+                setMvp((prev) => prev ? { ...prev, views_count: (prev.views_count || 0) + 1 } : null)
+              }
+            })
+            .catch(() => { })
         } else {
           setError(result.error || 'No se pudo cargar el MVP')
         }
@@ -229,7 +237,7 @@ export default function MVPDetailsPage() {
                 </button>
                 {linkCopied && (
                   <span className="absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg animate-in fade-in slide-in-from-top-1 duration-200">
-                    Link copiado!
+                    ¡Link Copiado!
                   </span>
                 )}
               </div>

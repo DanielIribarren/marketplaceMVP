@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { login } from '@/app/actions/auth'
 import Link from 'next/link'
@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
+
+const STORAGE_KEY = 'login-form'
 
 export default function LoginPage() {
   const searchParams = useSearchParams()
@@ -19,21 +21,55 @@ export default function LoginPage() {
       : null
   )
   const [loading, setLoading] = useState(false)
+  const [formValues, setFormValues] = useState(() => {
+    // Solo cargar en cliente
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          const { email } = JSON.parse(saved)
+          return { email: email || '', password: '' }
+        } catch {
+          return { email: '', password: '' }
+        }
+      }
+    }
+    return { email: '', password: '' }
+  })
 
-  async function handleSubmit(formData: FormData) {
+  // Guardar solo el email en localStorage
+  useEffect(() => {
+    if (formValues.email) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ email: formValues.email }))
+    }
+  }, [formValues.email])
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setLoading(true)
     setError(null)
+
+    const formData = new FormData()
+    formData.append('email', formValues.email)
+    formData.append('password', formValues.password)
 
     const result = await login(formData)
 
     if (result?.error) {
       setError(result.error)
+      // Solo borrar contraseña en caso de error, mantener email
+      setFormValues(prev => ({ ...prev, password: '' }))
       setLoading(false)
+    } else {
+      // Limpiar localStorage al hacer login exitoso
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY)
+      }
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4">
+    <div suppressHydrationWarning className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -58,7 +94,7 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            <form action={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -68,6 +104,8 @@ export default function LoginPage() {
                   placeholder="tu@email.com"
                   required
                   disabled={loading}
+                  value={formValues.email}
+                  onChange={(e) => setFormValues(prev => ({ ...prev, email: e.target.value }))}
                 />
               </div>
 
@@ -85,6 +123,8 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                   disabled={loading}
+                  value={formValues.password}
+                  onChange={(e) => setFormValues(prev => ({ ...prev, password: e.target.value }))}
                 />
               </div>
 

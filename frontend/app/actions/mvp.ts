@@ -197,6 +197,53 @@ export async function publishMVP(mvpId: string) {
 }
 
 /**
+ * Elimina un borrador de MVP
+ */
+export async function deleteDraft(mvpId: string) {
+  try {
+    const token = await getAuthToken()
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'No autenticado',
+        message: 'Debes iniciar sesión'
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/${mvpId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Error al eliminar',
+        message: data.message || 'No se pudo eliminar el borrador'
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Borrador eliminado correctamente'
+    }
+
+  } catch (error) {
+    console.error('Error al eliminar borrador:', error)
+    return {
+      success: false,
+      error: 'Error de conexión',
+      message: 'No se pudo conectar con el servidor'
+    }
+  }
+}
+
+/**
  * Obtiene un MVP por ID
  */
 export async function getMVP(mvpId: string) {

@@ -4,8 +4,9 @@ import * as React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
-import { Calendar, CheckCircle2, Loader2, Send } from "lucide-react"
-import { calculateQualitySignals, publishMVP, saveDraft } from "@/app/actions/mvp"
+import { Calendar, CheckCircle2, Loader2, Send, ArrowLeft, X } from "lucide-react"
+import Link from "next/link"
+import { publishMVP, saveDraft, deleteDraft } from "@/app/actions/mvp"
 import { AvailabilityCalendar } from "@/components/publish/AvailabilityCalendar"
 import { BasicFields } from "@/components/publish/BasicFields"
 import { QualitySignalsIndicator } from "@/components/publish/QualitySignals"
@@ -30,15 +31,15 @@ const stepTransition = {
   transition: { duration: 0.26, ease: [0.18, 0.95, 0.3, 1] as const },
 }
 
+const STORAGE_KEY = 'mvp-draft-form'
+
 export default function PublishPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<Step>("basics")
-  const [mvpData, setMvpData] = useState<Partial<MVPPublication> & { id?: string }>(
-    () => createEmptyDraft("")
-  )
-  const [isSaving, setIsSaving] = useState(false)
+  const [mvpData, setMvpData] = useState<Partial<MVPPublication> & { id?: string }>(createEmptyDraft(""))
   const [isPublishing, setIsPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   const [signals, setSignals] = useState<QualitySignals>({
     hasValidOneLiner: false,
@@ -47,24 +48,55 @@ export default function PublishPage() {
     hasMinimalEvidence: false,
     hasDealModality: false,
   })
-  const [hasAvailability, setHasAvailability] = useState(false)
 
+  // Cargar datos del localStorage al montar el componente (solo en cliente)
   React.useEffect(() => {
-    const calculateSignals = async () => {
+    // Limpiar cualquier error previo
+    setError(null)
+
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
       try {
-        const result = await calculateQualitySignals(mvpData)
-        if (result.success && result.signals) {
-          setSignals(result.signals)
+        const parsedData = JSON.parse(saved)
+        // Si tiene un ID que no es local draft, limpiarlo para empezar fresco
+        if (parsedData.id && !parsedData.id.startsWith('draft-')) {
+          // ID de base de datos de una sesión anterior - no usarlo
+          delete parsedData.id
         }
+        setMvpData(parsedData)
       } catch {
-        // ignore
+        // Si hay error al parsear, limpiar localStorage
+        localStorage.removeItem(STORAGE_KEY)
       }
     }
-    calculateSignals()
+    setIsLoaded(true)
+  }, [])
+
+  // Guardar datos en localStorage cuando cambian (solo después de cargar)
+  React.useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mvpData))
+    }
+  }, [mvpData, isLoaded])
+
+  React.useEffect(() => {
+    // Calcular señales localmente para respuesta instantánea
+    const wordCount = (text: string) => text.trim().split(/\s+/).length
+
+    const localSignals: QualitySignals = {
+      hasValidOneLiner: !!(mvpData.oneLiner && mvpData.oneLiner.trim().length >= 20),
+      hasConcreteUseCase: !!(mvpData.description && wordCount(mvpData.description) >= 15),
+      hasDemoOrScreenshot: !!(mvpData.demoUrl || (mvpData.screenshots && mvpData.screenshots.length > 0)),
+      hasMinimalEvidence: !!(mvpData.minimalEvidence && wordCount(mvpData.minimalEvidence) >= 10),
+      hasDealModality: !!mvpData.dealModality
+    }
+
+    setSignals(localSignals)
   }, [mvpData])
 
   const canProceedToAvailability = () => {
-    return !!(mvpData.name && mvpData.oneLiner && mvpData.description)
+    // Verificar que todas las señales de calidad estén completas
+    return Object.values(signals).every(signal => signal === true)
   }
 
   const goToNextStep = async () => {
@@ -72,49 +104,64 @@ export default function PublishPage() {
 
     if (currentStep === "basics") {
       if (!canProceedToAvailability()) {
-        setError("Por favor completa los campos básicos antes de continuar")
+        setError("Debes completar las 5 señales de calidad antes de continuar")
         return
       }
 
-      if (!mvpData.id) {
-        setIsSaving(true)
+      // Guardar borrador en la base de datos para poder gestionar disponibilidad
+      // Solo si no tiene un ID de base de datos válido
+      if (!mvpData.id || mvpData.id.startsWith('draft-')) {
         try {
           const result = await saveDraft(mvpData)
           if (!result.success || !result.data?.id) {
-            setError(result.message || "Error al guardar el MVP")
+            setError(result.message || "Error al guardar el borrador")
             return
           }
           setMvpData((prev) => ({ ...prev, id: result.data.id }))
         } catch {
           setError("Error de conexión al guardar")
           return
-        } finally {
-          setIsSaving(false)
         }
       }
 
       setCurrentStep("availability")
     } else if (currentStep === "availability") {
-      if (!hasAvailability) {
-        setError("Debes guardar al menos un horario para continuar")
-        return
-      }
+      // La disponibilidad es opcional - el usuario puede continuar sin configurarla
       setCurrentStep("review")
     }
   }
 
   const handlePublish = async () => {
-    if (!mvpData.id) {
-      setError("No hay un MVP guardado. Vuelve al paso anterior.")
-      return
-    }
-
     setIsPublishing(true)
     setError(null)
 
     try {
-      const result = await publishMVP(mvpData.id)
+      let mvpId = mvpData.id
+
+      // Si es un borrador local (no guardado en base de datos), crearlo primero
+      if (!mvpId || mvpId.startsWith('draft-')) {
+        const draftResult = await saveDraft(mvpData)
+        if (!draftResult.success || !draftResult.data?.id) {
+          setError(draftResult.message || "Error al guardar el MVP")
+          return
+        }
+        mvpId = draftResult.data.id
+      }
+
+      // Verificar que tenemos un ID válido
+      if (!mvpId) {
+        setError("Error: No se pudo obtener el ID del MVP")
+        return
+      }
+
+      // Publicar el MVP
+      const result = await publishMVP(mvpId)
       if (result.success) {
+        // Limpiar localStorage al publicar exitosamente
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem('mvp-draft-availability')
+        }
         router.push("/marketplace")
       } else {
         setError(result.message || "Error al publicar")
@@ -126,11 +173,66 @@ export default function PublishPage() {
     }
   }
 
+  const handleCancel = async () => {
+    // Si hay un borrador guardado en la base de datos (no local), eliminarlo
+    if (mvpData.id && !mvpData.id.startsWith('draft-')) {
+      try {
+        await deleteDraft(mvpData.id)
+      } catch {
+        // Ignorar errores al eliminar, de todas formas navegamos
+      }
+    }
+    // Limpiar localStorage al cancelar
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('mvp-draft-availability')
+    }
+    router.push("/marketplace")
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div suppressHydrationWarning className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 border-b border-border/70 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
-        <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="mb-4 flex items-center justify-between gap-4">
+        {/* Botones de navegación - pegados a los bordes */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-6 sm:px-6 lg:px-8">
+          {currentStep === "availability" && (
+            <button
+              onClick={() => setCurrentStep("basics")}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </button>
+          )}
+          {currentStep === "review" && (
+            <button
+              onClick={() => setCurrentStep("availability")}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </button>
+          )}
+          {currentStep === "basics" && (
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver al marketplace
+            </Link>
+          )}
+          <button
+            onClick={handleCancel}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Cancelar
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6 lg:px-8">
+          <div className="mb-2 flex items-center justify-between gap-4">
             <h1 className="text-2xl font-bold tracking-tight">Publicar MVP</h1>
             {currentStep === "review" && (
               <Button onClick={handlePublish} disabled={isPublishing}>
@@ -212,19 +314,20 @@ export default function PublishPage() {
                   <Card className="p-6">
                     <h2 className="mb-6 text-xl font-semibold">Información del MVP</h2>
                     <BasicFields data={mvpData} onChange={setMvpData} />
-                    <div className="mt-6 flex justify-end">
+
+                    <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-sm text-amber-800">
+                        <strong>Nota:</strong> Los datos se guardarán al pasar al siguiente paso.
+                        Tu MVP no será público hasta completar todos los pasos y hacer clic en &quot;Publicar&quot;.
+                      </p>
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
                       <Button
                         onClick={goToNextStep}
-                        disabled={!canProceedToAvailability() || isSaving}
+                        disabled={!canProceedToAvailability()}
                       >
-                        {isSaving ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Guardando...
-                          </>
-                        ) : (
-                          "Continuar a Disponibilidad"
-                        )}
+                        Continuar a Disponibilidad
                       </Button>
                     </div>
                   </Card>
@@ -259,21 +362,22 @@ export default function PublishPage() {
                     inversionistas interesados en tu MVP.
                   </p>
                 </div>
-                <Badge variant="secondary" className="mb-2">
-                  Requerido para continuar
-                </Badge>
+                <div className="flex gap-2 mb-4">
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                    Opcional
+                  </Badge>
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                    Borrador guardado - No público aún
+                  </Badge>
+                </div>
               </Card>
 
               <AvailabilityCalendar
                 mvpId={mvpData.id}
-                onHasAvailabilityChange={setHasAvailability}
               />
 
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setCurrentStep("basics")}>
-                  Volver
-                </Button>
-                <Button onClick={goToNextStep} disabled={!hasAvailability}>
+              <div className="flex justify-end">
+                <Button onClick={goToNextStep}>
                   Continuar a Revisión
                 </Button>
               </div>
@@ -329,18 +433,18 @@ export default function PublishPage() {
                   )}
                 </div>
 
-                <div className="mt-6 rounded-lg border border-brand-200 bg-brand-50 p-4">
-                  <p className="text-sm text-brand-800">
-                    Tu MVP será enviado a revisión. El equipo de Dame Dos lo
-                    evaluará y te notificará cuando sea aprobado.
+                <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
+                  <p className="text-sm font-medium text-green-800 mb-2">
+                    🎉 ¡Todo listo para publicar!
+                  </p>
+                  <p className="text-sm text-green-700">
+                    Al hacer clic en &quot;Publicar MVP&quot;, tu proyecto será enviado a revisión
+                    y se hará visible en el marketplace una vez aprobado por el equipo.
                   </p>
                 </div>
               </Card>
 
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setCurrentStep("availability")}>
-                  Volver
-                </Button>
+              <div className="flex justify-end">
                 <Button onClick={handlePublish} disabled={isPublishing}>
                   {isPublishing ? "Publicando..." : "Publicar MVP"}
                 </Button>

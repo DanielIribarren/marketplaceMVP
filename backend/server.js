@@ -3,7 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { verifyAuth } from './middleware/auth.js'
 import { saveDraft } from './api/mvps/draft.js'
-import { publishMVP, getMVP, getMyDrafts } from './api/mvps/publish.js'
+import { publishMVP, getMVP, getMyDrafts, deleteMVP } from './api/mvps/publish.js'
 import { getPublicMvps } from './api/mvps/public.js'
 import { getMvpDetails } from './api/mvps/details.js'
 import { recordMvpView } from './api/mvps/views.js'
@@ -86,6 +86,9 @@ app.post('/api/mvps/:id/publish', verifyAuth, publishMVP)
 
 // Obtener MVP por ID
 app.get('/api/mvps/:id', verifyAuth, getMVP)
+
+// Eliminar borrador de MVP
+app.delete('/api/mvps/:id', verifyAuth, deleteMVP)
 
 // Obtener mis borradores
 app.get('/api/mvps/my-drafts', verifyAuth, getMyDrafts)

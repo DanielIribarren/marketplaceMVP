@@ -651,7 +651,7 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
                             <Share2 className="h-4 w-4" />
                             {copiedMvpId === mvp.id && (
                               <span className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg fade-in-up">
-                                Link copiado!
+                                ¡Link Copiado!
                               </span>
                             )}
                           </button>

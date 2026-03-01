@@ -149,7 +149,7 @@ export function Calendar({
               disabled={isDisabled}
               className={cn(
                 'h-9 w-full rounded-md text-sm font-normal transition-colors',
-                'hover:bg-accent hover:text-accent-foreground',
+                'hover:bg-accent hover:text-foreground hover:font-semibold',
                 'disabled:pointer-events-none disabled:opacity-50',
                 isSelected && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
                 isToday && !isSelected && 'bg-accent font-semibold',
