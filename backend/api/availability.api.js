@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase-client.js'
+import { createNotification } from './notifications.js'
 
 const TERMINAL_MEETING_STATUSES = ['rejected', 'cancelled', 'completed']
 
@@ -7,6 +8,14 @@ function parseNumericInput(value) {
   const normalized = String(value).trim().replace(',', '.')
   const parsed = Number(normalized)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+async function safeCreateNotification(payload) {
+  try {
+    await createNotification(payload)
+  } catch (error) {
+    console.error('Error al crear notificación:', error)
+  }
 }
 
 /**
@@ -409,7 +418,36 @@ export async function bookAvailabilitySlot(req, res) {
 
     if (updateError) throw updateError
 
-    // TODO: Send notification to MVP owner
+    await safeCreateNotification({
+      user_id: slot.owner_id,
+      type: 'meeting_requested',
+      title: 'Nueva solicitud de reunión',
+      message: `Un inversor agendó una reunión para "${slot.mvp?.title || 'tu MVP'}".`,
+      data: {
+        meeting_id: meeting.id,
+        mvp_id: slot.mvp_id,
+        href: '/calendar'
+      },
+      read: false
+    })
+
+    const offerMessage = offer_type === 'economic'
+      ? `Tienes una oferta económica pendiente (${parsedAmount} USD por ${parsedEquityPercent}% de equity) para "${slot.mvp?.title || 'tu MVP'}".`
+      : `Tienes una oferta no económica pendiente para "${slot.mvp?.title || 'tu MVP'}".`
+
+    await safeCreateNotification({
+      user_id: slot.owner_id,
+      type: 'offer_pending_review',
+      title: 'Oferta pendiente de revisión',
+      message: offerMessage,
+      data: {
+        meeting_id: meeting.id,
+        mvp_id: slot.mvp_id,
+        offer_type,
+        href: '/calendar'
+      },
+      read: false
+    })
 
     res.status(201).json({
       success: true,

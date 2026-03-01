@@ -2,6 +2,14 @@
 
 import { createClient } from '@/lib/supabase/server'
 
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+
+async function getAuthToken(): Promise<string | null> {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token || null
+}
+
 /**
  * Obtiene todos los mvp_id que el usuario actual tiene en favoritos
  */
@@ -10,29 +18,31 @@ export async function getMyFavorites(): Promise<{
     data: string[]
     error?: string
 }> {
-    const supabase = await createClient()
-
-    const {
-        data: { user },
-        error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const token = await getAuthToken()
+    if (!token) {
         return { success: false, data: [], error: 'not_authenticated' }
     }
 
-    const { data, error } = await supabase
-        .from('favorites')
-        .select('mvp_id')
-        .eq('user_id', user.id)
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/favorites/my`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
+            cache: 'no-store'
+        })
 
-    if (error) {
-        return { success: false, data: [], error: error.message }
-    }
+        const data = await response.json()
 
-    return {
-        success: true,
-        data: (data || []).map((row) => row.mvp_id),
+        if (!response.ok) {
+            return { success: false, data: [], error: data?.error || 'request_failed' }
+        }
+
+        return {
+            success: true,
+            data: data?.data || [],
+        }
+    } catch {
+        return { success: false, data: [], error: 'connection_error' }
     }
 }
 
@@ -45,47 +55,34 @@ export async function toggleFavorite(mvpId: string): Promise<{
     isFavorite: boolean
     error?: string
 }> {
-    const supabase = await createClient()
-
-    const {
-        data: { user },
-        error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const token = await getAuthToken()
+    if (!token) {
         return { success: false, isFavorite: false, error: 'not_authenticated' }
     }
 
-    // Verificar si ya existe
-    const { data: existing } = await supabase
-        .from('favorites')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('mvp_id', mvpId)
-        .maybeSingle()
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/favorites/${mvpId}/toggle`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
 
-    if (existing) {
-        // Eliminar favorito
-        const { error } = await supabase
-            .from('favorites')
-            .delete()
-            .eq('id', existing.id)
+        const data = await response.json()
 
-        if (error) {
-            return { success: false, isFavorite: true, error: error.message }
+        if (!response.ok) {
+            return {
+                success: false,
+                isFavorite: false,
+                error: data?.error || 'request_failed'
+            }
         }
 
-        return { success: true, isFavorite: false }
-    } else {
-        // Agregar favorito
-        const { error } = await supabase
-            .from('favorites')
-            .insert({ user_id: user.id, mvp_id: mvpId })
-
-        if (error) {
-            return { success: false, isFavorite: false, error: error.message }
+        return {
+            success: true,
+            isFavorite: Boolean(data?.isFavorite)
         }
-
-        return { success: true, isFavorite: true }
+    } catch {
+        return { success: false, isFavorite: false, error: 'connection_error' }
     }
 }

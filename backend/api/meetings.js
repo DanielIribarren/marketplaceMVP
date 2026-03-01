@@ -1,4 +1,23 @@
 import { supabase } from '../utils/supabase-client.js'
+import { createNotification } from './notifications.js'
+
+async function getMvpTitle(mvpId) {
+  const { data } = await supabase
+    .from('mvps')
+    .select('title')
+    .eq('id', mvpId)
+    .single()
+
+  return data?.title || 'tu MVP'
+}
+
+async function safeCreateNotification(payload) {
+  try {
+    await createNotification(payload)
+  } catch (error) {
+    console.error('Error al crear notificación:', error)
+  }
+}
 
 /**
  * GET /api/meetings/my-meetings
@@ -132,6 +151,24 @@ export async function confirmMeeting(req, res) {
 
     if (updateError) throw updateError
 
+    const recipientId = isOwner ? meeting.requester_id : meeting.owner_id
+    const mvpTitle = await getMvpTitle(meeting.mvp_id)
+
+    if (recipientId && recipientId !== userId) {
+      await safeCreateNotification({
+        user_id: recipientId,
+        type: 'meeting_confirmed',
+        title: 'Reunión confirmada',
+        message: `${isOwner ? 'El emprendedor' : 'El inversor'} confirmó la reunión de "${mvpTitle}".`,
+        data: {
+          meeting_id: meeting.id,
+          mvp_id: meeting.mvp_id,
+          href: '/calendar'
+        },
+        read: false
+      })
+    }
+
     res.status(200).json({ success: true, data: updated, message: 'Reunión confirmada exitosamente' })
   } catch (error) {
     console.error('Error al confirmar reunión:', error)
@@ -191,6 +228,24 @@ export async function rejectMeeting(req, res) {
         .from('availability_slots')
         .update({ is_booked: false, booked_by: null, meeting_id: null })
         .eq('id', meeting.availability_slot_id)
+    }
+
+    const recipientId = isOwner ? meeting.requester_id : meeting.owner_id
+    const mvpTitle = await getMvpTitle(meeting.mvp_id)
+
+    if (recipientId && recipientId !== userId) {
+      await safeCreateNotification({
+        user_id: recipientId,
+        type: 'meeting_rejected',
+        title: 'Reunión rechazada',
+        message: `${isOwner ? 'El emprendedor' : 'El inversor'} rechazó la reunión de "${mvpTitle}".`,
+        data: {
+          meeting_id: meeting.id,
+          mvp_id: meeting.mvp_id,
+          href: '/calendar'
+        },
+        read: false
+      })
     }
 
     res.status(200).json({ success: true, data: updated, message: 'Reunión rechazada' })
@@ -269,6 +324,24 @@ export async function counterproposeMeeting(req, res) {
         .eq('id', meeting.availability_slot_id)
     }
 
+    const recipientId = isOwner ? meeting.requester_id : meeting.owner_id
+    const mvpTitle = await getMvpTitle(meeting.mvp_id)
+
+    if (recipientId && recipientId !== userId) {
+      await safeCreateNotification({
+        user_id: recipientId,
+        type: 'meeting_counterproposal',
+        title: 'Nueva contrapropuesta de horario',
+        message: `${isOwner ? 'El emprendedor' : 'El inversor'} propuso un nuevo horario para la reunión de "${mvpTitle}".`,
+        data: {
+          meeting_id: meeting.id,
+          mvp_id: meeting.mvp_id,
+          href: '/calendar'
+        },
+        read: false
+      })
+    }
+
     res.status(200).json({
       success: true,
       data: updated,
@@ -328,6 +401,21 @@ export async function cancelMeeting(req, res) {
         .update({ is_booked: false, booked_by: null, meeting_id: null })
         .eq('id', meeting.availability_slot_id)
     }
+
+    const mvpTitle = await getMvpTitle(meeting.mvp_id)
+
+    await safeCreateNotification({
+      user_id: meeting.owner_id,
+      type: 'meeting_cancelled',
+      title: 'Reunión cancelada',
+      message: `El inversor canceló la reunión pendiente de "${mvpTitle}".`,
+      data: {
+        meeting_id: meeting.id,
+        mvp_id: meeting.mvp_id,
+        href: '/calendar'
+      },
+      read: false
+    })
 
     res.status(200).json({ success: true, data: updated, message: 'Reunión cancelada' })
   } catch (error) {

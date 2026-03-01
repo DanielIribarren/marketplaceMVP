@@ -18,6 +18,12 @@ import {
   cancelMeeting
 } from './api/meetings.js'
 import { getProfile, updateProfile } from './api/profile.js'
+import { getMyFavorites, toggleFavorite } from './api/favorites.js'
+import {
+  getMyNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead
+} from './api/notifications.js'
 
 dotenv.config()
 
@@ -57,6 +63,15 @@ app.post('/api/meetings/:id/confirm', verifyAuth, confirmMeeting)
 app.post('/api/meetings/:id/reject', verifyAuth, rejectMeeting)
 app.post('/api/meetings/:id/counterproposal', verifyAuth, counterproposeMeeting)
 app.post('/api/meetings/:id/cancel', verifyAuth, cancelMeeting)
+
+// Favoritos
+app.get('/api/favorites/my', verifyAuth, getMyFavorites)
+app.post('/api/favorites/:mvpId/toggle', verifyAuth, toggleFavorite)
+
+// Notificaciones
+app.get('/api/notifications', verifyAuth, getMyNotifications)
+app.post('/api/notifications/:id/read', verifyAuth, markNotificationAsRead)
+app.post('/api/notifications/read-all', verifyAuth, markAllNotificationsAsRead)
 
 // Profile
 app.get('/api/profile', verifyAuth, getProfile)
