@@ -38,6 +38,26 @@ export async function POST(
     return NextResponse.json({ error: "Body inválido." }, { status: 400 })
   }
 
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+
+  async function notifyOwner(decision: "approved" | "rejected", reason?: string) {
+    if (!token) return
+    try {
+      await fetch(`${backendUrl}/api/admin/mvp/${id}/notify-decision`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ decision, reason }),
+      })
+    } catch {
+      // notificación no bloquea la decisión
+    }
+  }
+
   if (body.decision === "approve") {
     const { error } = await supabase
       .from("mvps")
@@ -54,6 +74,7 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
+    await notifyOwner("approved")
     return NextResponse.json({ ok: true, status: "approved" })
   }
 
@@ -78,6 +99,7 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
+    await notifyOwner("rejected", reason)
     return NextResponse.json({ ok: true, status: "rejected" })
   }
 

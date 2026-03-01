@@ -22,7 +22,8 @@ import { getMyFavorites, toggleFavorite } from './api/favorites.js'
 import {
   getMyNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead
+  markAllNotificationsAsRead,
+  notifyMvpDecision
 } from './api/notifications.js'
 
 dotenv.config()
@@ -72,6 +73,7 @@ app.post('/api/favorites/:mvpId/toggle', verifyAuth, toggleFavorite)
 app.get('/api/notifications', verifyAuth, getMyNotifications)
 app.post('/api/notifications/:id/read', verifyAuth, markNotificationAsRead)
 app.post('/api/notifications/read-all', verifyAuth, markAllNotificationsAsRead)
+app.post('/api/admin/mvp/:id/notify-decision', verifyAuth, notifyMvpDecision)
 
 // Profile
 app.get('/api/profile', verifyAuth, getProfile)

@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase-client.js'
+import { sendNotificationEmail } from '../services/email.js'
 
 const MAX_LIMIT = 50
 
@@ -113,12 +114,80 @@ export async function markAllNotificationsAsRead(req, res) {
   }
 }
 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin123@correo.unimet.edu.ve'
+
+/**
+ * POST /api/admin/mvp/:id/notify-decision
+ * Notifica al owner de un MVP cuando el admin aprueba o rechaza su publicación.
+ * Solo puede ser llamado por el admin.
+ */
+export async function notifyMvpDecision(req, res) {
+  try {
+    const callerEmail = req.user?.email?.toLowerCase()
+    if (callerEmail !== ADMIN_EMAIL.toLowerCase()) {
+      return res.status(403).json({ error: 'No autorizado', message: 'Solo el admin puede usar este endpoint' })
+    }
+
+    const { id: mvpId } = req.params
+    const { decision, reason } = req.body
+
+    if (!['approved', 'rejected'].includes(decision)) {
+      return res.status(400).json({ error: 'Decisión inválida', message: "Usa 'approved' o 'rejected'" })
+    }
+
+    const { data: mvp, error: mvpError } = await supabase
+      .from('mvps')
+      .select('id, title, owner_id')
+      .eq('id', mvpId)
+      .single()
+
+    if (mvpError || !mvp) {
+      return res.status(404).json({ error: 'No encontrado', message: 'MVP no encontrado' })
+    }
+
+    const isApproved = decision === 'approved'
+    const notification = {
+      user_id: mvp.owner_id,
+      type: isApproved ? 'mvp_approved' : 'mvp_rejected',
+      title: isApproved ? 'MVP aprobado 🎉' : 'MVP rechazado',
+      message: isApproved
+        ? `Tu MVP "${mvp.title}" fue aprobado y ya está visible en el marketplace.`
+        : `Tu MVP "${mvp.title}" fue rechazado. Motivo: ${reason || 'Sin motivo especificado'}.`,
+      data: { mvp_id: mvp.id, href: '/publish' },
+      read: false
+    }
+
+    await createNotification(notification)
+
+    res.status(200).json({ success: true, message: 'Notificación enviada al owner del MVP' })
+  } catch (error) {
+    console.error('Error al notificar decisión de MVP:', error)
+    res.status(500).json({ error: 'Error del servidor', message: error.message })
+  }
+}
+
 export async function createNotification(notification) {
   const { error } = await supabase
     .from('notifications')
     .insert(notification)
 
-  if (error) {
-    throw error
+  if (error) throw error
+
+  // Enviar correo al usuario en segundo plano (falla silenciosamente)
+  try {
+    const { data, error: userError } = await supabase.auth.admin.getUserById(notification.user_id)
+    if (userError) {
+      console.error('[EMAIL] Error obteniendo usuario:', userError.message)
+      return
+    }
+    const email = data?.user?.email
+    if (!email) {
+      console.warn('[EMAIL] No se encontró email para user_id:', notification.user_id)
+      return
+    }
+    console.log(`[EMAIL] Enviando notificación "${notification.type}" a ${email}...`)
+    await sendNotificationEmail(email, notification)
+  } catch (emailError) {
+    console.error('[EMAIL] Error al enviar notificación por correo:', emailError.message)
   }
 }

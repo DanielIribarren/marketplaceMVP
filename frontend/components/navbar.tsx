@@ -230,7 +230,12 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
       }
     })()
     loadNotifications()
-    return () => { mounted = false }
+
+    const pollingInterval = setInterval(loadNotifications, 60_000)
+    return () => {
+      mounted = false
+      clearInterval(pollingInterval)
+    }
   }, [isAuthenticated])
 
   useEffect(() => {
