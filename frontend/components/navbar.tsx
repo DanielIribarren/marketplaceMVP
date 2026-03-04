@@ -20,6 +20,8 @@ import {
   CheckCircle2,
   XCircle,
   Rocket,
+  LogOut,
+  Shield,
 } from 'lucide-react'
 import {
   Dialog,
@@ -35,6 +37,7 @@ import { createClient } from '@/lib/supabase/client'
 interface NavbarProps {
   unreadMessages?: number
   isAuthenticated?: boolean
+  isAdmin?: boolean
 }
 
 interface ProfileUpdatedEvent extends CustomEvent {
@@ -93,13 +96,14 @@ function formatRelativeDate(dateString: string) {
   return `hace ${diffDays} d`
 }
 
-export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarProps) {
+export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = false }: NavbarProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null)
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false)
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
 
@@ -284,9 +288,11 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            <Link href="/" className={navLinkClass('/')}>
-              Inicio
-            </Link>
+            {!isAdmin && (
+              <Link href="/" className={navLinkClass('/')}>
+                Inicio
+              </Link>
+            )}
             {isAuthenticated ? (
               <Link href="/marketplace" className={navLinkClass('/marketplace')}>
                 Marketplace
@@ -296,9 +302,11 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                 Marketplace
               </Link>
             )}
-            <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
-              Cómo funciona
-            </Link>
+            {!isAdmin && (
+              <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
+                Cómo funciona
+              </Link>
+            )}
             {isAuthenticated && (
               <>
                 <Link href="/calendar" className={navLinkClass('/calendar')}>
@@ -308,6 +316,11 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                   Tus MVPs
                 </Link>
               </>
+            )}
+            {isAdmin && (
+              <Link href="/admin" className={navLinkClass('/admin')}>
+                Panel Administración
+              </Link>
             )}
           </div>
 
@@ -332,104 +345,128 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                     <Rocket className="h-5 w-5" />
                   </Button>
                 </Link>
-                <div className="relative" ref={notificationsRef}>
-                  <Button
-                    variant={isActive('/messages') ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="hover:bg-brand-100"
-                    onClick={async () => {
-                      const willOpen = !notificationsOpen
-                      setNotificationsOpen(willOpen)
-                      if (willOpen) {
-                        await loadNotifications()
-                      }
-                    }}
-                  >
-                    <MessageSquare className="h-5 w-5" />
-                    {totalUnread > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[11px]">
-                        {totalUnread}
+{isAdmin ? (
+                  // UI para administrador
+                  <>
+                    <div className="flex items-center gap-3">
+                      <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-semibold flex items-center gap-1.5 px-3 py-1.5">
+                        <Shield className="h-4 w-4" />
+                        Modo Administrador
                       </Badge>
-                    )}
-                  </Button>
-
-                  {notificationsOpen && (
-                    <div className="absolute right-0 top-12 w-80 rounded-xl border border-border bg-background shadow-lg z-50">
-                      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                        <p className="text-sm font-semibold">Notificaciones</p>
-                        {unreadNotifications > 0 && (
-                          <button
-                            type="button"
-                            className="text-xs text-primary hover:underline"
-                            onClick={markAllNotificationsAsRead}
-                          >
-                            Marcar todas
-                          </button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="bg-brand-500 hover:bg-brand-600 text-white gap-2"
+                        onClick={() => setLogoutDialogOpen(true)}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Salir
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  // UI normal para usuarios
+                  <>
+                    <div className="relative" ref={notificationsRef}>
+                      <Button
+                        variant={isActive('/messages') ? 'secondary' : 'ghost'}
+                        size="icon"
+                        className="hover:bg-brand-100"
+                        onClick={async () => {
+                          const willOpen = !notificationsOpen
+                          setNotificationsOpen(willOpen)
+                          if (willOpen) {
+                            await loadNotifications()
+                          }
+                        }}
+                      >
+                        <MessageSquare className="h-5 w-5" />
+                        {totalUnread > 0 && (
+                          <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[11px]">
+                            {totalUnread}
+                          </Badge>
                         )}
-                      </div>
+                      </Button>
 
-                      <div className="max-h-80 overflow-y-auto">
-                        {notifications.length === 0 ? (
-                          <div className="px-3 py-6 text-sm text-muted-foreground text-center">
-                            No tienes notificaciones por ahora.
+                      {notificationsOpen && (
+                        <div className="absolute right-0 top-12 w-80 rounded-xl border border-border bg-background shadow-lg z-50">
+                          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                            <p className="text-sm font-semibold">Notificaciones</p>
+                            {unreadNotifications > 0 && (
+                              <button
+                                type="button"
+                                className="text-xs text-primary hover:underline"
+                                onClick={markAllNotificationsAsRead}
+                              >
+                                Marcar todas
+                              </button>
+                            )}
                           </div>
-                        ) : (
-                          notifications.map((notification) => (
-                            <button
-                              key={notification.id}
-                              type="button"
-                              className={`w-full text-left px-3 py-3 border-b border-border/70 hover:bg-muted/40 ${
-                                notification.read ? 'opacity-80' : ''
-                              }`}
-                              onClick={() => handleNotificationClick(notification)}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-start gap-2 min-w-0">
-                                  <div className="mt-0.5 rounded-md bg-muted/60 p-1.5">
-                                    <NotificationTypeIcon type={notification.type} />
-                                  </div>
-                                  <p className="text-sm font-medium leading-5">{notification.title}</p>
-                                </div>
-                                {!notification.read && (
-                                  <span className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
-                                )}
+
+                          <div className="max-h-80 overflow-y-auto">
+                            {notifications.length === 0 ? (
+                              <div className="px-3 py-6 text-sm text-muted-foreground text-center">
+                                No tienes notificaciones por ahora.
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 pl-9">{notification.message}</p>
-                              <p className="text-[11px] text-muted-foreground mt-1">
-                                {formatRelativeDate(notification.created_at)}
-                              </p>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="p-0 hover:bg-brand-100">
-                      {avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={avatarUrl}
-                          alt="avatar"
-                          className="h-8 w-8 rounded-full object-cover ring-2 ring-brand-200"
-                        />
-                      ) : (
-                        <User className="h-5 w-5" />
+                            ) : (
+                              notifications.map((notification) => (
+                                <button
+                                  key={notification.id}
+                                  type="button"
+                                  className={`w-full text-left px-3 py-3 border-b border-border/70 hover:bg-muted/40 ${
+                                    notification.read ? 'opacity-80' : ''
+                                  }`}
+                                  onClick={() => handleNotificationClick(notification)}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-start gap-2 min-w-0">
+                                      <div className="mt-0.5 rounded-md bg-muted/60 p-1.5">
+                                        <NotificationTypeIcon type={notification.type} />
+                                      </div>
+                                      <p className="text-sm font-medium leading-5">{notification.title}</p>
+                                    </div>
+                                    {!notification.read && (
+                                      <span className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2 pl-9">{notification.message}</p>
+                                  <p className="text-[11px] text-muted-foreground mt-1">
+                                    {formatRelativeDate(notification.created_at)}
+                                  </p>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
                       )}
-                    </Button>
-                  </DialogTrigger>
-
-                  <DialogContent>
-                    <div className="max-h-[90vh] overflow-y-auto">
-                      <DialogTitle>Editar perfil</DialogTitle>
-                      <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
-                      <ProfileEditor />
                     </div>
-                  </DialogContent>
-                </Dialog>
+
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="p-0 hover:bg-brand-100">
+                          {avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={avatarUrl}
+                              alt="avatar"
+                              className="h-8 w-8 rounded-full object-cover ring-2 ring-brand-200"
+                            />
+                          ) : (
+                            <User className="h-5 w-5" />
+                          )}
+                        </Button>
+                      </DialogTrigger>
+
+                      <DialogContent>
+                        <div className="max-h-[90vh] overflow-y-auto">
+                          <DialogTitle>Editar perfil</DialogTitle>
+                          <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
+                          <ProfileEditor onLogout={() => setLogoutDialogOpen(true)} />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
 
                 {/* Diálogo de detalles de notificación */}
                 <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
@@ -439,6 +476,40 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                     {selectedNotification && (
                       <NotificationDetails notification={selectedNotification} />
                     )}
+                  </DialogContent>
+                </Dialog>
+
+                {/* Diálogo de confirmación de logout */}
+                <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+                  <DialogContent className="max-w-md">
+                    <DialogTitle>
+                      {isAdmin ? 'Cerrar sesión de administrador' : 'Cerrar sesión'}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {isAdmin
+                        ? '¿Estás seguro de que deseas salir del modo administrador? Tendrás que iniciar sesión nuevamente para acceder al panel.'
+                        : '¿Estás seguro que deseas cerrar sesión?'
+                      }
+                    </DialogDescription>
+                    <div className="flex gap-3 mt-4">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setLogoutDialogOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        className="flex-1 bg-brand-500 hover:bg-brand-600"
+                        onClick={async () => {
+                          const supabase = createClient()
+                          await supabase.auth.signOut()
+                          window.location.href = '/login'
+                        }}
+                      >
+                        Sí, cerrar sesión
+                      </Button>
+                    </div>
                   </DialogContent>
                 </Dialog>
 

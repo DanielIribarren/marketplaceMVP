@@ -188,5 +188,11 @@ export async function getUserRole() {
   return profile?.role || 'user'
 }
 
+export async function isAdmin() {
+  const user = await getUser()
+  if (!user || !user.email) return false
+  return user.email.toLowerCase() === ADMIN_EMAIL
+}
+
 
 

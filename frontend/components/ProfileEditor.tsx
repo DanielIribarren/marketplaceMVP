@@ -28,7 +28,11 @@ interface ProfileUpdatedEvent extends CustomEvent {
   detail: { avatar_url: string | null }
 }
 
-export default function ProfileEditor() {
+interface ProfileEditorProps {
+  onLogout?: () => void
+}
+
+export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
   const [profile, setProfile] = useState<UserProfile>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -421,10 +425,15 @@ export default function ProfileEditor() {
         <button
           type="button"
           className="px-4 py-2 bg-red-100 text-red-800 border border-red-300 rounded-md hover:bg-red-700 hover:text-white transition-colors font-medium"
-          onClick={async () => {
-            const supabase = createClient()
-            await supabase.auth.signOut()
-            window.location.href = '/login'
+          onClick={() => {
+            if (onLogout) {
+              onLogout()
+            } else {
+              const supabase = createClient()
+              void supabase.auth.signOut().then(() => {
+                window.location.href = '/login'
+              })
+            }
           }}
         >
           Cerrar sesión

@@ -1,14 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Eye, Rocket, Heart, Edit3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
 
 type MvpItem = {
   id: string
@@ -30,46 +27,32 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   rejected: { label: 'Rechazado', color: 'bg-red-100 text-red-700 border-red-300' },
 }
 
-export function MyMvpsClient({ userId }: { userId: string }) {
-  const [mvps, setMvps] = useState<MvpItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+type StatusFilter = 'all' | 'draft' | 'pending' | 'approved' | 'rejected'
 
-  useEffect(() => {
-    const fetchMyMvps = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: MvpItem[]; isAdmin?: boolean }) {
+  console.log('🔍 [MyMvpsClient] initialMvps recibido:', initialMvps)
+  console.log('🔍 [MyMvpsClient] Cantidad de MVPs:', initialMvps?.length || 0)
 
-        // Primero obtener drafts
-        const draftResponse = await fetch(`${BACKEND_URL}/api/mvps/my-drafts`, {
-          credentials: 'include',
-        })
+  const [mvps] = useState<MvpItem[]>(initialMvps)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  console.log('🔍 [MyMvpsClient] Estado mvps:', mvps)
 
-        if (!draftResponse.ok) {
-          throw new Error('Error al cargar tus MVPs')
-        }
-
-        const draftData = await draftResponse.json()
-        const allMvps = draftData.data || []
-
-        // Ordenar por fecha de creación (más reciente primero)
-        allMvps.sort((a: MvpItem, b: MvpItem) => {
-          const dateA = new Date(a.created_at || 0).getTime()
-          const dateB = new Date(b.created_at || 0).getTime()
-          return dateB - dateA
-        })
-
-        setMvps(allMvps)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
+  // Contadores por estado
+  const counts = useMemo(() => {
+    return {
+      all: mvps.length,
+      draft: mvps.filter(m => m.status === 'draft').length,
+      pending: mvps.filter(m => m.status === 'pending').length,
+      approved: mvps.filter(m => m.status === 'approved').length,
+      rejected: mvps.filter(m => m.status === 'rejected').length,
     }
+  }, [mvps])
 
-    void fetchMyMvps()
-  }, [userId])
+  // MVPs filtrados
+  const filteredMvps = useMemo(() => {
+    if (statusFilter === 'all') return mvps
+    return mvps.filter(m => m.status === statusFilter)
+  }, [mvps, statusFilter])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -88,42 +71,71 @@ export function MyMvpsClient({ userId }: { userId: string }) {
             <Link href="/publish">
               <Button size="lg" className="gap-2">
                 <Rocket className="w-4 h-4" />
-                Publicar MVP
+                {isAdmin ? 'Publicar de prueba' : 'Publicar MVP'}
               </Button>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Error State */}
-      {error && (
-        <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="grid gap-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="rounded-2xl">
-              <CardContent className="p-4 md:p-5">
-                <div className="grid gap-4 md:grid-cols-[360px_1fr]">
-                  <Skeleton className="h-[220px] md:h-[270px] rounded-xl" />
-                  <div className="space-y-3">
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* Tabs de filtro por estado */}
+      {mvps.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'all'
+                ? 'bg-brand-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Todos {counts.all > 0 && `(${counts.all})`}
+          </button>
+          <button
+            onClick={() => setStatusFilter('pending')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'pending'
+                ? 'bg-brand-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Pendientes {counts.pending > 0 && `(${counts.pending})`}
+          </button>
+          <button
+            onClick={() => setStatusFilter('approved')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'approved'
+                ? 'bg-brand-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Aprobados {counts.approved > 0 && `(${counts.approved})`}
+          </button>
+          <button
+            onClick={() => setStatusFilter('rejected')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'rejected'
+                ? 'bg-brand-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Rechazados {counts.rejected > 0 && `(${counts.rejected})`}
+          </button>
+          <button
+            onClick={() => setStatusFilter('draft')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              statusFilter === 'draft'
+                ? 'bg-brand-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Borradores {counts.draft > 0 && `(${counts.draft})`}
+          </button>
         </div>
       )}
 
       {/* Empty State */}
-      {!loading && mvps.length === 0 && (
+      {mvps.length === 0 && (
         <div className="text-center py-16">
           <div className="mb-6">
             <Rocket className="w-20 h-20 mx-auto text-brand-200" />
@@ -143,10 +155,25 @@ export function MyMvpsClient({ userId }: { userId: string }) {
         </div>
       )}
 
+      {/* Empty state cuando el filtro no tiene resultados */}
+      {mvps.length > 0 && filteredMvps.length === 0 && (
+        <div className="text-center py-16">
+          <div className="mb-6">
+            <Rocket className="w-20 h-20 mx-auto text-brand-200" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            No tienes MVPs en esta categoría
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Selecciona otra categoría o crea un nuevo MVP.
+          </p>
+        </div>
+      )}
+
       {/* MVPs Grid */}
-      {!loading && mvps.length > 0 && (
+      {filteredMvps.length > 0 && (
         <div className="space-y-4">
-          {mvps.map((mvp) => {
+          {filteredMvps.map((mvp) => {
             const statusInfo = STATUS_LABELS[mvp.status || 'draft'] || STATUS_LABELS.draft
             const previewImage = mvp.cover_image_url || mvp.images_urls?.[0] || null
             const isDraft = mvp.status === 'draft'

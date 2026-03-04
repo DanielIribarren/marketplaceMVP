@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { ArrowRight, CheckCircle2, Shield, TrendingUp, Users, Zap } from "lucide-react"
-import { getUser } from "@/app/actions/auth"
+import { getUser, isAdmin as checkIsAdmin } from "@/app/actions/auth"
 import { Footer } from "@/components/footer"
 import { Navbar } from "@/components/navbar"
 import { Badge } from "@/components/ui/badge"
@@ -10,10 +10,11 @@ import { Card, CardContent } from "@/components/ui/card"
 export default async function Home() {
   const user = await getUser()
   const isAuthenticated = !!user
+  const userIsAdmin = await checkIsAdmin()
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isAuthenticated={isAuthenticated} />
+      <Navbar isAuthenticated={isAuthenticated} isAdmin={userIsAdmin} />
 
       <main>
         <section className="relative overflow-hidden bg-ink-900 py-20 px-4 text-white">

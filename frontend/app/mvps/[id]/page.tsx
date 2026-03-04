@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getMvpDetails } from '@/app/actions/mvp'
-import { recordMvpUniqueView } from '@/app/actions/MvpViews'
+import { recordMvpUniqueView } from '@/app/actions/mvpViews'
 import { getMyMeetings } from '@/app/actions/meetings'
 import type { Meeting } from '@/app/actions/meetings'
 import { Navbar } from '@/components/navbar'

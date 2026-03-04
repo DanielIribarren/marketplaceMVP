@@ -348,29 +348,36 @@ export async function getMVP(mvpId: string) {
 export async function getMyDrafts() {
   try {
     const token = await getAuthToken()
-    
+    console.log('🔍 [Server Action getMyDrafts] Token obtenido:', token ? 'Sí ✓' : 'No ✗')
+
     if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado' 
+      console.log('❌ [Server Action getMyDrafts] No hay token')
+      return {
+        success: false,
+        error: 'No autenticado'
       }
     }
 
+    console.log('🔍 [Server Action getMyDrafts] Haciendo fetch a:', `${BACKEND_URL}/api/mvps/my-drafts`)
     const response = await fetch(`${BACKEND_URL}/api/mvps/my-drafts`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
 
+    console.log('🔍 [Server Action getMyDrafts] Status de respuesta:', response.status)
     const data = await response.json()
+    console.log('🔍 [Server Action getMyDrafts] Datos recibidos:', JSON.stringify(data, null, 2))
 
     if (!response.ok) {
+      console.log('❌ [Server Action getMyDrafts] Respuesta no OK:', data)
       return {
         success: false,
         error: data.error || 'Error al obtener borradores'
       }
     }
 
+    console.log('✅ [Server Action getMyDrafts] Retornando:', data.data?.length || 0, 'MVPs')
     return {
       success: true,
       data: data.data,

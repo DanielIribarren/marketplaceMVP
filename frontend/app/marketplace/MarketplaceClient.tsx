@@ -558,6 +558,21 @@ export function MarketplaceClient({ initialMvps, userId, initialFilters }: Marke
                               : undefined
                           }
                         />
+
+                        {/* Ribbon "Tu MVP" en la esquina superior derecha */}
+                        {isOwnMvp && (
+                          <div className="absolute top-3 right-3 z-10">
+                            <div className="relative">
+                              <div className="bg-green-600 text-white px-4 py-1.5 rounded-lg font-semibold text-sm shadow-lg flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                Tu MVP
+                              </div>
+                              {/* Sombra del ribbon */}
+                              <div className="absolute -bottom-1 right-0 w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-green-700 border-r-[8px] border-r-green-700" />
+                            </div>
+                          </div>
+                        )}
+
                         <div className="relative flex h-full min-h-[220px] flex-col justify-between p-5 md:p-6">
                           <div className="flex items-start justify-between">
                             <div className="flex flex-col gap-2">
@@ -567,14 +582,6 @@ export function MarketplaceClient({ initialMvps, userId, initialFilters }: Marke
                               >
                                 {mvp.category || 'Sin categoria'}
                               </Badge>
-                              {isOwnMvp && (
-                                <Badge
-                                  variant="outline"
-                                  className="w-fit border-green-200 bg-green-50/95 text-green-800 font-semibold"
-                                >
-                                  Tu MVP
-                                </Badge>
-                              )}
                             </div>
                             {!isOwnMvp && (
                               <button

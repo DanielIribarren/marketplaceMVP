@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { AdminNavbar } from "@/components/AdminNavBar"
+import { Navbar } from "@/components/navbar"
 import { MvpReviewActions } from "@/components/admin/MvpReviewActions"
 
 
@@ -135,7 +135,7 @@ export default async function AdminPage({
 
   return (
     <>
-      <AdminNavbar />
+      <Navbar isAuthenticated={true} isAdmin={true} />
 
       <main className="mx-auto max-w-7xl space-y-6 p-6">
         <header>

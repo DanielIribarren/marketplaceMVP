@@ -104,6 +104,9 @@ app.post('/api/mvps/draft', verifyAuth, saveDraft)
 // Obtener preview de una URL
 app.post('/api/mvps/preview-from-url', verifyAuth, getUrlPreview)
 
+// Obtener mis borradores (debe ir ANTES de /api/mvps/:id)
+app.get('/api/mvps/my-drafts', verifyAuth, getMyDrafts)
+
 // Publicar MVP
 app.post('/api/mvps/:id/publish', verifyAuth, publishMVP)
 
@@ -112,9 +115,6 @@ app.get('/api/mvps/:id', verifyAuth, getMVP)
 
 // Eliminar borrador de MVP
 app.delete('/api/mvps/:id', verifyAuth, deleteMVP)
-
-// Obtener mis borradores
-app.get('/api/mvps/my-drafts', verifyAuth, getMyDrafts)
 
 // Validación en tiempo real de un campo
 app.post('/api/mvps/validate', verifyAuth, validateField)

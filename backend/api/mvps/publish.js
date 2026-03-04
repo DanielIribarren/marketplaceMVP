@@ -135,12 +135,17 @@ export async function getMVP(req, res) {
 export async function getMyDrafts(req, res) {
   try {
     const userId = req.user.id
+    console.log('🔍 [Backend getMyDrafts] Usuario ID:', userId)
 
     const { data: drafts, error } = await supabase
       .from('mvps')
       .select('*')
       .eq('owner_id', userId)
       .order('updated_at', { ascending: false })
+
+    console.log('🔍 [Backend getMyDrafts] Error de Supabase:', error)
+    console.log('🔍 [Backend getMyDrafts] Cantidad de MVPs encontrados:', drafts?.length || 0)
+    console.log('🔍 [Backend getMyDrafts] Primeros 2 MVPs:', JSON.stringify(drafts?.slice(0, 2), null, 2))
 
     if (error) throw error
 
@@ -151,7 +156,7 @@ export async function getMyDrafts(req, res) {
     })
 
   } catch (error) {
-    console.error('Error al obtener borradores:', error)
+    console.error('❌ [Backend getMyDrafts] Error al obtener borradores:', error)
     res.status(500).json({
       error: 'Error del servidor',
       message: 'No se pudieron obtener los borradores',

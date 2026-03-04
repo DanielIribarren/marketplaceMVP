@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isAdmin } from '@/app/actions/auth'
 import { Navbar } from '@/components/navbar'
 import { CalendarClient } from './CalendarClient'
 
@@ -11,9 +12,11 @@ export default async function CalendarPage() {
     redirect('/login')
   }
 
+  const userIsAdmin = await isAdmin()
+
   return (
     <div className="min-h-screen bg-brand-50">
-      <Navbar isAuthenticated={true} />
+      <Navbar isAuthenticated={true} isAdmin={userIsAdmin} />
       <CalendarClient userId={user.id} />
     </div>
   )

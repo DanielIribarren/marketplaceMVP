@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getUser } from '@/app/actions/auth'
+import { getUser, isAdmin } from '@/app/actions/auth'
 import { getPublicMvps } from '@/app/actions/mvp'
 import { Navbar } from '@/components/navbar'
 import Link from 'next/link'
@@ -25,6 +25,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     redirect('/login')
   }
 
+  const userIsAdmin = await isAdmin()
   const searchParamsResolved = await searchParams
 
   const q = getSearchParam(searchParamsResolved, 'q')
@@ -55,7 +56,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isAuthenticated={true} />
+      <Navbar isAuthenticated={true} isAdmin={userIsAdmin} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="brand-surface border border-brand-100/90 rounded-2xl p-6 mb-8 relative overflow-hidden">
@@ -70,7 +71,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
             <div className="flex flex-wrap gap-3">
               <Link href="/publish">
-                <Button size="lg">Publicar MVP</Button>
+                <Button size="lg">{userIsAdmin ? 'Publicar de prueba' : 'Publicar MVP'}</Button>
               </Link>
             </div>
           </div>
