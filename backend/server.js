@@ -6,6 +6,7 @@ import { saveDraft } from './api/mvps/draft.js'
 import { publishMVP, getMVP, getMyDrafts, deleteMVP } from './api/mvps/publish.js'
 import { getPublicMvps } from './api/mvps/public.js'
 import { getMvpDetails } from './api/mvps/details.js'
+import { getUrlPreview } from './api/mvps/preview.js'
 import { recordMvpView } from './api/mvps/views.js'
 import availabilityRoutes from './api/availability.routes.js'
 import { validateField, getQualitySignals } from './api/mvps/validate.js'
@@ -97,6 +98,9 @@ app.use('/api', availabilityRoutes)
 
 // Guardar borrador
 app.post('/api/mvps/draft', verifyAuth, saveDraft)
+
+// Obtener preview de una URL
+app.post('/api/mvps/preview-from-url', verifyAuth, getUrlPreview)
 
 // Publicar MVP
 app.post('/api/mvps/:id/publish', verifyAuth, publishMVP)

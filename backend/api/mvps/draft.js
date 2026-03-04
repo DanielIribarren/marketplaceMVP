@@ -33,6 +33,7 @@ export async function saveDraft(req, res) {
       slug: mvpData.slug || buildSlug(mvpData.title),
       description: mvpData.description || null,
       demo_url: mvpData.demo_url || null,
+      cover_image_url: mvpData.cover_image_url || null,
       images_urls: mvpData.images_urls || [],
       monetization_model: mvpData.monetization_model || null,
       minimal_evidence: mvpData.minimal_evidence || null,
