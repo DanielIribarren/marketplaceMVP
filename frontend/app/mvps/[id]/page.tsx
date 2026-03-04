@@ -287,6 +287,7 @@ export default function MVPDetailsPage() {
                     src={mvp.cover_image_url}
                     alt={mvp.title}
                     fill
+                    unoptimized
                     className="object-cover"
                     onError={() => handleImageError(mvp.cover_image_url!)}
                   />
@@ -319,6 +320,7 @@ export default function MVPDetailsPage() {
                             src={imageUrl}
                             alt={`${mvp.title} - ${index + 1}`}
                             fill
+                            unoptimized
                             className="object-cover hover:scale-105 transition-transform"
                             onError={() => handleImageError(imageUrl)}
                           />
