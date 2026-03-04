@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { Calendar, CheckCircle2, Loader2, Send, ArrowLeft, X } from "lucide-react"
 import Link from "next/link"
-import { publishMVP, saveDraft, deleteDraft } from "@/app/actions/mvp"
+import { publishMVP, saveDraft, deleteDraft, getUrlPreview } from "@/app/actions/mvp"
 import { AvailabilityCalendar } from "@/components/publish/AvailabilityCalendar"
 import { BasicFields } from "@/components/publish/BasicFields"
 import { QualitySignalsIndicator } from "@/components/publish/QualitySignals"
@@ -33,6 +33,16 @@ const stepTransition = {
 
 const STORAGE_KEY = 'mvp-draft-form'
 
+function isValidHttpUrl(value: string): boolean {
+  if (!value) return false
+  try {
+    const parsed = new URL(value)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export default function PublishPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<Step>("basics")
@@ -40,6 +50,10 @@ export default function PublishPage() {
   const [isPublishing, setIsPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const previewRequestRef = React.useRef(0)
+  const lastPreviewUrlRef = React.useRef('')
 
   const [signals, setSignals] = useState<QualitySignals>({
     hasValidOneLiner: false,
@@ -93,6 +107,84 @@ export default function PublishPage() {
 
     setSignals(localSignals)
   }, [mvpData])
+
+  const requestLinkPreview = React.useCallback(async (url: string, force = false) => {
+    const normalized = url.trim()
+    if (!isValidHttpUrl(normalized)) return
+    if (!force && lastPreviewUrlRef.current === normalized) return
+
+    lastPreviewUrlRef.current = normalized
+    const requestId = ++previewRequestRef.current
+    setPreviewLoading(true)
+    setPreviewError(null)
+
+    const result = await getUrlPreview(normalized)
+
+    if (requestId !== previewRequestRef.current) {
+      return
+    }
+
+    if (result.success && result.previewUrl) {
+      setMvpData((prev) => {
+        if ((prev.demoUrl || '').trim() !== normalized) return prev
+        if (prev.coverImageUrl === result.previewUrl) return prev
+        return { ...prev, coverImageUrl: result.previewUrl }
+      })
+      setPreviewError(null)
+    } else {
+      setPreviewError(result.error || 'No encontramos una portada automática para este enlace')
+      setMvpData((prev) => {
+        if ((prev.demoUrl || '').trim() !== normalized) return prev
+        if (!prev.coverImageUrl) return prev
+        return { ...prev, coverImageUrl: undefined }
+      })
+    }
+
+    setPreviewLoading(false)
+  }, [])
+
+  const demoUrl = (mvpData.demoUrl || '').trim()
+
+  React.useEffect(() => {
+    if (!isLoaded) return
+
+    if (!demoUrl) {
+      previewRequestRef.current += 1
+      lastPreviewUrlRef.current = ''
+      setPreviewLoading(false)
+      setPreviewError(null)
+      setMvpData((prev) => {
+        if (!prev.coverImageUrl) return prev
+        return { ...prev, coverImageUrl: undefined }
+      })
+      return
+    }
+
+    if (!isValidHttpUrl(demoUrl)) {
+      previewRequestRef.current += 1
+      lastPreviewUrlRef.current = ''
+      setPreviewLoading(false)
+      setPreviewError(null)
+      setMvpData((prev) => {
+        if (!prev.coverImageUrl) return prev
+        return { ...prev, coverImageUrl: undefined }
+      })
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void requestLinkPreview(demoUrl)
+    }, 700)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [demoUrl, isLoaded, requestLinkPreview])
+
+  const handleRetryPreview = React.useCallback(() => {
+    if (!isValidHttpUrl(demoUrl)) return
+    void requestLinkPreview(demoUrl, true)
+  }, [demoUrl, requestLinkPreview])
 
   const canProceedToAvailability = () => {
     // Verificar que todas las señales de calidad estén completas
@@ -313,7 +405,13 @@ export default function PublishPage() {
                 <div className="lg:col-span-2">
                   <Card className="p-6">
                     <h2 className="mb-6 text-xl font-semibold">Información del MVP</h2>
-                    <BasicFields data={mvpData} onChange={setMvpData} />
+                    <BasicFields
+                      data={mvpData}
+                      onChange={setMvpData}
+                      previewLoading={previewLoading}
+                      previewError={previewError}
+                      onRetryPreview={handleRetryPreview}
+                    />
 
                     <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
                       <p className="text-sm text-amber-800">

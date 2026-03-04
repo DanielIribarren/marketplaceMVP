@@ -104,6 +104,7 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
         one_liner: mvpData.oneLiner,
         description: mvpData.description,
         demo_url: mvpData.demoUrl,
+        cover_image_url: mvpData.coverImageUrl,
         images_urls: mvpData.screenshots,
         monetization_model: mvpData.monetizationModel,
         minimal_evidence: mvpData.minimalEvidence,
@@ -141,6 +142,61 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
       success: false,
       error: 'Error de conexión',
       message: 'No se pudo conectar con el servidor'
+    }
+  }
+}
+
+/**
+ * Obtiene preview de portada a partir de una URL del MVP
+ */
+export async function getUrlPreview(url: string): Promise<{
+  success: boolean
+  previewUrl?: string | null
+  source?: string | null
+  title?: string | null
+  error?: string
+}> {
+  try {
+    const token = await getAuthToken()
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'No autenticado'
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/preview-from-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ url })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.message || data.error || 'No se pudo generar preview'
+      }
+    }
+
+    const previewUrl = data?.data?.preview_url || data?.data?.favicon_url || null
+
+    return {
+      success: true,
+      previewUrl,
+      source: data?.data?.source || null,
+      title: data?.data?.title || null
+    }
+  } catch (error) {
+    console.error('Error al obtener preview de URL:', error)
+    return {
+      success: false,
+      error: 'Error de conexión al obtener preview'
     }
   }
 }

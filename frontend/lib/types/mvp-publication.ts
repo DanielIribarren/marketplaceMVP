@@ -54,6 +54,9 @@ export interface MVPPublication {
   // Campo 4: Link a demo o repositorio/landing
   demoUrl: string
 
+  // Portada autogenerada desde metadata del enlace
+  coverImageUrl?: string
+
   // Campo 5: Capturas clave (hasta 3 URLs)
   screenshots: string[] // Max 3
 

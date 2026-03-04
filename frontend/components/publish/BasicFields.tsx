@@ -7,18 +7,21 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Loader2, RefreshCw } from 'lucide-react'
 import { MICROCOPYS, MonetizationModel, DealModality, MonetizationModelLabels, DealModalityLabels } from '@/lib/types/mvp-publication'
 import type { MVPPublication } from '@/lib/types/mvp-publication'
 
 interface BasicFieldsProps {
   data: Partial<MVPPublication>
   onChange: (data: Partial<MVPPublication>) => void
+  previewLoading?: boolean
+  previewError?: string | null
+  onRetryPreview?: () => void
 }
 
 type TransferChecklistKey = 'codeAndDocs' | 'domainOrLanding' | 'integrationAccounts' | 'ownIp'
 
-export function BasicFields({ data, onChange }: BasicFieldsProps) {
+export function BasicFields({ data, onChange, previewLoading = false, previewError = null, onRetryPreview }: BasicFieldsProps) {
   const [screenshotInput, setScreenshotInput] = useState('')
   const [differentialInputs, setDifferentialInputs] = useState(
     data.competitiveDifferentials || ['', '', '']
@@ -115,6 +118,47 @@ export function BasicFields({ data, onChange }: BasicFieldsProps) {
           onChange={(e) => onChange({ ...data, demoUrl: e.target.value })}
         />
         <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.demoUrl.help}</p>
+
+        {previewLoading && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Generando portada automática desde el enlace...
+          </div>
+        )}
+
+        {data.coverImageUrl && (
+          <div className="mt-3 overflow-hidden rounded-lg border border-border/80 bg-card">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={data.coverImageUrl}
+              alt="Preview de portada del MVP"
+              className="h-36 w-full object-cover"
+            />
+            <div className="px-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Portada detectada automáticamente desde el enlace.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {previewError && !previewLoading && (
+          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs text-amber-800">{previewError}</p>
+            {onRetryPreview && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={onRetryPreview}
+              >
+                <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                Reintentar preview
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Campo 5: Screenshots */}
