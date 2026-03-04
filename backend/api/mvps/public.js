@@ -93,8 +93,10 @@ export async function getPublicMvps(req, res) {
           cover_image_url,
           images_urls,
           views_count,
+          favorites_count,
           status,
-          published_at
+          published_at,
+          owner_id
         `,
         { count: 'exact' }
       )
@@ -184,9 +186,16 @@ export async function getPublicMvps(req, res) {
 
     const totalCount = hasPriceFilter ? filteredData.length : (count || 0)
 
+    // Asegurar que los contadores nunca sean negativos
+    const sanitizedData = filteredData.map(mvp => ({
+      ...mvp,
+      views_count: Math.max(0, mvp.views_count || 0),
+      favorites_count: Math.max(0, mvp.favorites_count || 0)
+    }))
+
     res.status(200).json({
       success: true,
-      data: filteredData,
+      data: sanitizedData,
       count: totalCount
     })
   } catch (error) {

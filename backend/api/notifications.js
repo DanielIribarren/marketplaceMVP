@@ -153,7 +153,12 @@ export async function notifyMvpDecision(req, res) {
       message: isApproved
         ? `Tu MVP "${mvp.title}" fue aprobado y ya está visible en el marketplace.`
         : `Tu MVP "${mvp.title}" fue rechazado. Motivo: ${reason || 'Sin motivo especificado'}.`,
-      data: { mvp_id: mvp.id, href: '/publish' },
+      data: {
+        mvp_id: mvp.id,
+        mvp_title: mvp.title,
+        rejection_reason: isApproved ? null : (reason || 'Sin motivo especificado'),
+        href: isApproved ? `/mvps/${mvp.id}` : '/publish'
+      },
       read: false
     }
 

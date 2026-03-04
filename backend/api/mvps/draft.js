@@ -50,6 +50,8 @@ export async function saveDraft(req, res) {
       testimonials: mvpData.testimonials || [],
       roadmap_60_days: mvpData.roadmap_60_days || [],
       risks_and_mitigations: mvpData.risks_and_mitigations || [],
+      views_count: 0,
+      favorites_count: 0,
       status: 'draft',
       updated_at: new Date().toISOString()
     }
