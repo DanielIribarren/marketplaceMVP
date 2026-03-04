@@ -423,3 +423,37 @@ export async function cancelMeeting(req, res) {
     res.status(500).json({ error: 'Error del servidor', message: 'No se pudo cancelar la reunión', details: error.message })
   }
 }
+
+/**
+ * POST /api/meetings/initialize-old-offers
+ * Inicializa ofertas antiguas con valores por defecto (0)
+ */
+export async function initializeOldOffers(_req, res) {
+  try {
+    // Actualizar reuniones económicas sin oferta
+    const { data: updated, error } = await supabase
+      .from('meetings')
+      .update({
+        offer_amount: 0,
+        offer_equity_percent: 0
+      })
+      .eq('offer_type', 'economic')
+      .is('offer_amount', null)
+      .select()
+
+    if (error) throw error
+
+    res.status(200).json({
+      success: true,
+      message: `${updated?.length || 0} reuniones inicializadas con ofertas en 0`,
+      data: updated
+    })
+  } catch (error) {
+    console.error('Error al inicializar ofertas:', error)
+    res.status(500).json({
+      error: 'Error del servidor',
+      message: 'No se pudieron inicializar las ofertas',
+      details: error.message
+    })
+  }
+}

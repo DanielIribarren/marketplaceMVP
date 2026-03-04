@@ -17,6 +17,9 @@ import {
   Ban,
   Bell,
   HandCoins,
+  CheckCircle2,
+  XCircle,
+  Rocket,
 } from 'lucide-react'
 import {
   Dialog,
@@ -26,6 +29,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import ProfileEditor from '@/components/ProfileEditor'
+import { NotificationDetails } from '@/components/NotificationDetails'
 import { createClient } from '@/lib/supabase/client'
 
 interface NavbarProps {
@@ -54,6 +58,10 @@ function NotificationTypeIcon({ type }: { type: string }) {
   switch (type) {
     case 'mvp_favorited':
       return <Heart className={`${iconClass} ${themedColorClass}`} />
+    case 'mvp_approved':
+      return <CheckCircle2 className={`${iconClass} text-green-600`} />
+    case 'mvp_rejected':
+      return <XCircle className={`${iconClass} text-red-600`} />
     case 'meeting_requested':
       return <CalendarClock className={`${iconClass} ${themedColorClass}`} />
     case 'offer_pending_review':
@@ -90,6 +98,8 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null)
+  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
 
@@ -183,14 +193,9 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
       setUnreadNotifications((prev) => Math.max(0, prev - 1))
     }
 
-    const href = typeof notification.data?.href === 'string'
-      ? notification.data.href
-      : null
-
-    if (href) {
-      window.location.href = href
-    }
-
+    // Abrir diálogo con los detalles de la notificación
+    setSelectedNotification(notification)
+    setNotificationDialogOpen(true)
     setNotificationsOpen(false)
   }
 
@@ -229,7 +234,9 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
         // ignore
       }
     })()
-    loadNotifications()
+
+    // Cargar notificaciones en el siguiente tick para evitar renders en cascada
+    setTimeout(loadNotifications, 0)
 
     const pollingInterval = setInterval(loadNotifications, 60_000)
     return () => {
@@ -293,9 +300,14 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
               Cómo funciona
             </Link>
             {isAuthenticated && (
-              <Link href="/calendar" className={navLinkClass('/calendar')}>
-                Calendario
-              </Link>
+              <>
+                <Link href="/calendar" className={navLinkClass('/calendar')}>
+                  Calendario
+                </Link>
+                <Link href="/my-mvps" className={navLinkClass('/my-mvps')}>
+                  Tus MVPs
+                </Link>
+              </>
             )}
           </div>
 
@@ -309,6 +321,15 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                     className="hover:bg-brand-100"
                   >
                     <Calendar className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/my-mvps" className="md:hidden">
+                  <Button
+                    variant={isActive('/my-mvps') ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className="hover:bg-brand-100"
+                  >
+                    <Rocket className="h-5 w-5" />
                   </Button>
                 </Link>
                 <div className="relative" ref={notificationsRef}>
@@ -407,6 +428,17 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false }: NavbarPr
                       <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
                       <ProfileEditor />
                     </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Diálogo de detalles de notificación */}
+                <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
+                  <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+                    <DialogTitle className="sr-only">Detalles de la notificación</DialogTitle>
+                    <DialogDescription className="sr-only">Información detallada sobre esta notificación</DialogDescription>
+                    {selectedNotification && (
+                      <NotificationDetails notification={selectedNotification} />
+                    )}
                   </DialogContent>
                 </Dialog>
 

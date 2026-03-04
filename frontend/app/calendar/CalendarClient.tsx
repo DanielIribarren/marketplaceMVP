@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import {
   ChevronLeft, ChevronRight, CalendarDays, Clock, Video,
   User, ExternalLink, Loader2, CheckCircle2, XCircle,
-  RefreshCw, AlertCircle, Building2, TrendingUp,
+  RefreshCw, AlertCircle, Building2, TrendingUp, DollarSign,
 } from 'lucide-react'
 import {
   getMyMeetings,
@@ -165,6 +165,8 @@ function rolLabel(m: Meeting, uid: string): { texto: string; Icono: React.Elemen
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
+type VistaPanel = 'atencion' | 'ofertas'
+
 export function CalendarClient({ userId }: { userId: string }) {
   const [cursor,      setCursor]   = useState(new Date())
   const [vista,       setVista]    = useState<VistaCalendario>('1w')
@@ -174,6 +176,7 @@ export function CalendarClient({ userId }: { userId: string }) {
   const [openDialog,  setOpen]     = useState(false)
   const [actLoading,  setActLoad]  = useState(false)
   const [actMsg,      setActMsg]   = useState<{ok:boolean;txt:string}|null>(null)
+  const [vistaPanel,  setVistaPanel] = useState<VistaPanel>('atencion')
 
   const hoy   = useMemo(() => { const h = new Date(); h.setHours(0,0,0,0); return h }, [])
   const semanasVisibles = VISTAS[vista].weeks
@@ -213,6 +216,19 @@ export function CalendarClient({ userId }: { userId: string }) {
     () => meetings.filter(m => esmiturno(m, userId)),
     [meetings, userId]
   )
+
+  // Ofertas recibidas (emprendedor recibe ofertas de inversores)
+  const ofertasRecibidas = useMemo(() => {
+    return meetings.filter(m => {
+      // Solo reuniones donde soy el owner (emprendedor)
+      if (m.owner_id !== userId) return false
+      // Solo reuniones con oferta
+      if (!m.offer_type) return false
+      // Solo reuniones pending o en contrapropuesta
+      if (!['pending', 'counterproposal_investor', 'counterproposal_entrepreneur'].includes(m.status)) return false
+      return true
+    })
+  }, [meetings, userId])
 
   function abrirDetalle(m: Meeting) {
     setSel(m); setActMsg(null); setOpen(true)
@@ -374,17 +390,58 @@ export function CalendarClient({ userId }: { userId: string }) {
         </div>
       )}
 
-      {/* ── Panel: reuniones que necesitan tu atención ── */}
-      {pendientesAccion.length > 0 && (
+      {/* ── Panel unificado con selector ── */}
+      {(pendientesAccion.length > 0 || ofertasRecibidas.length > 0) && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-brand-600"/>
-            <h2 className="text-lg font-semibold text-foreground">
-              Requieren tu atención ({pendientesAccion.length})
-            </h2>
+          {/* Selector de vista */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => setVistaPanel('atencion')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                vistaPanel === 'atencion'
+                  ? 'bg-brand-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <AlertCircle className={`w-4 h-4 ${vistaPanel === 'atencion' ? 'text-white' : 'text-orange-600'}`} />
+              Requieren tu atención
+              {pendientesAccion.length > 0 && (
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  vistaPanel === 'atencion'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-brand-600 text-white'
+                }`}>
+                  {pendientesAccion.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setVistaPanel('ofertas')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                vistaPanel === 'ofertas'
+                  ? 'bg-orange-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <DollarSign className={`w-4 h-4 ${vistaPanel === 'ofertas' ? 'text-white' : 'text-orange-600'}`} />
+              Ofertas recibidas
+              {ofertasRecibidas.length > 0 && (
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  vistaPanel === 'ofertas'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-orange-600 text-white'
+                }`}>
+                  {ofertasRecibidas.length}
+                </span>
+              )}
+            </button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {pendientesAccion.map(m => {
+
+          {/* Contenido según la vista seleccionada */}
+          {vistaPanel === 'atencion' && pendientesAccion.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {pendientesAccion.map(m => {
               const visualStatus = getVisualStatus(m, userId)
               const rol   = rolLabel(m, userId)
               const Icono = rol.Icono
@@ -475,6 +532,72 @@ export function CalendarClient({ userId }: { userId: string }) {
               )
             })}
           </div>
+          )}
+
+          {vistaPanel === 'ofertas' && ofertasRecibidas.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {ofertasRecibidas.map(m => {
+                const offerSummary = formatOfferSummary(m)
+                const otro = m.requester
+                const OfferIcon = m.offer_type === 'economic' ? DollarSign : TrendingUp
+
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      // Navegar al día de la reunión
+                      if (m.scheduled_at) {
+                        const meetingDate = new Date(m.scheduled_at)
+                        setCursor(meetingDate)
+                      }
+                      abrirDetalle(m)
+                    }}
+                    className="bg-orange-50/50 border border-orange-200 rounded-xl p-4 text-left hover:bg-orange-100/70 hover:shadow-md transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">
+                          {m.offer_type === 'economic' ? 'Oferta Económica' : 'Aporte No Económico'}
+                        </p>
+                        <p className="font-bold text-sm text-foreground truncate mb-0.5">
+                          {m.mvp?.title || 'MVP'}
+                        </p>
+                        {otro && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            De: {otro.display_name || otro.email || 'Inversor'}
+                          </p>
+                        )}
+                      </div>
+                      <OfferIcon className="w-5 h-5 text-orange-500 shrink-0 group-hover:scale-110 transition-transform" />
+                    </div>
+
+                    {offerSummary && (
+                      <div className="bg-white/80 border border-orange-200/50 rounded-lg px-3 py-2 mb-2">
+                        <p className="text-sm font-semibold text-orange-900 line-clamp-2">
+                          {offerSummary}
+                        </p>
+                      </div>
+                    )}
+
+                    {m.scheduled_at && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        📅 {new Date(m.scheduled_at).toLocaleDateString('es-MX', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })} · {fmtHora(m.scheduled_at)}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-1 text-xs text-orange-600 font-semibold mt-2 group-hover:underline">
+                      Ver detalles
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 

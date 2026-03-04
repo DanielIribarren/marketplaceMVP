@@ -82,14 +82,39 @@ export async function toggleFavorite(req, res) {
       .single()
 
     if (mvpData?.owner_id && mvpData.owner_id !== userId) {
+      // Obtener nombre del usuario que marcó el favorito
+      console.log('[DEBUG] Buscando perfil para userId:', userId)
+      const { data: userData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('display_name')
+        .eq('id', userId)
+        .single()
+
+      console.log('[DEBUG] userData:', userData)
+      console.log('[DEBUG] profileError:', profileError)
+
+      // Si no tiene display_name, intentar obtener el email
+      let userName = userData?.display_name
+
+      if (!userName) {
+        console.log('[DEBUG] No se encontró display_name, buscando email...')
+        const { data: authUser } = await supabase.auth.admin.getUserById(userId)
+        console.log('[DEBUG] authUser:', authUser?.user?.email)
+        userName = authUser?.user?.email?.split('@')[0] || 'Un usuario'
+      }
+
+      console.log('[DEBUG] userName final:', userName)
+
       await safeCreateNotification({
         user_id: mvpData.owner_id,
         type: 'mvp_favorited',
         title: 'Tu MVP recibió un favorito',
-        message: `Alguien agregó \"${mvpData.title || 'tu MVP'}\" a favoritos.`,
+        message: `${userName} agregó \"${mvpData.title || 'tu MVP'}\" a favoritos.`,
         data: {
           mvp_id: mvpId,
-          href: '/marketplace'
+          mvp_title: mvpData.title,
+          user_name: userName,
+          href: `/mvps/${mvpId}`
         },
         read: false
       })

@@ -125,18 +125,20 @@ export default function PublishPage() {
     }
 
     if (result.success && result.previewUrl) {
-      setMvpData((prev) => {
-        if ((prev.demoUrl || '').trim() !== normalized) return prev
-        if (prev.coverImageUrl === result.previewUrl) return prev
-        return { ...prev, coverImageUrl: result.previewUrl }
+      setMvpData((prevData) => {
+        if ((prevData.demoUrl || '').trim() !== normalized) return prevData
+        if (prevData.coverImageUrl === result.previewUrl) return prevData
+        return { ...prevData, coverImageUrl: result.previewUrl || undefined }
       })
       setPreviewError(null)
     } else {
       setPreviewError(result.error || 'No encontramos una portada automática para este enlace')
-      setMvpData((prev) => {
-        if ((prev.demoUrl || '').trim() !== normalized) return prev
-        if (!prev.coverImageUrl) return prev
-        return { ...prev, coverImageUrl: undefined }
+      setMvpData((prevData) => {
+        if ((prevData.demoUrl || '').trim() !== normalized) return prevData
+        if (!prevData.coverImageUrl) return prevData
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { coverImageUrl, ...rest } = prevData
+        return rest
       })
     }
 

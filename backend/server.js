@@ -16,7 +16,8 @@ import {
   confirmMeeting,
   rejectMeeting,
   counterproposeMeeting,
-  cancelMeeting
+  cancelMeeting,
+  initializeOldOffers
 } from './api/meetings.js'
 import { getProfile, updateProfile } from './api/profile.js'
 import { getMyFavorites, toggleFavorite } from './api/favorites.js'
@@ -65,6 +66,7 @@ app.post('/api/meetings/:id/confirm', verifyAuth, confirmMeeting)
 app.post('/api/meetings/:id/reject', verifyAuth, rejectMeeting)
 app.post('/api/meetings/:id/counterproposal', verifyAuth, counterproposeMeeting)
 app.post('/api/meetings/:id/cancel', verifyAuth, cancelMeeting)
+app.post('/api/meetings/initialize-old-offers', verifyAuth, initializeOldOffers)
 
 // Favoritos
 app.get('/api/favorites/my', verifyAuth, getMyFavorites)

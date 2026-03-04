@@ -73,7 +73,10 @@ creator = creatorData || null
 
 const responseData = {
 ...data,
-user_profiles: creator
+user_profiles: creator,
+// Asegurar que los contadores nunca sean negativos
+views_count: Math.max(0, data.views_count || 0),
+favorites_count: Math.max(0, data.favorites_count || 0)
 }
 
 res.status(200).json({

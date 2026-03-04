@@ -78,6 +78,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
         <MarketplaceClient
           initialMvps={mvps}
+          userId={user.id}
           initialFilters={{
             q: q || '',
             dealModality: dealModality || '',

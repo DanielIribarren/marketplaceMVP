@@ -42,10 +42,12 @@ type MvpListItem = {
   status?: string | null
   views_count?: number | null
   competitive_differentials?: string[] | null
+  owner_id?: string | null
 }
 
 type MarketplaceClientProps = {
   initialMvps: MvpListItem[]
+  userId: string
   initialFilters: FilterState
 }
 
@@ -189,7 +191,7 @@ function DateFilterField({ label, value, onChange, disabled }: DateFilterFieldPr
   )
 }
 
-export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceClientProps) {
+export function MarketplaceClient({ initialMvps, userId, initialFilters }: MarketplaceClientProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(
@@ -537,6 +539,7 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
                 : null
               const meetingDateLabel = formatMeetingDateShort(investorMeeting?.scheduled_at)
               const previewImage = mvp.cover_image_url || mvp.images_urls?.[0] || null
+              const isOwnMvp = mvp.owner_id === userId
 
               return (
                 <Card key={mvp.id} className="rounded-2xl">
@@ -557,25 +560,37 @@ export function MarketplaceClient({ initialMvps, initialFilters }: MarketplaceCl
                         />
                         <div className="relative flex h-full min-h-[220px] flex-col justify-between p-5 md:p-6">
                           <div className="flex items-start justify-between">
-                            <Badge
-                              variant="outline"
-                              className="w-fit border-brand-200 bg-brand-50/95 text-brand-800"
-                            >
-                              {mvp.category || 'Sin categoria'}
-                            </Badge>
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleFavorite(mvp.id, e)}
-                              className="group flex h-9 w-9 items-center justify-center rounded-full bg-background/80 shadow-md backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-background/95 active:scale-95"
-                              title={favoriteIds.has(mvp.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-                            >
-                              <Heart
-                                className={`h-5 w-5 transition-colors duration-200 ${favoriteIds.has(mvp.id)
-                                  ? 'fill-red-500 text-red-500'
-                                  : 'text-muted-foreground group-hover:text-red-400'
-                                  }`}
-                              />
-                            </button>
+                            <div className="flex flex-col gap-2">
+                              <Badge
+                                variant="outline"
+                                className="w-fit border-brand-200 bg-brand-50/95 text-brand-800"
+                              >
+                                {mvp.category || 'Sin categoria'}
+                              </Badge>
+                              {isOwnMvp && (
+                                <Badge
+                                  variant="outline"
+                                  className="w-fit border-green-200 bg-green-50/95 text-green-800 font-semibold"
+                                >
+                                  Tu MVP
+                                </Badge>
+                              )}
+                            </div>
+                            {!isOwnMvp && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleToggleFavorite(mvp.id, e)}
+                                className="group flex h-9 w-9 items-center justify-center rounded-full bg-background/80 shadow-md backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-background/95 active:scale-95"
+                                title={favoriteIds.has(mvp.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                              >
+                                <Heart
+                                  className={`h-5 w-5 transition-colors duration-200 ${favoriteIds.has(mvp.id)
+                                    ? 'fill-red-500 text-red-500'
+                                    : 'text-muted-foreground group-hover:text-red-400'
+                                    }`}
+                                />
+                              </button>
+                            )}
                           </div>
                           {!previewImage && (
                             <p className="max-w-[18ch] text-sm font-medium text-muted-foreground">

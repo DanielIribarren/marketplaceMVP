@@ -130,7 +130,7 @@ export async function getMVP(req, res) {
 
 /**
  * GET /api/mvps/my-drafts
- * Obtener borradores del usuario
+ * Obtener TODOS los MVPs del usuario (drafts, pending, approved, rejected)
  */
 export async function getMyDrafts(req, res) {
   try {
@@ -140,7 +140,6 @@ export async function getMyDrafts(req, res) {
       .from('mvps')
       .select('*')
       .eq('owner_id', userId)
-      .eq('status', 'draft')
       .order('updated_at', { ascending: false })
 
     if (error) throw error
