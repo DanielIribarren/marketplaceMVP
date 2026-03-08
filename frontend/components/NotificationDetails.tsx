@@ -70,8 +70,8 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
       case 'mvp_favorited': {
         // Intentar extraer información del mensaje o de data
         // El mensaje tiene formato: "Nombre del Usuario agregó 'Título del MVP' a favoritos"
-        let userName = notification.data?.user_name
-        let mvpTitle = notification.data?.mvp_title
+        let userName = notification.data?.user_name as string | undefined
+        let mvpTitle = notification.data?.mvp_title as string | undefined
 
         // Si no están en data, intentar extraer del mensaje
         if (!userName || !mvpTitle) {
@@ -85,6 +85,8 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
         // Valores por defecto si aún no se encontraron
         userName = userName || 'Un usuario'
         mvpTitle = mvpTitle || 'Tu MVP'
+
+        const mvpId = notification.data?.mvp_id as string | undefined
 
         return (
           <div className="space-y-4">
@@ -106,8 +108,8 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
               <p className="text-sm text-muted-foreground">Fecha y hora</p>
               <p className="font-medium">{formatFullDate(notification.created_at)}</p>
             </div>
-            {notification.data?.mvp_id && (
-              <Link href={`/mvps/${notification.data.mvp_id}`} className="block">
+            {mvpId && (
+              <Link href={`/mvps/${mvpId}`} className="block">
                 <Button variant="outline" size="sm" className="w-full hover:bg-primary hover:text-primary-foreground transition-colors">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Ver MVP
@@ -118,7 +120,10 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
         )
       }
 
-      case 'mvp_approved':
+      case 'mvp_approved': {
+        const mvpTitle = (notification.data?.mvp_title as string) || notification.message?.match(/"([^"]+)"/)?.[1] || 'Tu MVP'
+        const mvpId = notification.data?.mvp_id as string | undefined
+
         return (
           <div className="space-y-4">
             <div className="rounded-lg bg-green-50 border border-green-200 p-4">
@@ -129,15 +134,15 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground">MVP aprobado</p>
               <p className="font-semibold text-base text-green-700">
-                {notification.data?.mvp_title || notification.message?.match(/"([^"]+)"/)?.[1] || 'Tu MVP'}
+                {mvpTitle}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Fecha de aprobación</p>
               <p className="font-medium">{formatFullDate(notification.created_at)}</p>
             </div>
-            {notification.data?.mvp_id && (
-              <Link href={`/mvps/${notification.data.mvp_id}`} className="block">
+            {mvpId && (
+              <Link href={`/mvps/${mvpId}`} className="block">
                 <Button variant="default" size="sm" className="w-full">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Ver en Marketplace
@@ -146,8 +151,12 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
             )}
           </div>
         )
+      }
 
-      case 'mvp_rejected':
+      case 'mvp_rejected': {
+        const mvpTitle = (notification.data?.mvp_title as string) || notification.message?.match(/"([^"]+)"/)?.[1] || 'Tu MVP'
+        const rejectionReason = notification.data?.rejection_reason as string | undefined
+
         return (
           <div className="space-y-4">
             <div className="rounded-lg bg-red-50 border border-red-200 p-4">
@@ -158,13 +167,13 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground">MVP rechazado</p>
               <p className="font-semibold text-base text-red-700">
-                {notification.data?.mvp_title || notification.message?.match(/"([^"]+)"/)?.[1] || 'Tu MVP'}
+                {mvpTitle}
               </p>
             </div>
-            {notification.data?.rejection_reason && (
+            {rejectionReason && (
               <div className="rounded-lg bg-red-50/50 border border-red-200 p-3">
                 <p className="text-xs text-muted-foreground mb-1">Razón del rechazo</p>
-                <p className="text-sm font-medium text-red-900">{notification.data.rejection_reason}</p>
+                <p className="text-sm font-medium text-red-900">{rejectionReason}</p>
               </div>
             )}
             <div>
@@ -178,12 +187,91 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
             </Link>
           </div>
         )
+      }
 
-      case 'meeting_requested':
+      case 'meeting_requested': {
+        const requesterName = notification.data?.requester_name as string | undefined
+        const mvpTitle = notification.data?.mvp_title as string | undefined
+        const scheduledDate = notification.data?.scheduled_at as string | undefined
+        const offerType = notification.data?.offer_type as string | undefined
+        const offerAmount = notification.data?.offer_amount as number | undefined
+        const offerEquity = notification.data?.offer_equity_percent as number | undefined
+
+        return (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <p className="text-sm text-blue-800 font-medium">
+                ¡Tienes una nueva solicitud de reunión!
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-muted/50 p-3 space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Inversor interesado</p>
+                <p className="font-semibold text-base">{requesterName || 'Un inversor'}</p>
+              </div>
+
+              <div className="border-t pt-2">
+                <p className="text-xs text-muted-foreground">MVP de interés</p>
+                <p className="font-semibold text-base text-primary">{mvpTitle || 'Tu MVP'}</p>
+              </div>
+
+              {scheduledDate && (
+                <div className="border-t pt-2">
+                  <p className="text-xs text-muted-foreground">Fecha propuesta para la reunión</p>
+                  <p className="font-semibold text-base">{formatFullDate(scheduledDate)}</p>
+                </div>
+              )}
+
+              {offerType && (
+                <div className="border-t pt-2">
+                  <p className="text-xs text-muted-foreground">Tipo de oferta</p>
+                  <p className="font-semibold text-base capitalize">
+                    {offerType === 'economic' ? 'Oferta Económica' :
+                     offerType === 'meeting_only' ? 'Solo Reunión' : offerType}
+                  </p>
+                </div>
+              )}
+
+              {offerType === 'economic' && (offerAmount !== undefined || offerEquity !== undefined) && (
+                <div className="border-t pt-2 bg-green-50 p-2 rounded">
+                  <p className="text-xs text-muted-foreground mb-1">Oferta inicial</p>
+                  {offerAmount !== undefined && offerAmount > 0 && (
+                    <p className="font-bold text-green-700">${offerAmount.toLocaleString()} USD</p>
+                  )}
+                  {offerEquity !== undefined && offerEquity > 0 && (
+                    <p className="font-bold text-green-700">{offerEquity}% equity</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground">Recibida el</p>
+              <p className="font-medium">{formatFullDate(notification.created_at)}</p>
+            </div>
+
+            {(() => {
+              const href = notification.data?.href as string | undefined
+              return href ? (
+                <Link href={href} className="block">
+                  <Button variant="default" size="sm" className="w-full">
+                    <CalendarClock className="h-4 w-4 mr-2" />
+                    Ver en Calendario
+                  </Button>
+                </Link>
+              ) : null
+            })()}
+          </div>
+        )
+      }
+
       case 'meeting_confirmed':
       case 'meeting_rejected':
       case 'meeting_counterproposal':
-      case 'meeting_cancelled':
+      case 'meeting_cancelled': {
+        const href = notification.data?.href as string | undefined
+
         return (
           <div className="space-y-4">
             <div className="rounded-lg bg-muted/50 p-3">
@@ -194,8 +282,8 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
               <p className="text-sm text-muted-foreground">Fecha y hora de notificación</p>
               <p className="font-medium">{formatFullDate(notification.created_at)}</p>
             </div>
-            {notification.data?.href && (
-              <Link href={notification.data.href as string} className="block">
+            {href && (
+              <Link href={href} className="block">
                 <Button variant="outline" size="sm" className="w-full hover:bg-primary hover:text-primary-foreground transition-colors">
                   Ver en Calendario
                 </Button>
@@ -203,8 +291,11 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
             )}
           </div>
         )
+      }
 
-      case 'offer_pending_review':
+      case 'offer_pending_review': {
+        const href = notification.data?.href as string | undefined
+
         return (
           <div className="space-y-4">
             <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
@@ -215,8 +306,8 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
               <p className="text-sm text-muted-foreground">Fecha y hora</p>
               <p className="font-medium">{formatFullDate(notification.created_at)}</p>
             </div>
-            {notification.data?.href && (
-              <Link href={notification.data.href as string} className="block">
+            {href && (
+              <Link href={href} className="block">
                 <Button variant="default" size="sm" className="w-full">
                   Revisar Oferta en Calendario
                 </Button>
@@ -224,6 +315,7 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
             )}
           </div>
         )
+      }
 
       default:
         return (

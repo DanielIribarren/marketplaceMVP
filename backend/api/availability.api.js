@@ -418,14 +418,29 @@ export async function bookAvailabilitySlot(req, res) {
 
     if (updateError) throw updateError
 
+    // Obtener información del inversor (requester)
+    const { data: requesterProfile } = await supabase
+      .from('user_profiles')
+      .select('display_name')
+      .eq('id', userId)
+      .single()
+
+    const requesterName = requesterProfile?.display_name || 'Un inversor'
+
     await safeCreateNotification({
       user_id: slot.owner_id,
       type: 'meeting_requested',
       title: 'Nueva solicitud de reunión',
-      message: `Un inversor agendó una reunión para "${slot.mvp?.title || 'tu MVP'}".`,
+      message: `${requesterName} agendó una reunión para "${slot.mvp?.title || 'tu MVP'}".`,
       data: {
         meeting_id: meeting.id,
         mvp_id: slot.mvp_id,
+        mvp_title: slot.mvp?.title || 'Tu MVP',
+        requester_name: requesterName,
+        scheduled_at: scheduledAt.toISOString(),
+        offer_type,
+        offer_amount: offer_type === 'economic' ? parsedAmount : null,
+        offer_equity_percent: offer_type === 'economic' ? parsedEquityPercent : null,
         href: '/calendar'
       },
       read: false
