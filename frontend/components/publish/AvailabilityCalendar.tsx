@@ -16,7 +16,7 @@ import { es } from 'date-fns/locale'
 interface AvailabilityCalendarProps {
   mvpId: string
   timezone?: string
-  onHasAvailabilityChange?: (hasAvailability: boolean) => void
+  onAvailabilityCountChange?: (count: number) => void
 }
 
 interface TimeSlot {
@@ -67,7 +67,7 @@ const TIMEZONES = [
   { value: 'UTC', label: 'UTC' },
 ]
 
-export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'America/Caracas', onHasAvailabilityChange }: AvailabilityCalendarProps) {
+export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'America/Caracas', onAvailabilityCountChange }: AvailabilityCalendarProps) {
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([])
   const [timezone, setTimezone] = useState(initialTimezone)
@@ -78,7 +78,7 @@ export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'Ameri
 
   const updateExistingSlots = (slots: ExistingSlot[]) => {
     setExistingSlots(slots)
-    onHasAvailabilityChange?.(slots.length > 0)
+    onAvailabilityCountChange?.(slots.length)
   }
 
   // Load existing availability

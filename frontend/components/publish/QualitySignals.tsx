@@ -9,6 +9,7 @@ interface QualitySignalsProps {
     hasDemoOrScreenshot: boolean
     hasMinimalEvidence: boolean
     hasDealModality: boolean
+    hasTransferChecklist: boolean
   }
 }
 
@@ -18,7 +19,8 @@ export const QualitySignalsIndicator: React.FC<QualitySignalsProps> = ({ signals
     { key: 'hasConcreteUseCase', label: 'Caso de uso concreto' },
     { key: 'hasDemoOrScreenshot', label: 'Demo o captura disponible' },
     { key: 'hasMinimalEvidence', label: 'Evidencia mínima' },
-    { key: 'hasDealModality', label: 'Modalidad de deal seleccionada' },
+    { key: 'hasDealModality', label: 'Deal con rango de precio válido (≥$100 diferencia)' },
+    { key: 'hasTransferChecklist', label: 'Al menos 1 ítem del checklist marcado' },
   ]
 
   return (

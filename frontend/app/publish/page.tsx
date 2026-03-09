@@ -4,7 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
-import { Calendar, CheckCircle2, Loader2, Send, ArrowLeft, X } from "lucide-react"
+import { Calendar, CheckCircle2, Loader2, Send, ArrowLeft, X, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { publishMVP, saveDraft, deleteDraft, getUrlPreview } from "@/app/actions/mvp"
 import { AvailabilityCalendar } from "@/components/publish/AvailabilityCalendar"
@@ -13,6 +13,7 @@ import { QualitySignalsIndicator } from "@/components/publish/QualitySignals"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { createEmptyDraft } from "@/lib/types/mvp-publication"
 import type { MVPPublication, QualitySignals } from "@/lib/types/mvp-publication"
 
@@ -52,6 +53,8 @@ export default function PublishPage() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [availabilityCount, setAvailabilityCount] = useState(0)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
   const previewRequestRef = React.useRef(0)
   const lastPreviewUrlRef = React.useRef('')
 
@@ -61,6 +64,7 @@ export default function PublishPage() {
     hasDemoOrScreenshot: false,
     hasMinimalEvidence: false,
     hasDealModality: false,
+    hasTransferChecklist: false,
   })
 
   // Cargar datos del localStorage al montar el componente (solo en cliente)
@@ -95,14 +99,32 @@ export default function PublishPage() {
 
   React.useEffect(() => {
     // Calcular señales localmente para respuesta instantánea
-    const wordCount = (text: string) => text.trim().split(/\s+/).length
+    const wordCount = (text: string) => {
+      const trimmed = text.trim()
+      if (!trimmed) return 0
+      return trimmed.split(/\s+/).filter(word => word.length > 0).length
+    }
 
     const localSignals: QualitySignals = {
       hasValidOneLiner: !!(mvpData.oneLiner && mvpData.oneLiner.trim().length >= 20),
-      hasConcreteUseCase: !!(mvpData.description && wordCount(mvpData.description) >= 15),
-      hasDemoOrScreenshot: !!(mvpData.demoUrl || (mvpData.screenshots && mvpData.screenshots.length > 0)),
-      hasMinimalEvidence: !!(mvpData.minimalEvidence && wordCount(mvpData.minimalEvidence) >= 10),
-      hasDealModality: !!mvpData.dealModality
+      hasConcreteUseCase: !!(mvpData.description && mvpData.description.trim() && wordCount(mvpData.description) >= 15),
+      hasDemoOrScreenshot: !!(
+        (mvpData.demoUrl && mvpData.demoUrl.trim()) ||
+        (mvpData.screenshots && mvpData.screenshots.filter(s => s && s.trim()).length > 0)
+      ),
+      hasMinimalEvidence: !!(mvpData.minimalEvidence && mvpData.minimalEvidence.trim() && wordCount(mvpData.minimalEvidence) >= 10),
+      hasDealModality: !!(
+        mvpData.dealModality &&
+        mvpData.minPrice &&
+        mvpData.maxPrice &&
+        mvpData.minPrice > 0 &&
+        mvpData.maxPrice > mvpData.minPrice &&
+        (mvpData.maxPrice - mvpData.minPrice) >= 100
+      ),
+      hasTransferChecklist: !!(
+        mvpData.transferChecklist &&
+        Object.values(mvpData.transferChecklist).some(checked => checked === true)
+      )
     }
 
     setSignals(localSignals)
@@ -198,7 +220,7 @@ export default function PublishPage() {
 
     if (currentStep === "basics") {
       if (!canProceedToAvailability()) {
-        setError("Debes completar las 5 señales de calidad antes de continuar")
+        setError("Debes completar las 6 señales de calidad antes de continuar")
         return
       }
 
@@ -220,7 +242,11 @@ export default function PublishPage() {
 
       setCurrentStep("availability")
     } else if (currentStep === "availability") {
-      // La disponibilidad es opcional - el usuario puede continuar sin configurarla
+      // Validar que se hayan guardado al menos 2 fechas de disponibilidad
+      if (availabilityCount < 2) {
+        setError("Debes guardar al menos 2 espacios de disponibilidad antes de continuar")
+        return
+      }
       setCurrentStep("review")
     }
   }
@@ -267,7 +293,11 @@ export default function PublishPage() {
     }
   }
 
-  const handleCancel = async () => {
+  const handleCancel = () => {
+    setShowCancelDialog(true)
+  }
+
+  const confirmCancel = async () => {
     // Si hay un borrador guardado en la base de datos (no local), eliminarlo
     if (mvpData.id && !mvpData.id.startsWith('draft-')) {
       try {
@@ -281,6 +311,7 @@ export default function PublishPage() {
       localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem('mvp-draft-availability')
     }
+    setShowCancelDialog(false)
     router.push("/marketplace")
   }
 
@@ -458,13 +489,13 @@ export default function PublishPage() {
                     Configura tu Disponibilidad
                   </h2>
                   <p className="text-muted-foreground">
-                    Define cuándo estás disponible para reuniones con
-                    inversionistas interesados en tu MVP.
+                    Define cuándo estás disponible para reuniones con inversionistas interesados en tu MVP.
+                    Debes guardar al menos 2 espacios de disponibilidad para continuar.
                   </p>
                 </div>
                 <div className="flex gap-2 mb-4">
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                    Opcional
+                  <Badge variant="outline" className="bg-brand-100 text-brand-800 border-brand-300">
+                    Requerido: Mínimo 2 espacios
                   </Badge>
                   <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                     Borrador guardado - No público aún
@@ -474,12 +505,31 @@ export default function PublishPage() {
 
               <AvailabilityCalendar
                 mvpId={mvpData.id}
+                onAvailabilityCountChange={setAvailabilityCount}
               />
 
-              <div className="flex justify-end">
-                <Button onClick={goToNextStep}>
-                  Continuar a Revisión
-                </Button>
+              <div className="space-y-3">
+                {availabilityCount < 2 && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm text-amber-800">
+                      <strong>Requerido:</strong> Debes guardar al menos 2 espacios de disponibilidad para continuar.
+                      {availabilityCount === 0 && ' No has guardado ningún espacio aún.'}
+                      {availabilityCount === 1 && ' Has guardado 1 espacio, necesitas 1 más.'}
+                    </p>
+                  </div>
+                )}
+                {availabilityCount >= 2 && (
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                    <p className="text-sm text-green-800">
+                      ✓ Has guardado {availabilityCount} espacios de disponibilidad. Puedes continuar a revisión.
+                    </p>
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <Button onClick={goToNextStep} disabled={availabilityCount < 2}>
+                    Continuar a Revisión
+                  </Button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -523,11 +573,11 @@ export default function PublishPage() {
                     </div>
                   )}
 
-                  {mvpData.dealModality && mvpData.priceRange && (
+                  {mvpData.dealModality && mvpData.minPrice && mvpData.maxPrice && (
                     <div>
                       <h4 className="mb-2 font-medium">Deal</h4>
                       <p className="text-muted-foreground">
-                        {mvpData.dealModality} - {mvpData.priceRange}
+                        {mvpData.dealModality} - USD ${mvpData.minPrice.toLocaleString('es-ES')}-${mvpData.maxPrice.toLocaleString('es-ES')}
                       </p>
                     </div>
                   )}
@@ -553,6 +603,36 @@ export default function PublishPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Diálogo de confirmación de cancelación */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              ¿Estás seguro que quieres salir?
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Si cancelas ahora, perderás todo el progreso en la creación de este MVP.
+              Los datos ingresados no se guardarán y tendrás que empezar de nuevo.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelDialog(false)}
+            >
+              Volver a la edición
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmCancel}
+            >
+              Sí, cancelar y salir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

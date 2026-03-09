@@ -62,8 +62,33 @@ export function validateUrl(url) {
     return { isValid: false, message: 'La URL es requerida' }
   }
 
+  const trimmedUrl = url.trim()
+
+  // Prevenir URLs excesivamente largas (máximo 2048 caracteres, estándar navegadores)
+  if (trimmedUrl.length > 2048) {
+    return { isValid: false, message: 'La URL excede la longitud máxima permitida (2048 caracteres)' }
+  }
+
+  // Prevenir inyección de JavaScript
+  const lowerUrl = trimmedUrl.toLowerCase()
+  const dangerousPatterns = [
+    'javascript:',
+    'data:',
+    'vbscript:',
+    'file:',
+    'about:',
+    '<script',
+    'onerror=',
+    'onload=',
+    'onclick='
+  ]
+
+  if (dangerousPatterns.some(pattern => lowerUrl.includes(pattern))) {
+    return { isValid: false, message: 'La URL contiene contenido no permitido' }
+  }
+
   try {
-    const urlObj = new URL(url)
+    const urlObj = new URL(trimmedUrl)
     if (!['http:', 'https:'].includes(urlObj.protocol)) {
       return { isValid: false, message: 'La URL debe usar http:// o https://' }
     }

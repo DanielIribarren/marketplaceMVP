@@ -384,7 +384,7 @@ export function MarketplaceClient({ initialMvps, userId, initialFilters }: Marke
                 name="deal_modality"
                 value={filters.dealModality}
                 onChange={(event) => handleFilterChange('dealModality', event.target.value)}
-                className="border-input h-9 w-full rounded-lg border bg-background/85 px-3 py-1 text-sm shadow-xs transition-[border-color,box-shadow,background-color] duration-200 ease-out focus:border-brand-300 focus:bg-background focus:outline-none focus:ring-[3px] focus:ring-brand-300/45"
+                className="border-input h-9 w-full rounded-lg border bg-background/85 pl-3 pr-8 py-1 text-sm shadow-xs transition-[border-color,box-shadow,background-color] duration-200 ease-out focus:border-brand-300 focus:bg-background focus:outline-none focus:ring-[3px] focus:ring-brand-300/45"
               >
                 <option value="">Todas las modalidades</option>
                 <option value="sale">Sale</option>
@@ -399,7 +399,7 @@ export function MarketplaceClient({ initialMvps, userId, initialFilters }: Marke
                 name="sort"
                 value={filters.sort}
                 onChange={(event) => handleFilterChange('sort', event.target.value)}
-                className="border-input h-9 w-full rounded-lg border bg-background/85 px-3 py-1 text-sm shadow-xs transition-[border-color,box-shadow,background-color] duration-200 ease-out focus:border-brand-300 focus:bg-background focus:outline-none focus:ring-[3px] focus:ring-brand-300/45"
+                className="border-input h-9 w-full rounded-lg border bg-background/85 pl-3 pr-8 py-1 text-sm shadow-xs transition-[border-color,box-shadow,background-color] duration-200 ease-out focus:border-brand-300 focus:bg-background focus:outline-none focus:ring-[3px] focus:ring-brand-300/45"
               >
                 <option value="recent">Mas recientes</option>
                 <option value="oldest">Mas antiguos</option>
@@ -408,11 +408,11 @@ export function MarketplaceClient({ initialMvps, userId, initialFilters }: Marke
               </select>
             </div>
 
-            <div className="flex gap-2 md:col-span-1">
+            <div className="flex gap-2">
               <Button
                 type="button"
                 variant={showFavoritesOnly ? 'default' : 'outline'}
-                className="gap-1.5"
+                size="icon"
                 onClick={() => setShowFavoritesOnly(prev => !prev)}
                 title={showFavoritesOnly ? 'Mostrar todos' : 'Solo favoritos'}
               >
@@ -421,12 +421,14 @@ export function MarketplaceClient({ initialMvps, userId, initialFilters }: Marke
               <Button
                 type="button"
                 variant={showAdvancedFilters ? 'secondary' : 'outline'}
-                className="gap-1.5"
+                className="gap-1.5 min-w-[44px]"
                 onClick={() => setShowAdvancedFilters(prev => !prev)}
                 aria-expanded={showAdvancedFilters}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
-                {advancedFilterCount > 0 ? String(advancedFilterCount) : ''}
+                {advancedFilterCount > 0 && (
+                  <span className="text-xs font-semibold">{advancedFilterCount}</span>
+                )}
               </Button>
             </div>
           </div>
@@ -460,7 +462,16 @@ export function MarketplaceClient({ initialMvps, userId, initialFilters }: Marke
                   placeholder="0"
                   value={filters.priceMin}
                   onChange={(event) => handleFilterChange('priceMin', event.target.value)}
+                  className={
+                    filters.priceMin && filters.priceMax &&
+                    Number(filters.priceMin) >= Number(filters.priceMax)
+                      ? 'border-destructive focus-visible:ring-destructive'
+                      : ''
+                  }
                 />
+                {filters.priceMin && filters.priceMax && Number(filters.priceMin) >= Number(filters.priceMax) && (
+                  <p className="text-xs text-destructive mt-1">Debe ser menor que el precio máximo</p>
+                )}
               </div>
 
               <div>
@@ -473,7 +484,16 @@ export function MarketplaceClient({ initialMvps, userId, initialFilters }: Marke
                   placeholder="10000"
                   value={filters.priceMax}
                   onChange={(event) => handleFilterChange('priceMax', event.target.value)}
+                  className={
+                    filters.priceMin && filters.priceMax &&
+                    Number(filters.priceMax) <= Number(filters.priceMin)
+                      ? 'border-destructive focus-visible:ring-destructive'
+                      : ''
+                  }
                 />
+                {filters.priceMin && filters.priceMax && Number(filters.priceMax) <= Number(filters.priceMin) && (
+                  <p className="text-xs text-destructive mt-1">Debe ser mayor que el precio mínimo</p>
+                )}
               </div>
 
               <DateFilterField

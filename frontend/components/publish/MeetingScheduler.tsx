@@ -119,7 +119,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
   }, [loadAvailability])
 
   const handleBookSlot = async () => {
-    if (!selectedSlot) return
+    if (!selectedSlot || booking) return // Prevenir doble-clic
     setBooking(true)
     setMessage(null)
 
@@ -395,20 +395,50 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                         placeholder="Ej: 20.000"
                         value={formatAmountWithThousands(offerAmount)}
                         onChange={(e) => setOfferAmount(normalizeAmountInput(e.target.value))}
+                        className={
+                          offerAmount && (Number(offerAmount) <= 0 || !Number.isFinite(Number(offerAmount)))
+                            ? 'border-destructive focus-visible:ring-destructive'
+                            : ''
+                        }
                       />
+                      {offerAmount && Number(offerAmount) <= 0 && (
+                        <p className="text-xs text-destructive">El monto debe ser mayor a 0</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="offerEquityPercent">Porcentaje del MVP (%)</Label>
                       <Input
                         id="offerEquityPercent"
-                        type="number"
-                        min="0.1"
-                        max="100"
-                        step="0.1"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="Ej: 20"
                         value={offerEquityPercent}
-                        onChange={(e) => setOfferEquityPercent(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(',', '.')
+                          // Solo permitir números, punto decimal, y máximo 2 decimales
+                          if (value === '' || /^\d{0,3}(\.\d{0,2})?$/.test(value)) {
+                            const numValue = Number(value)
+                            // Limitar a 100 máximo
+                            if (value === '' || (numValue >= 0 && numValue <= 100)) {
+                              setOfferEquityPercent(value)
+                            }
+                          }
+                        }}
+                        className={
+                          offerEquityPercent &&
+                          (Number(offerEquityPercent.replace(',', '.')) <= 0 ||
+                            Number(offerEquityPercent.replace(',', '.')) > 100)
+                            ? 'border-destructive focus-visible:ring-destructive'
+                            : ''
+                        }
                       />
+                      {offerEquityPercent && Number(offerEquityPercent.replace(',', '.')) <= 0 && (
+                        <p className="text-xs text-destructive">El porcentaje debe ser mayor a 0</p>
+                      )}
+                      {offerEquityPercent && Number(offerEquityPercent.replace(',', '.')) > 100 && (
+                        <p className="text-xs text-destructive">El porcentaje no puede ser mayor a 100</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">Rango: 0.1% - 100%</p>
                     </div>
                   </div>
                 ) : (

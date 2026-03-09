@@ -71,7 +71,8 @@ export interface MVPPublication {
 
   // Campo 9: Modalidad de deal y rango de precio
   dealModality: DealModality
-  priceRange: string // Texto libre: "USD 2k-5k"
+  minPrice: number // Precio mínimo en USD
+  maxPrice: number // Precio máximo en USD
 
   // Campo 10: Checklist de transferencia
   transferChecklist: {
@@ -237,4 +238,5 @@ export interface QualitySignals {
   hasDemoOrScreenshot: boolean
   hasMinimalEvidence: boolean
   hasDealModality: boolean
+  hasTransferChecklist: boolean
 }

@@ -300,14 +300,31 @@ export async function bookAvailabilitySlot(req, res) {
     const trimmedOfferNote = typeof offer_note === 'string' ? offer_note.trim() : ''
 
     if (offer_type === 'economic') {
-      if (parsedAmount === null || parsedAmount <= 0) {
+      // Validar monto
+      if (parsedAmount === null || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
         return res.status(400).json({
           error: 'Oferta inválida',
-          message: 'El monto de la oferta debe ser mayor a 0'
+          message: 'El monto de la oferta debe ser un número válido mayor a 0'
         })
       }
 
-      if (parsedEquityPercent === null || parsedEquityPercent <= 0 || parsedEquityPercent > 100) {
+      // Prevenir montos excesivamente grandes (máximo 1 billón)
+      if (parsedAmount > 1000000000000) {
+        return res.status(400).json({
+          error: 'Oferta inválida',
+          message: 'El monto de la oferta excede el límite permitido'
+        })
+      }
+
+      // Validar porcentaje
+      if (parsedEquityPercent === null || !Number.isFinite(parsedEquityPercent)) {
+        return res.status(400).json({
+          error: 'Oferta inválida',
+          message: 'El porcentaje debe ser un número válido'
+        })
+      }
+
+      if (parsedEquityPercent <= 0 || parsedEquityPercent > 100) {
         return res.status(400).json({
           error: 'Oferta inválida',
           message: 'El porcentaje solicitado debe ser mayor a 0 y menor o igual a 100'

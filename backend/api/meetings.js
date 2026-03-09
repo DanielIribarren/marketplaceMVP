@@ -297,6 +297,23 @@ export async function counterproposeMeeting(req, res) {
     const endTime = new Date(`${proposed_date}T${proposed_end_time}`)
     const durationMinutes = Math.round((endTime - newScheduledAt) / (1000 * 60))
 
+    // Validar que la fecha propuesta sea futura
+    const now = new Date()
+    if (newScheduledAt <= now) {
+      return res.status(400).json({
+        error: 'Fecha inválida',
+        message: 'La fecha propuesta debe ser futura. No puedes agendar reuniones en el pasado.'
+      })
+    }
+
+    // Validar que la hora de fin sea posterior a la hora de inicio
+    if (endTime <= newScheduledAt) {
+      return res.status(400).json({
+        error: 'Horario inválido',
+        message: 'La hora de fin debe ser posterior a la hora de inicio'
+      })
+    }
+
     // El estado indica quién hizo la contrapropuesta (para saber a quién le toca responder)
     const newStatus = isOwner ? 'counterproposal_entrepreneur' : 'counterproposal_investor'
 

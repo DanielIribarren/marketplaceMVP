@@ -92,6 +92,14 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
       }
     }
 
+    // Construir price_range desde minPrice y maxPrice
+    let priceRange = undefined
+    if (mvpData.minPrice && mvpData.maxPrice) {
+      const minFormatted = mvpData.minPrice.toLocaleString('es-ES')
+      const maxFormatted = mvpData.maxPrice.toLocaleString('es-ES')
+      priceRange = `USD ${minFormatted}-${maxFormatted}`
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/mvps/draft`, {
       method: 'POST',
       headers: {
@@ -110,7 +118,7 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
         minimal_evidence: mvpData.minimalEvidence,
         competitive_differentials: mvpData.competitiveDifferentials,
         deal_modality: mvpData.dealModality,
-        price_range: mvpData.priceRange,
+        price_range: priceRange,
         transfer_checklist: mvpData.transferChecklist,
         video_url: mvpData.videoUrl,
         testimonials: mvpData.testimonials,

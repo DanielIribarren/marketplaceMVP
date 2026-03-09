@@ -115,8 +115,32 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           type="url"
           placeholder={MICROCOPYS.demoUrl.placeholder}
           value={data.demoUrl || ''}
-          onChange={(e) => onChange({ ...data, demoUrl: e.target.value })}
+          onChange={(e) => {
+            const value = e.target.value
+            // Limitar longitud a 2048 caracteres
+            if (value.length <= 2048) {
+              onChange({ ...data, demoUrl: value })
+            }
+          }}
+          className={
+            data.demoUrl &&
+            data.demoUrl.trim() &&
+            (data.demoUrl.length > 2048 ||
+              !/^https?:\/\/.+/.test(data.demoUrl.trim()) ||
+              /javascript:|data:|vbscript:|<script/i.test(data.demoUrl))
+              ? 'border-destructive focus-visible:ring-destructive'
+              : ''
+          }
         />
+        {data.demoUrl && data.demoUrl.length > 2048 && (
+          <p className="text-xs text-destructive mt-1">La URL es demasiado larga (máximo 2048 caracteres)</p>
+        )}
+        {data.demoUrl && data.demoUrl.trim() && !/^https?:\/\/.+/.test(data.demoUrl.trim()) && data.demoUrl.length <= 2048 && (
+          <p className="text-xs text-destructive mt-1">La URL debe comenzar con http:// o https://</p>
+        )}
+        {data.demoUrl && /javascript:|data:|vbscript:|<script/i.test(data.demoUrl) && (
+          <p className="text-xs text-destructive mt-1">La URL contiene contenido no permitido</p>
+        )}
         <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.demoUrl.help}</p>
 
         {previewLoading && (
@@ -260,7 +284,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
       </div>
 
       {/* Campo 9: Deal y Precio */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
         <div>
           <Label htmlFor="dealModality">{MICROCOPYS.dealModality.label}</Label>
           <Select
@@ -281,16 +305,64 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.dealModality.help}</p>
         </div>
 
-        <div>
-          <Label htmlFor="priceRange">{MICROCOPYS.priceRange.label}</Label>
-          <Input
-            id="priceRange"
-            placeholder={MICROCOPYS.priceRange.placeholder}
-            value={data.priceRange || ''}
-            onChange={(e) => onChange({ ...data, priceRange: e.target.value })}
-          />
-          <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.priceRange.help}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="minPrice">Precio mínimo (USD)</Label>
+            <Input
+              id="minPrice"
+              type="text"
+              inputMode="numeric"
+              placeholder="Ej: 2000"
+              value={data.minPrice ? data.minPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+              onChange={(e) => {
+                const value = e.target.value.replace(/,/g, '')
+                if (value === '' || /^\d+$/.test(value)) {
+                  onChange({ ...data, minPrice: value === '' ? undefined : Number(value) })
+                }
+              }}
+              className={
+                data.minPrice && data.maxPrice && data.minPrice >= data.maxPrice
+                  ? 'border-destructive focus-visible:ring-destructive'
+                  : ''
+              }
+            />
+            {data.minPrice && data.maxPrice && data.minPrice >= data.maxPrice && (
+              <p className="text-xs text-destructive mt-1">Debe ser menor que el precio máximo</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="maxPrice">Precio máximo (USD)</Label>
+            <Input
+              id="maxPrice"
+              type="text"
+              inputMode="numeric"
+              placeholder="Ej: 5000"
+              value={data.maxPrice ? data.maxPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+              onChange={(e) => {
+                const value = e.target.value.replace(/,/g, '')
+                if (value === '' || /^\d+$/.test(value)) {
+                  onChange({ ...data, maxPrice: value === '' ? undefined : Number(value) })
+                }
+              }}
+              className={
+                (data.minPrice && data.maxPrice && (
+                  data.maxPrice <= data.minPrice ||
+                  (data.maxPrice - data.minPrice) < 100
+                ))
+                  ? 'border-destructive focus-visible:ring-destructive'
+                  : ''
+              }
+            />
+            {data.minPrice && data.maxPrice && data.maxPrice <= data.minPrice && (
+              <p className="text-xs text-destructive mt-1">Debe ser mayor que el precio mínimo</p>
+            )}
+            {data.minPrice && data.maxPrice && data.maxPrice > data.minPrice && (data.maxPrice - data.minPrice) < 100 && (
+              <p className="text-xs text-destructive mt-1">Debe haber al menos $100 de diferencia</p>
+            )}
+          </div>
         </div>
+        <p className="text-sm text-muted-foreground">Ingresa solo números. El formato se agregará automáticamente.</p>
       </div>
 
       {/* Campo 10: Checklist de transferencia */}
