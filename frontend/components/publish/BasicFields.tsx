@@ -21,6 +21,12 @@ interface BasicFieldsProps {
 
 type TransferChecklistKey = 'codeAndDocs' | 'domainOrLanding' | 'integrationAccounts' | 'ownIp'
 
+export const MAX_ONE_LINER = 120
+export const MAX_DESCRIPTION_WORDS = 500
+export const MAX_MINIMAL_EVIDENCE_WORDS = 300
+export const APPROX_CHARS_PER_WORD = 6 // aproximación para mostrar límite en caracteres
+export const MAX_DIFFERENTIAL = 1000
+
 export function BasicFields({ data, onChange, previewLoading = false, previewError = null, onRetryPreview }: BasicFieldsProps) {
   const [screenshotInput, setScreenshotInput] = useState('')
   const [differentialInputs, setDifferentialInputs] = useState(
@@ -79,14 +85,16 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           placeholder={MICROCOPYS.oneLiner.placeholder}
           value={data.oneLiner || ''}
           onChange={(e) => onChange({ ...data, oneLiner: e.target.value })}
-          maxLength={120}
         />
         <div className="flex justify-between items-center mt-1">
           <p className="text-sm text-muted-foreground">{MICROCOPYS.oneLiner.help}</p>
           <span className="text-xs text-ink-300">
-            {data.oneLiner?.length || 0}/120
+            {((data.oneLiner || '').trim().length)}/{MAX_ONE_LINER}
           </span>
         </div>
+        {data.oneLiner && (data.oneLiner || '').trim().length > MAX_ONE_LINER && (
+          <p className="text-xs text-destructive mt-1">El texto es demasiado largo (máximo {MAX_ONE_LINER} caracteres)</p>
+        )}
       </div>
 
       {/* Campo 3: Descripción */}
@@ -98,13 +106,17 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           value={data.description || ''}
           onChange={(e) => onChange({ ...data, description: e.target.value })}
           rows={6}
+          className="break-words whitespace-pre-wrap"
         />
         <div className="flex justify-between items-center mt-1">
           <p className="text-sm text-muted-foreground">{MICROCOPYS.description.help}</p>
           <span className="text-xs text-ink-300">
-            {wordCount(data.description || '')} palabras
+            {wordCount(data.description || '')}/{MAX_DESCRIPTION_WORDS} palabras • ≈{MAX_DESCRIPTION_WORDS * APPROX_CHARS_PER_WORD} caracteres
           </span>
         </div>
+        {data.description && wordCount(data.description || '') > MAX_DESCRIPTION_WORDS && (
+          <p className="text-xs text-destructive mt-1">La descripción excede el máximo de {MAX_DESCRIPTION_WORDS} palabras (≈{MAX_DESCRIPTION_WORDS * APPROX_CHARS_PER_WORD} caracteres)</p>
+        )}
       </div>
 
       {/* Campo 4: Demo URL */}
@@ -258,13 +270,17 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           value={data.minimalEvidence || ''}
           onChange={(e) => onChange({ ...data, minimalEvidence: e.target.value })}
           rows={4}
-        />
-        <div className="flex justify-between items-center mt-1">
-          <p className="text-sm text-muted-foreground">{MICROCOPYS.minimalEvidence.help}</p>
-          <span className="text-xs text-ink-300">
-            {wordCount(data.minimalEvidence || '')} palabras
-          </span>
-        </div>
+            className="break-words whitespace-pre-wrap"
+          />
+          <div className="flex justify-between items-center mt-1">
+            <p className="text-sm text-muted-foreground">{MICROCOPYS.minimalEvidence.help}</p>
+            <span className="text-xs text-ink-300">
+              {wordCount(data.minimalEvidence || '')}/{MAX_MINIMAL_EVIDENCE_WORDS} palabras • ≈{MAX_MINIMAL_EVIDENCE_WORDS * APPROX_CHARS_PER_WORD} caracteres
+            </span>
+          </div>
+          {data.minimalEvidence && wordCount(data.minimalEvidence || '') > MAX_MINIMAL_EVIDENCE_WORDS && (
+            <p className="text-xs text-destructive mt-1">La evidencia mínima excede el máximo de {MAX_MINIMAL_EVIDENCE_WORDS} palabras (≈{MAX_MINIMAL_EVIDENCE_WORDS * APPROX_CHARS_PER_WORD} caracteres)</p>
+          )}
       </div>
 
       {/* Campo 8: Diferencial competitivo */}
@@ -272,12 +288,19 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
         <Label>{MICROCOPYS.competitiveDifferentials.label}</Label>
         <div className="space-y-2">
           {[0, 1, 2].map((index) => (
-            <Input
-              key={index}
-              placeholder={`Diferencial ${index + 1}: ${MICROCOPYS.competitiveDifferentials.placeholder}`}
-              value={differentialInputs[index] || ''}
-              onChange={(e) => handleDifferentialChange(index, e.target.value)}
-            />
+            <div key={index}>
+              <Input
+                placeholder={`Diferencial ${index + 1}: ${MICROCOPYS.competitiveDifferentials.placeholder}`}
+                value={differentialInputs[index] || ''}
+                onChange={(e) => handleDifferentialChange(index, e.target.value)}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-xs text-ink-300">{(differentialInputs[index]?.length || 0)}/{MAX_DIFFERENTIAL} caracteres</span>
+              </div>
+              {differentialInputs[index] && differentialInputs[index].length > MAX_DIFFERENTIAL && (
+                <p className="text-xs text-destructive mt-1">El diferencial excede el máximo de {MAX_DIFFERENTIAL} caracteres</p>
+              )}
+            </div>
           ))}
         </div>
         <p className="text-sm text-muted-foreground mt-1">{MICROCOPYS.competitiveDifferentials.help}</p>

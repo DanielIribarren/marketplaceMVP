@@ -8,7 +8,7 @@ import { Calendar, CheckCircle2, Loader2, Send, ArrowLeft, X, AlertTriangle } fr
 import Link from "next/link"
 import { publishMVP, saveDraft, deleteDraft, getUrlPreview } from "@/app/actions/mvp"
 import { AvailabilityCalendar } from "@/components/publish/AvailabilityCalendar"
-import { BasicFields } from "@/components/publish/BasicFields"
+import { BasicFields, MAX_ONE_LINER, MAX_DESCRIPTION_WORDS, MAX_MINIMAL_EVIDENCE_WORDS, MAX_DIFFERENTIAL } from "@/components/publish/BasicFields"
 import { QualitySignalsIndicator } from "@/components/publish/QualitySignals"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -106,13 +106,27 @@ export default function PublishPage() {
     }
 
     const localSignals: QualitySignals = {
-      hasValidOneLiner: !!(mvpData.oneLiner && mvpData.oneLiner.trim().length >= 20),
-      hasConcreteUseCase: !!(mvpData.description && mvpData.description.trim() && wordCount(mvpData.description) >= 15),
+      hasValidOneLiner: !!(
+        mvpData.oneLiner &&
+        mvpData.oneLiner.trim().length >= 20 &&
+        mvpData.oneLiner.trim().length <= MAX_ONE_LINER
+      ),
+      hasConcreteUseCase: !!(
+        mvpData.description &&
+        mvpData.description.trim() &&
+        wordCount(mvpData.description) >= 15 &&
+        wordCount(mvpData.description) <= MAX_DESCRIPTION_WORDS
+      ),
       hasDemoOrScreenshot: !!(
         (mvpData.demoUrl && mvpData.demoUrl.trim()) ||
         (mvpData.screenshots && mvpData.screenshots.filter(s => s && s.trim()).length > 0)
       ),
-      hasMinimalEvidence: !!(mvpData.minimalEvidence && mvpData.minimalEvidence.trim() && wordCount(mvpData.minimalEvidence) >= 10),
+      hasMinimalEvidence: !!(
+        mvpData.minimalEvidence &&
+        mvpData.minimalEvidence.trim() &&
+        wordCount(mvpData.minimalEvidence) >= 10 &&
+        wordCount(mvpData.minimalEvidence) <= MAX_MINIMAL_EVIDENCE_WORDS
+      ),
       hasDealModality: !!(
         mvpData.dealModality &&
         mvpData.minPrice &&
@@ -212,7 +226,18 @@ export default function PublishPage() {
 
   const canProceedToAvailability = () => {
     // Verificar que todas las señales de calidad estén completas
-    return Object.values(signals).every(signal => signal === true)
+    const signalsOk = Object.values(signals).every(signal => signal === true)
+
+    // Validaciones adicionales de longitud de campos para proteger contra inputs extremadamente largos
+    const oneLinerLen = (mvpData.oneLiner || '').length
+    const descriptionWords = (mvpData.description && mvpData.description.trim()) ? mvpData.description.trim().split(/\s+/).filter(Boolean).length : 0
+    const minimalEvidenceWords = (mvpData.minimalEvidence && mvpData.minimalEvidence.trim()) ? mvpData.minimalEvidence.trim().split(/\s+/).filter(Boolean).length : 0
+    const differentials = (mvpData.competitiveDifferentials || []) as string[]
+    const differentialsOk = differentials.every(d => (d || '').length <= MAX_DIFFERENTIAL)
+
+    const lengthsOk = oneLinerLen <= MAX_ONE_LINER && descriptionWords <= MAX_DESCRIPTION_WORDS && minimalEvidenceWords <= MAX_MINIMAL_EVIDENCE_WORDS && differentialsOk
+
+    return signalsOk && lengthsOk
   }
 
   const goToNextStep = async () => {
@@ -542,7 +567,7 @@ export default function PublishPage() {
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold">{mvpData.name}</h3>
-                    <p className="italic text-muted-foreground">{mvpData.oneLiner}</p>
+                    <p className="italic text-muted-foreground break-words">{mvpData.oneLiner}</p>
                   </div>
 
                   <div>
