@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { Navbar } from "@/components/navbar"
 import { MvpReviewActions } from "@/components/admin/MvpReviewActions"
 
@@ -111,7 +112,10 @@ export default async function AdminPage({
     redirect("/marketplace")
   }
 
-  const { data: mvpsData, error: mvpsError } = await supabase
+  // Usar service_role para bypassear RLS y ver MVPs de todos los usuarios
+  const adminSupabase = createAdminClient()
+
+  const { data: mvpsData, error: mvpsError } = await adminSupabase
     .from("mvps")
     .select(
       "id, title, one_liner, description, status, demo_url, images_urls, published_at, created_at, monetization_model, minimal_evidence, competitive_differentials, deal_modality, price_range, transfer_checklist"
@@ -119,7 +123,7 @@ export default async function AdminPage({
     .in("status", ["pending_review", "approved", "rejected"])
     .order("created_at", { ascending: false })
 
-  const { data: ownersData, error: ownersError } = await supabase
+  const { data: ownersData, error: ownersError } = await adminSupabase
     .from("mvps_with_owner")
     .select("id, owner_name, owner_email")
 
