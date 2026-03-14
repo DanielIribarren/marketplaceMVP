@@ -1035,7 +1035,7 @@ function DetalleReunion({
           {/* Inversor puede cancelar lo suyo (cuando no es su turno de acción) */}
           {isReq && activo && !miTurno && (
             <div className="border-t pt-3">
-              <Button size="sm" className="bg-red-100 border border-red-600 text-red-800 hover:bg-red-600 hover:border-red-700 hover:text-white transition-colors w-full"
+              <Button size="sm" variant="destructive" className="w-full"
                 disabled={actLoading} onClick={() => setVista('cancelar')}>
                 Cancelar mi solicitud de reunión
               </Button>

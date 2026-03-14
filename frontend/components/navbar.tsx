@@ -298,6 +298,11 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                 Inicio
               </Link>
             )}
+            {!isAdmin && (
+              <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
+                Cómo funciona
+              </Link>
+            )}
             {isAuthenticated ? (
               <Link href="/marketplace" className={navLinkClass('/marketplace')}>
                 Marketplace
@@ -305,11 +310,6 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
             ) : (
               <Link href="/login" className={navLinkClass('/marketplace')}>
                 Marketplace
-              </Link>
-            )}
-            {!isAdmin && (
-              <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
-                Cómo funciona
               </Link>
             )}
             {isAuthenticated && (

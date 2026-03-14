@@ -35,7 +35,7 @@ export async function login(formData: FormData) {
   console.log('[LOGIN] Success! User:', authData.user?.email)
 
   revalidatePath('/', 'layout')
-  redirect('/marketplace')
+  redirect('/welcome')
 }
 
 export async function signup(formData: FormData) {

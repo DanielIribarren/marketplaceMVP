@@ -314,14 +314,16 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
           <label className="text-sm text-muted-foreground block mb-1">Foto de perfil</label>
           <Input type="file" accept="image/*" onChange={handleFile} />
           {(filePreview || profile.avatar_url) && (
-            <button
+            <Button
               type="button"
-              className="mt-2 px-3 py-1.5 text-sm bg-red-100 text-red-800 border border-red-300 rounded-md hover:bg-red-700 hover:text-white transition-colors disabled:opacity-50"
+              variant="destructive"
+              size="sm"
+              className="mt-2"
               onClick={handleDeleteAvatar}
               disabled={loading}
             >
               Eliminar foto
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -422,9 +424,9 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
       )}
 
       <div className="border-t pt-4 mt-6 flex justify-center">
-        <button
+        <Button
           type="button"
-          className="px-4 py-2 bg-red-100 text-red-800 border border-red-300 rounded-md hover:bg-red-700 hover:text-white transition-colors font-medium"
+          className="bg-brand-500 hover:bg-brand-600 hover:scale-105 transition-all text-white hover:text-white"
           onClick={() => {
             if (onLogout) {
               onLogout()
@@ -437,7 +439,7 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
           }}
         >
           Cerrar sesión
-        </button>
+        </Button>
       </div>
 
       {/* Modal para ver imagen en grande */}
