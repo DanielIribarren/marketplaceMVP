@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 const ADMIN_EMAIL = "admin123@correo.unimet.edu.ve"
 
@@ -12,7 +13,9 @@ export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> | { id: string } }
 ) {
+  // Use anon client only for auth check, admin client for the actual update (bypasses RLS)
   const supabase = await createClient()
+  const adminSupabase = createAdminClient()
   const { id } = await Promise.resolve(context.params)
 
   if (!id) {
@@ -59,7 +62,7 @@ export async function POST(
   }
 
   if (body.decision === "approve") {
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from("mvps")
       .update({
         status: "approved",
@@ -84,7 +87,7 @@ export async function POST(
       return NextResponse.json({ error: "Debes indicar el motivo del rechazo." }, { status: 400 })
     }
 
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from("mvps")
       .update({
         status: "rejected",

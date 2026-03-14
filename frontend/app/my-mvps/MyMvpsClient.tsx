@@ -2,10 +2,12 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Eye, Rocket, Heart, Edit3 } from 'lucide-react'
+import { Eye, Rocket, Heart, Edit3, Trash2, AlertTriangle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { createClient } from '@/lib/supabase/client'
 
 type MvpItem = {
   id: string
@@ -23,6 +25,7 @@ type MvpItem = {
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: 'Borrador', color: 'bg-gray-100 text-gray-700 border-gray-300' },
   pending: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+  pending_review: { label: 'En revisión', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
   approved: { label: 'Aprobado', color: 'bg-green-100 text-green-700 border-green-300' },
   rejected: { label: 'Rechazado', color: 'bg-red-100 text-red-700 border-red-300' },
 }
@@ -30,19 +33,47 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 type StatusFilter = 'all' | 'draft' | 'pending' | 'approved' | 'rejected'
 
 export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: MvpItem[]; isAdmin?: boolean }) {
-  console.log('🔍 [MyMvpsClient] initialMvps recibido:', initialMvps)
-  console.log('🔍 [MyMvpsClient] Cantidad de MVPs:', initialMvps?.length || 0)
-
-  const [mvps] = useState<MvpItem[]>(initialMvps)
+  const [mvps, setMvps] = useState<MvpItem[]>(initialMvps)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  console.log('🔍 [MyMvpsClient] Estado mvps:', mvps)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const handleDeleteDraft = async (id: string) => {
+    setDeletingId(id)
+    setDeleteError(null)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('No autenticado')
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
+      const res = await fetch(`${backendUrl}/api/mvps/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.message || 'No se pudo eliminar el borrador')
+      }
+
+      setMvps(prev => prev.filter(m => m.id !== id))
+      setConfirmDeleteId(null)
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Error al eliminar')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   // Contadores por estado
   const counts = useMemo(() => {
     return {
       all: mvps.length,
       draft: mvps.filter(m => m.status === 'draft').length,
-      pending: mvps.filter(m => m.status === 'pending').length,
+      pending: mvps.filter(m => m.status === 'pending' || m.status === 'pending_review').length,
       approved: mvps.filter(m => m.status === 'approved').length,
       rejected: mvps.filter(m => m.status === 'rejected').length,
     }
@@ -51,6 +82,7 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
   // MVPs filtrados
   const filteredMvps = useMemo(() => {
     if (statusFilter === 'all') return mvps
+    if (statusFilter === 'pending') return mvps.filter(m => m.status === 'pending' || m.status === 'pending_review')
     return mvps.filter(m => m.status === statusFilter)
   }, [mvps, statusFilter])
 
@@ -68,7 +100,7 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link href="/publish">
+            <Link href="/publish?from=my-mvps">
               <Button size="lg" className="gap-2">
                 <Rocket className="w-4 h-4" />
                 {isAdmin ? 'Publicar de prueba' : 'Publicar MVP'}
@@ -218,7 +250,7 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
                             )}
                           </div>
                           <h3 className="text-xl font-bold text-foreground line-clamp-2">
-                            {mvp.title}
+                            {mvp.title || <span className="text-muted-foreground italic">Sin título</span>}
                           </h3>
                         </div>
                       </div>
@@ -242,12 +274,23 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
 
                       <div className="flex gap-2 mt-2">
                         {isDraft ? (
-                          <Link href="/publish" className="flex-1">
-                            <Button variant="outline" className="w-full gap-2">
-                              <Edit3 className="w-4 h-4" />
-                              Continuar editando
+                          <>
+                            <Link href={`/publish?draft=${mvp.id}&from=my-mvps`} className="flex-1">
+                              <Button variant="outline" className="w-full gap-2">
+                                <Edit3 className="w-4 h-4" />
+                                Continuar editando
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => { setDeleteError(null); setConfirmDeleteId(mvp.id) }}
+                              className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 shrink-0"
+                              title="Eliminar borrador"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
-                          </Link>
+                          </>
                         ) : (
                           <Link href={`/mvps/${mvp.id}`} className="flex-1">
                             <Button variant="outline" className="w-full">
@@ -264,6 +307,44 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
           })}
         </div>
       )}
+
+      {/* Delete draft confirmation dialog */}
+      <Dialog open={!!confirmDeleteId} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-rose-600" />
+              ¿Eliminar borrador?
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Esta acción es permanente. El borrador y todos sus datos serán eliminados y no podrás recuperarlos.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <p className="text-sm text-rose-600">{deleteError}</p>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteId(null)}
+              disabled={!!deletingId}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => confirmDeleteId && handleDeleteDraft(confirmDeleteId)}
+              disabled={!!deletingId}
+            >
+              {deletingId ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Eliminando...</>
+              ) : (
+                'Sí, eliminar'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

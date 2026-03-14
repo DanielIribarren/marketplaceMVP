@@ -288,6 +288,11 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
+            {isAdmin && (
+              <Link href="/admin" className={navLinkClass('/admin')}>
+                Panel Administración
+              </Link>
+            )}
             {!isAdmin && (
               <Link href="/" className={navLinkClass('/')}>
                 Inicio
@@ -316,11 +321,6 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                   Tus MVPs
                 </Link>
               </>
-            )}
-            {isAdmin && (
-              <Link href="/admin" className={navLinkClass('/admin')}>
-                Panel Administración
-              </Link>
             )}
           </div>
 
@@ -356,7 +356,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="bg-brand-500 hover:bg-brand-600 text-white gap-2"
+                        className="bg-brand-500 hover:bg-brand-600 hover:scale-105 text-white hover:text-white gap-2 transition-transform"
                         onClick={() => setLogoutDialogOpen(true)}
                       >
                         <LogOut className="h-4 w-4" />

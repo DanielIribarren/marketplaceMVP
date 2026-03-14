@@ -107,7 +107,7 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        id: mvpData.id,
+        id: (mvpData.id && !mvpData.id.startsWith('draft-')) ? mvpData.id : undefined,
         title: mvpData.name,
         one_liner: mvpData.oneLiner,
         description: mvpData.description,

@@ -29,9 +29,9 @@ export const MAX_DIFFERENTIAL = 1000
 
 export function BasicFields({ data, onChange, previewLoading = false, previewError = null, onRetryPreview }: BasicFieldsProps) {
   const [screenshotInput, setScreenshotInput] = useState('')
-  const [differentialInputs, setDifferentialInputs] = useState(
-    data.competitiveDifferentials || ['', '', '']
-  )
+  // Sync from props so loaded draft data is reflected
+  const differentialInputs = data.competitiveDifferentials || ['', '', '']
+  const setDifferentialInputs = (newDiffs: string[]) => onChange({ ...data, competitiveDifferentials: newDiffs })
 
   const handleScreenshotAdd = () => {
     if (screenshotInput.trim() && (!data.screenshots || data.screenshots.length < 3)) {
@@ -54,10 +54,6 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
     const newDifferentials = [...differentialInputs]
     newDifferentials[index] = value
     setDifferentialInputs(newDifferentials)
-    onChange({
-      ...data,
-      competitiveDifferentials: newDifferentials
-    })
   }
 
   const wordCount = (text: string) => text.trim().split(/\s+/).filter(Boolean).length

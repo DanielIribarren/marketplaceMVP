@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { Navbar } from "@/components/navbar"
 import { MvpReviewActions } from "@/components/admin/MvpReviewActions"
+import { CheckCircle2, XCircle, Clock } from "lucide-react"
 
 
 const ADMIN_EMAIL = "admin123@correo.unimet.edu.ve"
@@ -36,10 +37,11 @@ type OwnerViewRow = {
 }
 
 const statusLabel: Record<MvpStatus, string> = {
-  pending_review: "pendiente",
-  approved: "aprobado",
-  rejected: "rechazado",
+  pending_review: "Pendiente",
+  approved: "Aprobado",
+  rejected: "Rechazado",
 }
+
 
 const statusClass: Record<MvpStatus, string> = {
   pending_review: "bg-amber-100 text-amber-800 border-amber-200",
@@ -212,9 +214,12 @@ export default async function AdminPage({
 
                     <div className="flex flex-col items-start gap-2 sm:items-end">
                       <span
-                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusClass[mvp.status]}`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${statusClass[mvp.status]}`}
                       >
                         {statusLabel[mvp.status]}
+                        {mvp.status === "approved" && <CheckCircle2 className="h-3.5 w-3.5" />}
+                        {mvp.status === "rejected" && <XCircle className="h-3.5 w-3.5" />}
+                        {mvp.status === "pending_review" && <Clock className="h-3.5 w-3.5" />}
                       </span>
                       <p className="text-xs text-muted-foreground">
                         Publicado: {date(mvp.published_at, mvp.created_at)}

@@ -28,10 +28,10 @@ export async function saveDraft(req, res) {
     // Preparar datos para insertar/actualizar
     const draftData = {
       owner_id: userId,
-      title: mvpData.title || null,
+      title: mvpData.title || '',
       one_liner: mvpData.one_liner || null,
       slug: mvpData.slug || buildSlug(mvpData.title),
-      description: mvpData.description || null,
+      description: mvpData.description || '',
       demo_url: mvpData.demo_url || null,
       cover_image_url: mvpData.cover_image_url || null,
       images_urls: mvpData.images_urls || [],

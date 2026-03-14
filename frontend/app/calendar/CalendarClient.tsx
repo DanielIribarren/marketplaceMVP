@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  ChevronLeft, ChevronRight, CalendarDays, Clock, Video,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, Clock, Video,
   User, ExternalLink, Loader2, CheckCircle2, XCircle,
   RefreshCw, AlertCircle, Building2, TrendingUp, DollarSign,
 } from 'lucide-react'
@@ -177,6 +177,13 @@ export function CalendarClient({ userId }: { userId: string }) {
   const [actLoading,  setActLoad]  = useState(false)
   const [actMsg,      setActMsg]   = useState<{ok:boolean;txt:string}|null>(null)
   const [vistaPanel,  setVistaPanel] = useState<VistaPanel>('atencion')
+  const [expandedOfferId, setExpandedOfferId] = useState<string | null>(null)
+  const [ofertaSubVista, setOfertaSubVista] = useState<Vista>('detalle')
+  const [ofertaMotivo, setOfertaMotivo] = useState('')
+  const [ofertaMeetUrl, setOfertaMeetUrl] = useState('')
+  const [ofertaOwnerNotes, setOfertaOwnerNotes] = useState('')
+  const [ofertaActMsg, setOfertaActMsg] = useState<{ok:boolean;txt:string}|null>(null)
+  const [ofertaCp, setOfertaCp] = useState({ proposed_date: '', proposed_start_time: '09:00', proposed_end_time: '10:00', notes: '' })
 
   const hoy   = useMemo(() => { const h = new Date(); h.setHours(0,0,0,0); return h }, [])
   const semanasVisibles = VISTAS[vista].weeks
@@ -232,6 +239,14 @@ export function CalendarClient({ userId }: { userId: string }) {
 
   function abrirDetalle(m: Meeting) {
     setSel(m); setActMsg(null); setOpen(true)
+  }
+
+  async function accionOferta(fn: () => Promise<{success:boolean;message?:string}>) {
+    setActLoad(true)
+    const r = await fn()
+    setOfertaActMsg({ ok: r.success, txt: r.message || (r.success ? 'Listo' : 'Ocurrió un error') })
+    if (r.success) { await recargar(); setExpandedOfferId(null) }
+    setActLoad(false)
   }
 
   async function accion(
@@ -535,65 +550,268 @@ export function CalendarClient({ userId }: { userId: string }) {
           )}
 
           {vistaPanel === 'ofertas' && ofertasRecibidas.length > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-3">
               {ofertasRecibidas.map(m => {
                 const offerSummary = formatOfferSummary(m)
                 const otro = m.requester
                 const OfferIcon = m.offer_type === 'economic' ? DollarSign : TrendingUp
+                const isExpanded = expandedOfferId === m.id
+                const isOwner = m.owner_id === userId
+                const miTurno = esmiturno(m, userId)
+                const activo = ['pending', 'confirmed', 'counterproposal_entrepreneur', 'counterproposal_investor'].includes(m.status)
+                const esCont = m.status.startsWith('counterproposal')
 
                 return (
-                  <button
+                  <div
                     key={m.id}
-                    onClick={() => {
-                      // Navegar al día de la reunión
-                      if (m.scheduled_at) {
-                        const meetingDate = new Date(m.scheduled_at)
-                        setCursor(meetingDate)
-                      }
-                      abrirDetalle(m)
-                    }}
-                    className="bg-orange-50/50 border border-orange-200 rounded-xl p-4 text-left hover:bg-orange-100/70 hover:shadow-md transition-all group"
+                    className={`border rounded-xl overflow-hidden transition-all ${isExpanded ? 'border-orange-400 shadow-md' : 'border-orange-200'}`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">
-                          {m.offer_type === 'economic' ? 'Oferta Económica' : 'Aporte No Económico'}
-                        </p>
-                        <p className="font-bold text-sm text-foreground truncate mb-0.5">
-                          {m.mvp?.title || 'MVP'}
-                        </p>
-                        {otro && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            De: {otro.display_name || otro.email || 'Inversor'}
+                    {/* Header - clickable to expand/collapse */}
+                    <button
+                      className={`w-full p-4 text-left transition-colors ${isExpanded ? 'bg-orange-100/70' : 'bg-orange-50/50 hover:bg-orange-100/70'}`}
+                      onClick={() => {
+                        if (isExpanded) {
+                          setExpandedOfferId(null)
+                          setOfertaActMsg(null)
+                        } else {
+                          setExpandedOfferId(m.id)
+                          setOfertaSubVista('detalle')
+                          setOfertaMotivo('')
+                          setOfertaMeetUrl('')
+                          setOfertaOwnerNotes('')
+                          setOfertaActMsg(null)
+                          setOfertaCp({
+                            proposed_date: m.scheduled_at ? m.scheduled_at.split('T')[0] : '',
+                            proposed_start_time: '09:00',
+                            proposed_end_time: '10:00',
+                            notes: '',
+                          })
+                        }
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">
+                            {m.offer_type === 'economic' ? 'Oferta Económica' : 'Aporte No Económico'}
                           </p>
+                          <p className="font-bold text-sm text-foreground truncate mb-0.5">
+                            {m.mvp?.title || 'MVP'}
+                          </p>
+                          {otro && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              De: {otro.display_name || otro.email || 'Inversor'}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <OfferIcon className="w-5 h-5 text-orange-500" />
+                          {isExpanded
+                            ? <ChevronUp className="w-4 h-4 text-orange-600" />
+                            : <ChevronDown className="w-4 h-4 text-orange-600" />}
+                        </div>
+                      </div>
+
+                      {!isExpanded && offerSummary && (
+                        <div className="bg-white/80 border border-orange-200/50 rounded-lg px-3 py-2 mt-2">
+                          <p className="text-sm font-semibold text-orange-900 line-clamp-2">{offerSummary}</p>
+                        </div>
+                      )}
+                      {!isExpanded && m.scheduled_at && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          📅 {new Date(m.scheduled_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })} · {fmtHora(m.scheduled_at)}
+                        </p>
+                      )}
+                    </button>
+
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="bg-white border-t border-orange-200 p-4 space-y-4">
+                        {/* Offer summary */}
+                        {offerSummary && (
+                          <div className="p-3 bg-orange-50 border border-orange-200 rounded-xl">
+                            <p className="text-xs font-semibold text-orange-700 uppercase mb-1">
+                              {m.offer_type === 'economic' ? 'Oferta económica' : 'Aporte no económico'}
+                            </p>
+                            <p className="text-sm text-orange-900">{offerSummary}</p>
+                          </div>
+                        )}
+
+                        {/* Date/time */}
+                        {m.scheduled_at && (
+                          <div className="flex items-start gap-3">
+                            <Clock className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold text-foreground capitalize">{fmtFechaLarga(m.scheduled_at)}</p>
+                              <p className="text-xs text-muted-foreground">{fmtHora(m.scheduled_at)} · {m.duration_minutes} min</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Requester info */}
+                        {otro && (
+                          <div className="flex items-start gap-3">
+                            <User className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold">{otro.display_name || otro.email}</p>
+                              {otro.email && <p className="text-xs text-muted-foreground">{otro.email}</p>}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Counter-proposal block */}
+                        {esCont && (
+                          <div className="p-3 bg-muted/30 border rounded-xl text-sm">
+                            <p className="font-semibold mb-1">📩 Contrapropuesta recibida</p>
+                            {m.scheduled_at && <p className="text-muted-foreground capitalize">{fmtFechaLarga(m.scheduled_at)} · {fmtHora(m.scheduled_at)}</p>}
+                            {m.counterproposal_notes && <p className="text-muted-foreground mt-1 text-xs italic">&quot;{m.counterproposal_notes}&quot;</p>}
+                          </div>
+                        )}
+
+                        {/* Investor notes */}
+                        {(m.notes || m.requester_notes) && (
+                          <div className="border-t pt-3">
+                            <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Mensaje del inversor</p>
+                            <p className="text-sm">{m.requester_notes || m.notes}</p>
+                          </div>
+                        )}
+
+                        {/* Action result message */}
+                        {ofertaActMsg && (
+                          <div className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${
+                            ofertaActMsg.ok
+                              ? 'bg-green-50 border-green-200 text-green-800'
+                              : 'bg-destructive/10 border-destructive/40 text-destructive'
+                          }`}>
+                            {ofertaActMsg.ok ? <CheckCircle2 className="w-4 h-4 shrink-0"/> : <XCircle className="w-4 h-4 shrink-0"/>}
+                            {ofertaActMsg.txt}
+                          </div>
+                        )}
+
+                        {/* Actions: default view */}
+                        {ofertaSubVista === 'detalle' && activo && miTurno && isOwner && (
+                          <div className="border-t pt-4 space-y-3">
+                            <p className="text-sm font-semibold">¿Qué deseas hacer?</p>
+                            <div className="space-y-2">
+                              <Input
+                                placeholder="Link de videollamada (opcional: Zoom, Meet...)"
+                                value={ofertaMeetUrl}
+                                onChange={e => setOfertaMeetUrl(e.target.value)}
+                              />
+                              <Input
+                                placeholder="Nota para el inversor (opcional)"
+                                value={ofertaOwnerNotes}
+                                onChange={e => setOfertaOwnerNotes(e.target.value)}
+                              />
+                              <Button
+                                className="w-full bg-green-100 border border-green-600 text-green-800 hover:bg-green-600 hover:border-green-700 hover:text-white transition-colors"
+                                disabled={actLoading}
+                                onClick={() => accionOferta(() => confirmMeeting(m.id, {
+                                  meeting_url: ofertaMeetUrl || undefined,
+                                  owner_notes: ofertaOwnerNotes || undefined,
+                                }))}
+                              >
+                                {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <CheckCircle2 className="w-4 h-4 mr-2"/>}
+                                Aceptar reunión
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button variant="outline" className="bg-white border border-gray-300 text-gray-700 hover:bg-primary hover:border-primary hover:text-white transition-colors"
+                                disabled={actLoading} onClick={() => setOfertaSubVista('contraproponer')}>
+                                <RefreshCw className="w-4 h-4 mr-2"/> Proponer otra fecha
+                              </Button>
+                              <Button variant="outline" className="bg-red-100 border border-red-600 text-red-800 hover:bg-red-600 hover:border-red-700 hover:text-white transition-colors"
+                                disabled={actLoading} onClick={() => setOfertaSubVista('rechazar')}>
+                                <XCircle className="w-4 h-4 mr-2"/> Rechazar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Actions: reject */}
+                        {ofertaSubVista === 'rechazar' && (
+                          <div className="space-y-3 border-t pt-4">
+                            <div>
+                              <Label htmlFor={`motivo-${m.id}`}>Motivo del rechazo <span className="text-muted-foreground">(opcional)</span></Label>
+                              <textarea id={`motivo-${m.id}`} rows={3}
+                                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                placeholder="Explica brevemente por qué rechazas esta reunión..."
+                                value={ofertaMotivo} onChange={e => setOfertaMotivo(e.target.value)}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button className="flex-1 bg-destructive hover:bg-destructive/90 text-white" disabled={actLoading}
+                                onClick={() => accionOferta(() => rejectMeeting(m.id, ofertaMotivo || undefined))}>
+                                {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1"/> : <XCircle className="w-4 h-4 mr-1"/>}
+                                Confirmar rechazo
+                              </Button>
+                              <Button variant="outline" onClick={() => setOfertaSubVista('detalle')} disabled={actLoading}>Volver</Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Actions: counter-propose */}
+                        {ofertaSubVista === 'contraproponer' && (
+                          <div className="space-y-4 border-t pt-4">
+                            <p className="text-sm text-muted-foreground">
+                              Propón una nueva fecha y hora. La otra parte podrá aceptarla, rechazarla o volver a contraproponer.
+                            </p>
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor={`cp-fecha-${m.id}`}>Nueva fecha</Label>
+                                <Input id={`cp-fecha-${m.id}`} type="date" className="mt-1"
+                                  min={new Date().toISOString().split('T')[0]}
+                                  value={ofertaCp.proposed_date}
+                                  onChange={e => setOfertaCp(c => ({...c, proposed_date: e.target.value}))}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label htmlFor={`cp-inicio-${m.id}`}>Hora de inicio</Label>
+                                  <Input id={`cp-inicio-${m.id}`} type="time" className="mt-1"
+                                    value={ofertaCp.proposed_start_time}
+                                    onChange={e => setOfertaCp(c => ({...c, proposed_start_time: e.target.value}))}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`cp-fin-${m.id}`}>Hora de fin</Label>
+                                  <Input id={`cp-fin-${m.id}`} type="time" className="mt-1"
+                                    value={ofertaCp.proposed_end_time}
+                                    onChange={e => setOfertaCp(c => ({...c, proposed_end_time: e.target.value}))}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <Label htmlFor={`cp-msg-${m.id}`}>Mensaje <span className="text-muted-foreground">(opcional)</span></Label>
+                                <textarea id={`cp-msg-${m.id}`} rows={3}
+                                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                  placeholder="Explica el motivo del cambio de fecha..."
+                                  value={ofertaCp.notes || ''} onChange={e => setOfertaCp(c => ({...c, notes: e.target.value}))}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button className="flex-1" disabled={actLoading || !ofertaCp.proposed_date}
+                                onClick={() => accionOferta(() => counterproposeMeeting(m.id, ofertaCp))}>
+                                {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1"/> : <RefreshCw className="w-4 h-4 mr-1"/>}
+                                Enviar contrapropuesta
+                              </Button>
+                              <Button variant="outline" onClick={() => setOfertaSubVista('detalle')} disabled={actLoading}>Volver</Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Link to MVP */}
+                        {m.mvp?.id && (
+                          <div className="border-t pt-3">
+                            <a href={`/mvps/${m.mvp.id}`}
+                              className="text-xs text-primary hover:underline flex items-center gap-1">
+                              Ver MVP: {m.mvp.title} <ExternalLink className="w-3 h-3"/>
+                            </a>
+                          </div>
                         )}
                       </div>
-                      <OfferIcon className="w-5 h-5 text-orange-500 shrink-0 group-hover:scale-110 transition-transform" />
-                    </div>
-
-                    {offerSummary && (
-                      <div className="bg-white/80 border border-orange-200/50 rounded-lg px-3 py-2 mb-2">
-                        <p className="text-sm font-semibold text-orange-900 line-clamp-2">
-                          {offerSummary}
-                        </p>
-                      </div>
                     )}
-
-                    {m.scheduled_at && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        📅 {new Date(m.scheduled_at).toLocaleDateString('es-MX', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })} · {fmtHora(m.scheduled_at)}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-1 text-xs text-orange-600 font-semibold mt-2 group-hover:underline">
-                      Ver detalles
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>

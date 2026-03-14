@@ -1,12 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
-import { Calendar, CheckCircle2, Loader2, Send, ArrowLeft, X, AlertTriangle } from "lucide-react"
-import Link from "next/link"
+import { Calendar, CheckCircle2, Loader2, Send, ArrowLeft, X, AlertTriangle, Save } from "lucide-react"
 import { publishMVP, saveDraft, deleteDraft, getUrlPreview } from "@/app/actions/mvp"
+import { createClient } from "@/lib/supabase/client"
 import { AvailabilityCalendar } from "@/components/publish/AvailabilityCalendar"
 import { BasicFields, MAX_ONE_LINER, MAX_DESCRIPTION_WORDS, MAX_MINIMAL_EVIDENCE_WORDS, MAX_DIFFERENTIAL } from "@/components/publish/BasicFields"
 import { QualitySignalsIndicator } from "@/components/publish/QualitySignals"
@@ -33,6 +33,7 @@ const stepTransition = {
 }
 
 const STORAGE_KEY = 'mvp-draft-form'
+const DRAFT_STEP_KEY = (id: string) => `mvp-draft-step-${id}`
 
 function isValidHttpUrl(value: string): boolean {
   if (!value) return false
@@ -44,19 +45,68 @@ function isValidHttpUrl(value: string): boolean {
   }
 }
 
-export default function PublishPage() {
+// Map DB row fields to MVPPublication form format
+function mapDbMvpToForm(mvp: Record<string, unknown>): Partial<MVPPublication> & { id?: string } {
+  // Parse price_range "USD 1.000-5.000" (es-ES format with periods as thousands sep)
+  let minPrice: number | undefined
+  let maxPrice: number | undefined
+  if (typeof mvp.price_range === 'string' && mvp.price_range) {
+    const match = (mvp.price_range as string).match(/USD\s+([\d.,]+)[-–]([\d.,]+)/)
+    if (match) {
+      minPrice = parseFloat(match[1].replace(/\./g, '').replace(',', '.')) || undefined
+      maxPrice = parseFloat(match[2].replace(/\./g, '').replace(',', '.')) || undefined
+    }
+  }
+
+  const checklist = (mvp.transfer_checklist as Record<string, boolean> | null) ?? {}
+
+  return {
+    id: mvp.id as string | undefined,
+    name: (mvp.title as string) || '',
+    oneLiner: (mvp.one_liner as string) || '',
+    description: (mvp.description as string) || '',
+    demoUrl: (mvp.demo_url as string) || '',
+    coverImageUrl: (mvp.cover_image_url as string) || undefined,
+    screenshots: (mvp.images_urls as string[]) || [],
+    monetizationModel: (mvp.monetization_model as MVPPublication['monetizationModel']) || undefined,
+    minimalEvidence: (mvp.minimal_evidence as string) || '',
+    competitiveDifferentials: (mvp.competitive_differentials as string[]) || ['', '', ''],
+    dealModality: (mvp.deal_modality as MVPPublication['dealModality']) || undefined,
+    minPrice,
+    maxPrice,
+    transferChecklist: {
+      codeAndDocs: checklist.codeAndDocs ?? false,
+      domainOrLanding: checklist.domainOrLanding ?? false,
+      integrationAccounts: checklist.integrationAccounts ?? false,
+      ownIp: checklist.ownIp ?? false,
+    },
+  }
+}
+
+function PublishPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const draftIdParam = searchParams.get('draft')
+  const fromMyMvps = searchParams.get('from') === 'my-mvps'
+  const backHref = fromMyMvps ? '/my-mvps' : '/marketplace'
+  const backLabel = fromMyMvps ? 'Volver a tus MVPs' : 'Volver al marketplace'
+
   const [currentStep, setCurrentStep] = useState<Step>("basics")
   const [mvpData, setMvpData] = useState<Partial<MVPPublication> & { id?: string }>(createEmptyDraft(""))
   const [isPublishing, setIsPublishing] = useState(false)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [availabilityCount, setAvailabilityCount] = useState(0)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [showBackDialog, setShowBackDialog] = useState(false)
   const previewRequestRef = React.useRef(0)
   const lastPreviewUrlRef = React.useRef('')
+  const lastSavedDataRef = React.useRef<string>('')
 
   const [signals, setSignals] = useState<QualitySignals>({
     hasValidOneLiner: false,
@@ -67,30 +117,53 @@ export default function PublishPage() {
     hasTransferChecklist: false,
   })
 
-  // Cargar datos del localStorage al montar el componente (solo en cliente)
+  // Load draft: from DB if ?draft=<id>, else from localStorage
   React.useEffect(() => {
-    // Limpiar cualquier error previo
     setError(null)
 
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        const parsedData = JSON.parse(saved)
-        // Si tiene un ID que no es local draft, limpiarlo para empezar fresco
-        if (parsedData.id && !parsedData.id.startsWith('draft-')) {
-          // ID de base de datos de una sesión anterior - no usarlo
-          delete parsedData.id
-        }
-        setMvpData(parsedData)
-      } catch {
-        // Si hay error al parsear, limpiar localStorage
-        localStorage.removeItem(STORAGE_KEY)
-      }
-    }
-    setIsLoaded(true)
-  }, [])
+    if (draftIdParam) {
+      // Query Supabase directly from the browser (RLS allows owner to read own MVP)
+      const loadDraft = async () => {
+        try {
+          const supabase = createClient()
+          const { data: mvp, error } = await supabase
+            .from('mvps')
+            .select('*')
+            .eq('id', draftIdParam)
+            .single()
 
-  // Guardar datos en localStorage cuando cambian (solo después de cargar)
+          if (!error && mvp) {
+            const mapped = mapDbMvpToForm(mvp as Record<string, unknown>)
+            setMvpData(mapped)
+            lastSavedDataRef.current = JSON.stringify(mapped)
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped))
+            // Restore last-saved step
+            const savedStep = localStorage.getItem(DRAFT_STEP_KEY(draftIdParam)) as Step | null
+            if (savedStep && (['basics', 'availability', 'review'] as string[]).includes(savedStep)) {
+              setCurrentStep(savedStep)
+            }
+          } else {
+            // Keep the ID so cancel can still delete it
+            const empty = { ...createEmptyDraft(""), id: draftIdParam }
+            setMvpData(empty)
+            lastSavedDataRef.current = JSON.stringify(empty)
+          }
+        } catch {
+          setMvpData({ ...createEmptyDraft(""), id: draftIdParam })
+        }
+        setIsLoaded(true)
+      }
+      void loadDraft()
+      return
+    }
+
+    // No draft param: always start fresh (clean slate for a new MVP)
+    localStorage.removeItem(STORAGE_KEY)
+    lastSavedDataRef.current = JSON.stringify(createEmptyDraft(""))
+    setIsLoaded(true)
+  }, [draftIdParam])
+
+  // Auto-save to localStorage on change
   React.useEffect(() => {
     if (isLoaded) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(mvpData))
@@ -98,7 +171,6 @@ export default function PublishPage() {
   }, [mvpData, isLoaded])
 
   React.useEffect(() => {
-    // Calcular señales localmente para respuesta instantánea
     const wordCount = (text: string) => {
       const trimmed = text.trim()
       if (!trimmed) return 0
@@ -156,9 +228,7 @@ export default function PublishPage() {
 
     const result = await getUrlPreview(normalized)
 
-    if (requestId !== previewRequestRef.current) {
-      return
-    }
+    if (requestId !== previewRequestRef.current) return
 
     if (result.success && result.previewUrl) {
       setMvpData((prevData) => {
@@ -214,9 +284,7 @@ export default function PublishPage() {
       void requestLinkPreview(demoUrl)
     }, 700)
 
-    return () => {
-      window.clearTimeout(timeoutId)
-    }
+    return () => window.clearTimeout(timeoutId)
   }, [demoUrl, isLoaded, requestLinkPreview])
 
   const handleRetryPreview = React.useCallback(() => {
@@ -225,19 +293,42 @@ export default function PublishPage() {
   }, [demoUrl, requestLinkPreview])
 
   const canProceedToAvailability = () => {
-    // Verificar que todas las señales de calidad estén completas
     const signalsOk = Object.values(signals).every(signal => signal === true)
-
-    // Validaciones adicionales de longitud de campos para proteger contra inputs extremadamente largos
     const oneLinerLen = (mvpData.oneLiner || '').length
     const descriptionWords = (mvpData.description && mvpData.description.trim()) ? mvpData.description.trim().split(/\s+/).filter(Boolean).length : 0
     const minimalEvidenceWords = (mvpData.minimalEvidence && mvpData.minimalEvidence.trim()) ? mvpData.minimalEvidence.trim().split(/\s+/).filter(Boolean).length : 0
     const differentials = (mvpData.competitiveDifferentials || []) as string[]
     const differentialsOk = differentials.every(d => (d || '').length <= MAX_DIFFERENTIAL)
-
     const lengthsOk = oneLinerLen <= MAX_ONE_LINER && descriptionWords <= MAX_DESCRIPTION_WORDS && minimalEvidenceWords <= MAX_MINIMAL_EVIDENCE_WORDS && differentialsOk
-
     return signalsOk && lengthsOk
+  }
+
+  const effectiveDraftId = (mvpData.id && !mvpData.id.startsWith('draft-')) ? mvpData.id : draftIdParam ?? undefined
+  const hasSavedDraft = !!effectiveDraftId
+  const hasUnsavedChanges = JSON.stringify(mvpData) !== lastSavedDataRef.current
+
+  // Save draft manually (called by button)
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true)
+    setSaveError(null)
+    setDraftSavedAt(null)
+
+    const result = await saveDraft(mvpData)
+    if (result.success && result.data?.id) {
+      const savedId = result.data.id
+      const updatedData = { ...mvpData, id: savedId }
+      setMvpData(prev => ({ ...prev, id: savedId }))
+      lastSavedDataRef.current = JSON.stringify(updatedData)
+      // Persist the current step so "Continuar editando" restores it
+      localStorage.setItem(DRAFT_STEP_KEY(savedId), currentStep)
+      setDraftSavedAt(new Date())
+      // Clear "saved" badge after 3s
+      setTimeout(() => setDraftSavedAt(null), 3000)
+    } else {
+      setSaveError(result.message || 'Error al guardar el borrador')
+      setTimeout(() => setSaveError(null), 4000)
+    }
+    setIsSavingDraft(false)
   }
 
   const goToNextStep = async () => {
@@ -249,8 +340,7 @@ export default function PublishPage() {
         return
       }
 
-      // Guardar borrador en la base de datos para poder gestionar disponibilidad
-      // Solo si no tiene un ID de base de datos válido
+      // Ensure draft is saved in DB before moving to availability (need an ID for the calendar)
       if (!mvpData.id || mvpData.id.startsWith('draft-')) {
         try {
           const result = await saveDraft(mvpData)
@@ -263,11 +353,13 @@ export default function PublishPage() {
           setError("Error de conexión al guardar")
           return
         }
+      } else {
+        // Update existing draft with latest data
+        await saveDraft(mvpData)
       }
 
       setCurrentStep("availability")
     } else if (currentStep === "availability") {
-      // Validar que se hayan guardado al menos 2 fechas de disponibilidad
       if (availabilityCount < 2) {
         setError("Debes guardar al menos 2 espacios de disponibilidad antes de continuar")
         return
@@ -283,7 +375,6 @@ export default function PublishPage() {
     try {
       let mvpId = mvpData.id
 
-      // Si es un borrador local (no guardado en base de datos), crearlo primero
       if (!mvpId || mvpId.startsWith('draft-')) {
         const draftResult = await saveDraft(mvpData)
         if (!draftResult.success || !draftResult.data?.id) {
@@ -293,21 +384,19 @@ export default function PublishPage() {
         mvpId = draftResult.data.id
       }
 
-      // Verificar que tenemos un ID válido
       if (!mvpId) {
         setError("Error: No se pudo obtener el ID del MVP")
         return
       }
 
-      // Publicar el MVP
       const result = await publishMVP(mvpId)
       if (result.success) {
-        // Limpiar localStorage al publicar exitosamente
         if (typeof window !== 'undefined') {
           localStorage.removeItem(STORAGE_KEY)
           localStorage.removeItem('mvp-draft-availability')
+          if (mvpId) localStorage.removeItem(DRAFT_STEP_KEY(mvpId))
         }
-        router.push("/marketplace")
+        router.push("/my-mvps")
       } else {
         setError(result.message || "Error al publicar")
       }
@@ -318,33 +407,39 @@ export default function PublishPage() {
     }
   }
 
-  const handleCancel = () => {
-    setShowCancelDialog(true)
+  const confirmBack = () => {
+    // Keep draft in DB (if saved), just clear local state and navigate
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem('mvp-draft-availability')
+    if (effectiveDraftId) localStorage.removeItem(DRAFT_STEP_KEY(effectiveDraftId))
+    setShowBackDialog(false)
+    router.push(backHref)
   }
 
+  const handleCancel = () => setShowCancelDialog(true)
+
   const confirmCancel = async () => {
-    // Si hay un borrador guardado en la base de datos (no local), eliminarlo
-    if (mvpData.id && !mvpData.id.startsWith('draft-')) {
+    if (effectiveDraftId) {
       try {
-        await deleteDraft(mvpData.id)
+        await deleteDraft(effectiveDraftId)
       } catch {
-        // Ignorar errores al eliminar, de todas formas navegamos
+        // Ignore errors
       }
     }
-    // Limpiar localStorage al cancelar
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem('mvp-draft-availability')
+      if (effectiveDraftId) localStorage.removeItem(DRAFT_STEP_KEY(effectiveDraftId))
     }
     setShowCancelDialog(false)
-    router.push("/marketplace")
+    router.push(backHref)
   }
 
   return (
     <div suppressHydrationWarning className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 border-b border-border/70 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
-        {/* Botones de navegación - pegados a los bordes */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-6 sm:px-6 lg:px-8">
+        {/* Top navigation bar */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 sm:px-6 lg:px-8">
           {currentStep === "availability" && (
             <button
               onClick={() => setCurrentStep("basics")}
@@ -364,21 +459,49 @@ export default function PublishPage() {
             </button>
           )}
           {currentStep === "basics" && (
-            <Link
-              href="/marketplace"
+            <button
+              onClick={() => hasUnsavedChanges ? setShowBackDialog(true) : router.push(backHref)}
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              Volver al marketplace
-            </Link>
+              {backLabel}
+            </button>
           )}
-          <button
-            onClick={handleCancel}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Cancelar
-            <X className="h-4 w-4" />
-          </button>
+
+          {/* Right side: Save Draft + Cancel */}
+          <div className="flex items-center gap-2">
+            {/* Save draft button (not shown in review step since publish does the save) */}
+            {currentStep !== "review" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft}
+                className="gap-1.5"
+              >
+                {isSavingDraft ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : draftSavedAt ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                <span className={draftSavedAt ? 'text-green-600' : ''}>
+                  {draftSavedAt ? 'Guardado' : 'Guardar borrador'}
+                </span>
+              </Button>
+            )}
+            {saveError && (
+              <span className="text-xs text-destructive">{saveError}</span>
+            )}
+            <button
+              onClick={handleCancel}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancelar
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6 lg:px-8">
@@ -418,29 +541,17 @@ export default function PublishPage() {
                         "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors duration-200",
                         isCurrent && "border-primary bg-primary text-white",
                         isCompleted && "border-green-600 bg-green-600 text-white",
-                        !isCurrent &&
-                          !isCompleted &&
-                          "border-brand-200 bg-background text-muted-foreground",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
+                        !isCurrent && !isCompleted && "border-brand-200 bg-background text-muted-foreground",
+                      ].filter(Boolean).join(" ")}
                     >
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span
-                      className={`mt-1 text-xs ${
-                        isCurrent ? "font-semibold text-primary" : "text-muted-foreground"
-                      }`}
-                    >
+                    <span className={`mt-1 text-xs ${isCurrent ? "font-semibold text-primary" : "text-muted-foreground"}`}>
                       {step.label}
                     </span>
                   </div>
                   {index < STEPS.length - 1 && (
-                    <div
-                      className={`h-0.5 w-16 ${
-                        isCompleted ? "bg-green-600" : "bg-brand-200"
-                      }`}
-                    />
+                    <div className={`h-0.5 w-16 ${isCompleted ? "bg-green-600" : "bg-brand-200"}`} />
                   )}
                 </React.Fragment>
               )
@@ -473,8 +584,8 @@ export default function PublishPage() {
 
                     <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
                       <p className="text-sm text-amber-800">
-                        <strong>Nota:</strong> Los datos se guardarán al pasar al siguiente paso.
-                        Tu MVP no será público hasta completar todos los pasos y hacer clic en &quot;Publicar&quot;.
+                        <strong>Nota:</strong> Tu MVP no será público hasta completar todos los pasos y hacer clic en &quot;Publicar&quot;.
+                        Puedes guardar el borrador en cualquier momento y retomarlo desde &quot;Tus MVPs&quot;.
                       </p>
                     </div>
 
@@ -497,7 +608,7 @@ export default function PublishPage() {
                         Completa los campos requeridos
                       </p>
                       <p className="text-xs text-brand-700">
-                        Completa las 5 señales de calidad para poder publicar.
+                        Completa las 6 señales de calidad para poder publicar.
                       </p>
                     </div>
                   )}
@@ -629,7 +740,38 @@ export default function PublishPage() {
         </AnimatePresence>
       </div>
 
-      {/* Diálogo de confirmación de cancelación */}
+      {/* Back confirmation dialog */}
+      <Dialog open={showBackDialog} onOpenChange={setShowBackDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              ¡Asegúrate de guardar tu progreso!
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {hasSavedDraft
+                ? "Tu borrador guardado quedará intacto y podrás retomarlo desde 'Tus MVPs'."
+                : "Si no guardaste tu progreso, se perderá al salir."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowBackDialog(false)}
+            >
+              OK
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmBack}
+            >
+              Salir de todos modos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel confirmation dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent>
           <DialogHeader>
@@ -638,8 +780,9 @@ export default function PublishPage() {
               ¿Estás seguro que quieres salir?
             </DialogTitle>
             <DialogDescription className="pt-2">
-              Si cancelas ahora, perderás todo el progreso en la creación de este MVP.
-              Los datos ingresados no se guardarán y tendrás que empezar de nuevo.
+              {hasSavedDraft
+                ? "Tu borrador guardado será eliminado permanentemente. ¿Quieres continuar?"
+                : "Si cancelas ahora, perderás todo el progreso en la creación de este MVP. Los datos ingresados no se guardarán y tendrás que empezar de nuevo."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
@@ -653,11 +796,23 @@ export default function PublishPage() {
               variant="destructive"
               onClick={confirmCancel}
             >
-              Sí, cancelar y salir
+              {hasSavedDraft ? "Sí, eliminar y salir" : "Sí, cancelar y salir"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function PublishPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <PublishPageInner />
+    </Suspense>
   )
 }
