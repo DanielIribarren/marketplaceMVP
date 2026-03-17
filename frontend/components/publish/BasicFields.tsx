@@ -7,9 +7,19 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { X, Plus, Loader2, RefreshCw } from 'lucide-react'
-import { MICROCOPYS, MonetizationModel, DealModality, MonetizationModelLabels, DealModalityLabels } from '@/lib/types/mvp-publication'
+import { X, Loader2, RefreshCw, Upload, PlayCircle } from 'lucide-react'
+import { MICROCOPYS, MonetizationModel, DealModality, MonetizationModelLabels, DealModalityLabels, MvpSector, MvpSectorLabels } from '@/lib/types/mvp-publication'
 import type { MVPPublication } from '@/lib/types/mvp-publication'
+import { createClient } from '@/lib/supabase/client'
+
+const MAX_MEDIA = 5
+const MIN_MEDIA = 2
+const MAX_FILE_SIZE_MB = 50
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+function isVideo(url: string): boolean {
+  return /\.(mp4|webm|mov|avi|mkv|ogv)(\?.*)?$/i.test(url)
+}
 
 interface BasicFieldsProps {
   data: Partial<MVPPublication>
@@ -28,19 +38,52 @@ export const APPROX_CHARS_PER_WORD = 6 // aproximación para mostrar límite en 
 export const MAX_DIFFERENTIAL = 1000
 
 export function BasicFields({ data, onChange, previewLoading = false, previewError = null, onRetryPreview }: BasicFieldsProps) {
-  const [screenshotInput, setScreenshotInput] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [fileSizeError, setFileSizeError] = useState<string | null>(null)
   // Sync from props so loaded draft data is reflected
   const differentialInputs = data.competitiveDifferentials || ['', '', '']
   const setDifferentialInputs = (newDiffs: string[]) => onChange({ ...data, competitiveDifferentials: newDiffs })
 
-  const handleScreenshotAdd = () => {
-    if (screenshotInput.trim() && (!data.screenshots || data.screenshots.length < 3)) {
-      onChange({
-        ...data,
-        screenshots: [...(data.screenshots || []), screenshotInput.trim()]
-      })
-      setScreenshotInput('')
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setFileSizeError(null)
+
+    const oversized = files.filter(f => f.size > MAX_FILE_SIZE_BYTES)
+    if (oversized.length > 0) {
+      setFileSizeError(`${oversized.map(f => f.name).join(', ')} supera el límite de ${MAX_FILE_SIZE_MB} MB`)
+      e.target.value = ''
+      return
     }
+
+    const currentCount = data.screenshots?.length || 0
+    const remaining = MAX_MEDIA - currentCount
+    const filesToUpload = files.slice(0, remaining)
+    setUploading(true)
+    const supabase = createClient()
+    const { data: authData } = await supabase.auth.getUser()
+    const userId = authData?.user?.id || 'anonymous'
+    const newUrls: string[] = []
+    const uploadErrors: string[] = []
+    for (const file of filesToUpload) {
+      const safeName = file.name.replace(/\s+/g, '_')
+      const path = `mvp-media/${userId}/${Date.now()}_${safeName}`
+      const { error: uploadErr } = await supabase.storage.from('mvp-media').upload(path, file, { upsert: true })
+      if (uploadErr) {
+        uploadErrors.push(`${file.name}: ${uploadErr.message}`)
+      } else {
+        const { data: publicData } = supabase.storage.from('mvp-media').getPublicUrl(path)
+        if (publicData?.publicUrl) newUrls.push(publicData.publicUrl)
+      }
+    }
+    if (uploadErrors.length > 0) {
+      setFileSizeError(`Error al subir: ${uploadErrors.join(' | ')}`)
+    }
+    if (newUrls.length > 0) {
+      onChange({ ...data, screenshots: [...(data.screenshots || []), ...newUrls] })
+    }
+    setUploading(false)
+    e.target.value = ''
   }
 
   const handleScreenshotRemove = (index: number) => {
@@ -91,6 +134,25 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
         {data.oneLiner && (data.oneLiner || '').trim().length > MAX_ONE_LINER && (
           <p className="text-xs text-destructive mt-1">El texto es demasiado largo (máximo {MAX_ONE_LINER} caracteres)</p>
         )}
+      </div>
+
+      {/* Campo 2b: Sector */}
+      <div>
+        <Label htmlFor="sector">Sector del MVP</Label>
+        <Select
+          value={data.sector || ''}
+          onValueChange={(value) => onChange({ ...data, sector: value as MvpSector })}
+        >
+          <SelectTrigger id="sector">
+            <SelectValue placeholder="Selecciona el sector al que pertenece tu MVP" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(MvpSectorLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-sm text-muted-foreground mt-1">Elige el sector más cercano a tu MVP</p>
       </div>
 
       {/* Campo 3: Descripción */}
@@ -193,47 +255,89 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
         )}
       </div>
 
-      {/* Campo 5: Screenshots */}
+      {/* Campo 5: Imágenes y videos */}
       <div>
-        <Label>{MICROCOPYS.screenshots.label}</Label>
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Input
-              placeholder={MICROCOPYS.screenshots.placeholder}
-              value={screenshotInput}
-              onChange={(e) => setScreenshotInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleScreenshotAdd())}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleScreenshotAdd}
-              disabled={!screenshotInput.trim() || (data.screenshots?.length || 0) >= 3}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
+        <Label>Imágenes y videos del MVP</Label>
+        <div className="space-y-3 mt-2">
+          {(data.screenshots?.length || 0) < MAX_MEDIA && (
+            <label className="cursor-pointer block">
+              <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors">
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <Upload className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {uploading ? 'Subiendo archivos...' : 'Seleccionar imágenes o videos'}
+                </span>
+              </div>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                className="hidden"
+                onChange={handleMediaUpload}
+                disabled={uploading}
+              />
+            </label>
+          )}
+
           {data.screenshots && data.screenshots.length > 0 && (
-            <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
               {data.screenshots.map((url, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 bg-brand-50 rounded">
-                  <span className="text-sm flex-1 truncate">{url}</span>
-                  <Button
+                <div key={index} className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                  {isVideo(url) ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+                      <PlayCircle className="h-8 w-8 text-white" />
+                      <span className="text-xs text-white/70 mt-1">Video</span>
+                    </div>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={url} alt={`Media ${index + 1}`} className="w-full h-full object-cover" />
+                  )}
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     onClick={() => handleScreenshotRemove(index)}
+                    className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 rounded-full p-0.5 transition-colors"
                   >
-                    <X className="w-4 h-4" />
-                  </Button>
+                    <X className="h-3 w-3 text-white" />
+                  </button>
+                  <span className="absolute bottom-1 left-1 bg-black/50 rounded text-xs text-white px-1">
+                    {index + 1}
+                  </span>
                 </div>
               ))}
+              {uploading && (
+                <div className="aspect-video rounded-lg border bg-muted flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </div>
           )}
+
+          {fileSizeError && (
+            <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-md text-xs">
+              {fileSizeError}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Imágenes y videos • mín. {MIN_MEDIA}, máx. {MAX_MEDIA} archivos
+            </p>
+            <span className={`text-xs font-medium ${(data.screenshots?.length || 0) < MIN_MEDIA ? 'text-amber-600' : 'text-emerald-600'}`}>
+              {data.screenshots?.length || 0}/{MAX_MEDIA}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Nota: Las imágenes o videos no deben sobrepasar {MAX_FILE_SIZE_MB} MB por archivo
+          </p>
+          {(data.screenshots?.length || 0) > 0 && (data.screenshots?.length || 0) < MIN_MEDIA && (
+            <p className="text-xs text-amber-600">
+              Agrega {MIN_MEDIA - (data.screenshots?.length || 0)} archivo(s) más para cumplir el mínimo
+            </p>
+          )}
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          {MICROCOPYS.screenshots.help} ({data.screenshots?.length || 0}/3)
-        </p>
       </div>
 
       {/* Campo 6: Modelo de monetización */}

@@ -64,6 +64,7 @@ function mapDbMvpToForm(mvp: Record<string, unknown>): Partial<MVPPublication> &
     id: mvp.id as string | undefined,
     name: (mvp.title as string) || '',
     oneLiner: (mvp.one_liner as string) || '',
+    sector: (mvp.category as MVPPublication['sector']) || undefined,
     description: (mvp.description as string) || '',
     demoUrl: (mvp.demo_url as string) || '',
     coverImageUrl: (mvp.cover_image_url as string) || undefined,
@@ -190,8 +191,8 @@ function PublishPageInner() {
         wordCount(mvpData.description) <= MAX_DESCRIPTION_WORDS
       ),
       hasDemoOrScreenshot: !!(
-        (mvpData.demoUrl && mvpData.demoUrl.trim()) ||
-        (mvpData.screenshots && mvpData.screenshots.filter(s => s && s.trim()).length > 0)
+        (mvpData.demoUrl && mvpData.demoUrl.trim()) &&
+        (mvpData.screenshots && mvpData.screenshots.filter(s => s && s.trim()).length >= 2)
       ),
       hasMinimalEvidence: !!(
         mvpData.minimalEvidence &&

@@ -30,6 +30,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
   const q = getSearchParam(searchParamsResolved, 'q')
   const dealModality = getSearchParam(searchParamsResolved, 'deal_modality')
+  const sector = getSearchParam(searchParamsResolved, 'sector')
   const sort = getSearchParam(searchParamsResolved, 'sort')
   const priceMinRaw = getSearchParam(searchParamsResolved, 'price_min')
   const priceMaxRaw = getSearchParam(searchParamsResolved, 'price_max')
@@ -41,10 +42,11 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
   const priceMax = priceMaxRaw ? Number(priceMaxRaw) : undefined
   const page = pageRaw ? Number(pageRaw) : 1
 
-  const { data: mvps = [] } = await getPublicMvps({
+  const { data: mvps = [], count: initialCount = 0 } = await getPublicMvps({
     status: 'approved',
     q: q || undefined,
     dealModality: dealModality || undefined,
+    category: sector || undefined,
     sort: (sort as 'recent' | 'oldest' | 'price_low' | 'price_high') || 'recent',
     priceMin: Number.isNaN(priceMin as number) ? undefined : priceMin,
     priceMax: Number.isNaN(priceMax as number) ? undefined : priceMax,
@@ -79,10 +81,12 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
         <MarketplaceClient
           initialMvps={mvps}
+          initialCount={initialCount}
           userId={user.id}
           initialFilters={{
             q: q || '',
             dealModality: dealModality || '',
+            sector: sector || '',
             sort: (sort as 'recent' | 'oldest' | 'price_low' | 'price_high') || 'recent',
             priceMin: priceMinRaw || '',
             priceMax: priceMaxRaw || '',

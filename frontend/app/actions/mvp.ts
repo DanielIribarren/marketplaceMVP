@@ -110,6 +110,7 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
         id: (mvpData.id && !mvpData.id.startsWith('draft-')) ? mvpData.id : undefined,
         title: mvpData.name,
         one_liner: mvpData.oneLiner,
+        category: mvpData.sector,
         description: mvpData.description,
         demo_url: mvpData.demoUrl,
         cover_image_url: mvpData.coverImageUrl,

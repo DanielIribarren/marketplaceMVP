@@ -284,20 +284,38 @@ export default async function AdminPage({
                         </div>
 
                         <div className="md:col-span-2">
-                          <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Capturas clave</p>
+                          <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Imágenes y videos</p>
                           {mvp.images_urls?.length ? (
                             <div className="flex flex-wrap gap-2">
-                              {mvp.images_urls.map((img, idx) => (
-                                <a
-                                  key={`${mvp.id}-img-${idx}`}
-                                  href={img}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="rounded-full border px-3 py-1 text-xs hover:bg-muted"
-                                >
-                                  Captura {idx + 1}
-                                </a>
-                              ))}
+                              {mvp.images_urls.map((url, idx) => {
+                                const isVid = /\.(mp4|webm|mov|avi|mkv|ogv)(\?.*)?$/i.test(url)
+                                return isVid ? (
+                                  <a
+                                    key={`${mvp.id}-media-${idx}`}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="relative flex h-20 w-32 items-center justify-center rounded-lg border bg-black overflow-hidden hover:opacity-80 transition-opacity"
+                                  >
+                                    <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                    <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] text-white">Video {idx + 1}</span>
+                                  </a>
+                                ) : (
+                                  <a
+                                    key={`${mvp.id}-media-${idx}`}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="relative h-20 w-32 overflow-hidden rounded-lg border hover:opacity-80 transition-opacity"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={url} alt={`Imagen ${idx + 1}`} className="h-full w-full object-cover" />
+                                    <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] text-white">{idx + 1}</span>
+                                  </a>
+                                )
+                              })}
                             </div>
                           ) : (
                             <p className="text-sm">—</p>
