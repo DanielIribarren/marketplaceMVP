@@ -182,7 +182,8 @@ function PublishPageInner() {
       hasValidOneLiner: !!(
         mvpData.oneLiner &&
         mvpData.oneLiner.trim().length >= 20 &&
-        mvpData.oneLiner.trim().length <= MAX_ONE_LINER
+        mvpData.oneLiner.trim().length <= MAX_ONE_LINER &&
+        mvpData.sector
       ),
       hasConcreteUseCase: !!(
         mvpData.description &&

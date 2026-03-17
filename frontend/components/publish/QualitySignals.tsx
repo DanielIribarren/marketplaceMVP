@@ -15,7 +15,7 @@ interface QualitySignalsProps {
 
 export const QualitySignalsIndicator: React.FC<QualitySignalsProps> = ({ signals }) => {
   const signalList = [
-    { key: 'hasValidOneLiner', label: 'One-liner completo' },
+    { key: 'hasValidOneLiner', label: 'One-liner completo y sector elegido' },
     { key: 'hasConcreteUseCase', label: 'Caso de uso concreto' },
     { key: 'hasDemoOrScreenshot', label: 'Demo y mínimo 2 imágenes/videos' },
     { key: 'hasMinimalEvidence', label: 'Evidencia mínima' },

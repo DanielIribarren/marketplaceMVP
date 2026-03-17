@@ -106,7 +106,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
       {/* Campo 1: Nombre del MVP */}
       <div>
         <Label htmlFor="name">{MICROCOPYS.name.label}</Label>
-        <Input
+        <Input className="mt-1.5"
           id="name"
           placeholder={MICROCOPYS.name.placeholder}
           value={data.name || ''}
@@ -120,6 +120,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
       <div>
         <Label htmlFor="oneLiner">{MICROCOPYS.oneLiner.label}</Label>
         <Input
+          className="mt-1.5"
           id="oneLiner"
           placeholder={MICROCOPYS.oneLiner.placeholder}
           value={data.oneLiner || ''}
@@ -143,7 +144,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           value={data.sector || ''}
           onValueChange={(value) => onChange({ ...data, sector: value as MvpSector })}
         >
-          <SelectTrigger id="sector">
+          <SelectTrigger id="sector" className="mt-1.5">
             <SelectValue placeholder="Selecciona el sector al que pertenece tu MVP" />
           </SelectTrigger>
           <SelectContent>
@@ -164,7 +165,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           value={data.description || ''}
           onChange={(e) => onChange({ ...data, description: e.target.value })}
           rows={6}
-          className="break-words whitespace-pre-wrap"
+          className="mt-1.5 break-words whitespace-pre-wrap"
         />
         <div className="flex justify-between items-center mt-1">
           <p className="text-sm text-muted-foreground">{MICROCOPYS.description.help}</p>
@@ -192,7 +193,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
               onChange({ ...data, demoUrl: value })
             }
           }}
-          className={
+          className={`mt-1.5 ${
             data.demoUrl &&
             data.demoUrl.trim() &&
             (data.demoUrl.length > 2048 ||
@@ -200,7 +201,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
               /javascript:|data:|vbscript:|<script/i.test(data.demoUrl))
               ? 'border-destructive focus-visible:ring-destructive'
               : ''
-          }
+          }`}
         />
         {data.demoUrl && data.demoUrl.length > 2048 && (
           <p className="text-xs text-destructive mt-1">La URL es demasiado larga (máximo 2048 caracteres)</p>
@@ -347,7 +348,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           value={data.monetizationModel}
           onValueChange={(value) => onChange({ ...data, monetizationModel: value as MonetizationModel })}
         >
-          <SelectTrigger>
+          <SelectTrigger className="mt-1.5">
             <SelectValue placeholder="Selecciona un modelo" />
           </SelectTrigger>
           <SelectContent>
@@ -370,7 +371,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
           value={data.minimalEvidence || ''}
           onChange={(e) => onChange({ ...data, minimalEvidence: e.target.value })}
           rows={4}
-            className="break-words whitespace-pre-wrap"
+            className="mt-1.5 break-words whitespace-pre-wrap"
           />
           <div className="flex justify-between items-center mt-1">
             <p className="text-sm text-muted-foreground">{MICROCOPYS.minimalEvidence.help}</p>
@@ -386,7 +387,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
       {/* Campo 8: Diferencial competitivo */}
       <div>
         <Label>{MICROCOPYS.competitiveDifferentials.label}</Label>
-        <div className="space-y-2">
+        <div className="space-y-2 mt-1.5">
           {[0, 1, 2].map((index) => (
             <div key={index}>
               <Input
@@ -414,7 +415,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
             value={data.dealModality}
             onValueChange={(value) => onChange({ ...data, dealModality: value as DealModality })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="mt-1.5">
               <SelectValue placeholder="Selecciona modalidad" />
             </SelectTrigger>
             <SelectContent>
@@ -443,11 +444,11 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
                   onChange({ ...data, minPrice: value === '' ? undefined : Number(value) })
                 }
               }}
-              className={
+              className={`mt-1.5 ${
                 data.minPrice && data.maxPrice && data.minPrice >= data.maxPrice
                   ? 'border-destructive focus-visible:ring-destructive'
                   : ''
-              }
+              }`}
             />
             {data.minPrice && data.maxPrice && data.minPrice >= data.maxPrice && (
               <p className="text-xs text-destructive mt-1">Debe ser menor que el precio máximo</p>
@@ -468,14 +469,14 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
                   onChange({ ...data, maxPrice: value === '' ? undefined : Number(value) })
                 }
               }}
-              className={
+              className={`mt-1.5 ${
                 (data.minPrice && data.maxPrice && (
                   data.maxPrice <= data.minPrice ||
                   (data.maxPrice - data.minPrice) < 100
                 ))
                   ? 'border-destructive focus-visible:ring-destructive'
                   : ''
-              }
+              }`}
             />
             {data.minPrice && data.maxPrice && data.maxPrice <= data.minPrice && (
               <p className="text-xs text-destructive mt-1">Debe ser mayor que el precio mínimo</p>
@@ -491,7 +492,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
       {/* Campo 10: Checklist de transferencia */}
       <div>
         <Label>{MICROCOPYS.transferChecklist.label}</Label>
-        <div className="space-y-3 mt-2">
+        <div className="space-y-3 mt-3">
           {(Object.entries(MICROCOPYS.transferChecklist.items) as [TransferChecklistKey, string][]).map(([key, label]) => (
             <div key={key} className="flex items-center space-x-2">
               <Checkbox
