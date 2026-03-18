@@ -192,7 +192,7 @@ export default async function AdminPage({
               <Link
                 key={f.key}
                 href={f.key === "all" ? "/admin" : `/admin?status=${f.key}`}
-                className={`rounded-full border px-3 py-1.5 text-sm ${
+                className={`rounded-full border px-3 py-1.5 text-sm transition-all hover:scale-105 ${
                   active
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-background hover:bg-muted"

@@ -104,6 +104,9 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null)
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [profileDirty, setProfileDirty] = useState(false)
+  const [profileUnsavedDialog, setProfileUnsavedDialog] = useState(false)
   const notificationsRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
 
@@ -441,9 +444,15 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                       )}
                     </div>
 
-                    <Dialog>
+                    <Dialog open={profileOpen} onOpenChange={(open) => {
+                      if (!open && profileDirty) {
+                        setProfileUnsavedDialog(true)
+                      } else {
+                        setProfileOpen(open)
+                      }
+                    }}>
                       <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="p-0 hover:bg-brand-100">
+                        <Button variant="ghost" size="icon" className="p-0 hover:bg-brand-100" onClick={() => setProfileOpen(true)}>
                           {avatarUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -461,7 +470,34 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                         <div className="max-h-[90vh] overflow-y-auto">
                           <DialogTitle>Editar perfil</DialogTitle>
                           <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
-                          <ProfileEditor onLogout={() => setLogoutDialogOpen(true)} />
+                          <ProfileEditor
+                            onLogout={() => setLogoutDialogOpen(true)}
+                            onDirtyChange={setProfileDirty}
+                          />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* Dialog cambios sin guardar en perfil */}
+                    <Dialog open={profileUnsavedDialog} onOpenChange={setProfileUnsavedDialog}>
+                      <DialogContent className="max-w-md">
+                        <DialogTitle className="flex items-center gap-2">
+                          <span>⚠️</span> ¡Tienes cambios sin guardar!
+                        </DialogTitle>
+                        <DialogDescription>
+                          Si cierras sin guardar, perderás los cambios realizados en tu perfil.
+                        </DialogDescription>
+                        <div className="flex gap-2 mt-4 justify-end">
+                          <Button variant="outline" onClick={() => setProfileUnsavedDialog(false)}>
+                            OK
+                          </Button>
+                          <Button variant="destructive" onClick={() => {
+                            setProfileUnsavedDialog(false)
+                            setProfileDirty(false)
+                            setProfileOpen(false)
+                          }}>
+                            Salir de todos modos
+                          </Button>
                         </div>
                       </DialogContent>
                     </Dialog>

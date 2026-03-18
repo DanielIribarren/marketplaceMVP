@@ -85,7 +85,8 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [rejectionDialog, setRejectionDialog] = useState<{ id: string; title: string; reason: string | null } | null>(null)
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false)
+  const [rejectionDialogData, setRejectionDialogData] = useState<{ id: string; title: string; reason: string | null } | null>(null)
   const [previewData, setPreviewData] = useState<FullMvpData | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
 
@@ -363,7 +364,7 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
                               size="icon"
                               className="shrink-0 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300"
                               title="Ver razón de rechazo"
-                              onClick={() => setRejectionDialog({ id: mvp.id, title: mvp.title, reason: mvp.rejection_reason ?? null })}
+                              onClick={() => { setRejectionDialogData({ id: mvp.id, title: mvp.title, reason: mvp.rejection_reason ?? null }); setRejectionDialogOpen(true) }}
                             >
                               <MessageSquareWarning className="w-4 h-4" />
                             </Button>
@@ -564,7 +565,7 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
       </Dialog>
 
       {/* Rejection reason dialog */}
-      <Dialog open={!!rejectionDialog} onOpenChange={(open) => { if (!open) setRejectionDialog(null) }}>
+      <Dialog open={rejectionDialogOpen} onOpenChange={(open) => { if (!open) setRejectionDialogOpen(false) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-700">
@@ -572,12 +573,12 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
               Aspecto a mejorar
             </DialogTitle>
             <DialogDescription className="pt-1">
-              <span className="font-medium text-foreground">{rejectionDialog?.title}</span>
+              <span className="font-medium text-foreground">{rejectionDialogData?.title}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3">
-            {rejectionDialog?.reason ? (
-              <p className="text-sm text-red-800 leading-relaxed">{rejectionDialog.reason}</p>
+            {rejectionDialogData?.reason ? (
+              <p className="text-sm text-red-800 leading-relaxed">{rejectionDialogData.reason}</p>
             ) : (
               <p className="text-sm text-red-600 italic">
                 No se especificó una razón de rechazo. Revisa las señales de calidad y asegúrate de que el MVP cumpla todos los requisitos.
@@ -588,13 +589,13 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
             Edita los campos indicados y vuelve a enviar tu MVP para revisión.
           </p>
           <DialogFooter>
-            <Link href={`/publish?draft=${rejectionDialog?.id ?? ''}&from=my-mvps`} className="flex-1">
+            <Link href={`/publish?draft=${rejectionDialogData?.id ?? ''}&from=my-mvps`} className="flex-1">
               <Button className="w-full gap-2">
                 <Edit3 className="w-4 h-4" />
                 Ir a editar
               </Button>
             </Link>
-            <Button variant="outline" onClick={() => setRejectionDialog(null)}>
+            <Button variant="outline" onClick={() => setRejectionDialogOpen(false)}>
               Cerrar
             </Button>
           </DialogFooter>

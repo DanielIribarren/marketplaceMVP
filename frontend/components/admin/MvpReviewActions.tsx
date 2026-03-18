@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { CheckCircle2, XCircle } from "lucide-react"
 
 type Props = {
   mvpId: string
@@ -72,9 +73,9 @@ export function MvpReviewActions({ mvpId }: Props) {
         <button
           onClick={approve}
           disabled={loading}
-          className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
+          className="flex items-center gap-1.5 rounded-md border border-green-600 bg-green-100 px-3 py-1.5 text-xs font-medium text-green-800 transition-all hover:scale-105 hover:bg-green-600 hover:border-green-700 hover:text-white disabled:opacity-60"
         >
-          Aprobar
+          <CheckCircle2 className="w-3.5 h-3.5" /> Aprobar
         </button>
 
         <button
@@ -83,9 +84,9 @@ export function MvpReviewActions({ mvpId }: Props) {
             setOpenReject(true)
           }}
           disabled={loading}
-          className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+          className="flex items-center gap-1.5 rounded-md border border-red-600 bg-red-100 px-3 py-1.5 text-xs font-medium text-red-800 transition-all hover:scale-105 hover:bg-red-600 hover:border-red-700 hover:text-white disabled:opacity-60"
         >
-          Rechazar
+          <XCircle className="w-3.5 h-3.5" /> Rechazar
         </button>
       </div>
 
@@ -108,14 +109,14 @@ export function MvpReviewActions({ mvpId }: Props) {
               <button
                 onClick={() => setOpenReject(false)}
                 disabled={loading}
-                className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-60"
+                className="rounded-md border px-3 py-1.5 text-xs transition-all hover:scale-105 hover:bg-muted disabled:opacity-60"
               >
                 Cancelar
               </button>
               <button
                 onClick={reject}
                 disabled={loading}
-                className="rounded-md bg-rose-600 px-3 py-1.5 text-xs text-white hover:bg-rose-700 disabled:opacity-60"
+                className="rounded-md bg-brand-500 px-3 py-1.5 text-xs text-white transition-all hover:scale-105 hover:bg-brand-600 disabled:opacity-60"
               >
                 Confirmar rechazo
               </button>

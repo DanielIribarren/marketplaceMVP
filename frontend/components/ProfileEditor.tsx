@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, ChangeEvent } from "react"
+import { useState, useEffect, useRef, ChangeEvent } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
 import type { StorageError } from "@supabase/storage-js"
-import { X } from "lucide-react"
+import { X, LogOut } from "lucide-react"
 
 interface UserProfile {
   id?: string
@@ -30,9 +31,10 @@ interface ProfileUpdatedEvent extends CustomEvent {
 
 interface ProfileEditorProps {
   onLogout?: () => void
+  onDirtyChange?: (dirty: boolean) => void
 }
 
-export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
+export default function ProfileEditor({ onLogout, onDirtyChange }: ProfileEditorProps = {}) {
   const [profile, setProfile] = useState<UserProfile>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,10 +42,14 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [authName, setAuthName] = useState<string | null>(null)
+  const [savedAuthName, setSavedAuthName] = useState<string | null>(null)
   const [authEmail, setAuthEmail] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null)
   const [showImageModal, setShowImageModal] = useState(false)
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+  const savedProfileRef = useRef<UserProfile>({})
 
   function getInitials(name?: string) {
     const v = (name || '').trim()
@@ -64,11 +70,10 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
         const session = sessionRes?.data?.session
         if (user) {
           setAuthEmail(user.email || null)
-          setAuthName(
-            (user.user_metadata?.display_name as string | undefined) ||
-            (user.user_metadata?.name as string | undefined) ||
-            null
-          )
+          const name = (user.user_metadata?.display_name as string | undefined) ||
+            (user.user_metadata?.name as string | undefined) || null
+          setAuthName(name)
+          setSavedAuthName(name)
           if (user.created_at) setAccountCreatedAt(user.created_at)
         }
         if (session?.access_token) setToken(session.access_token)
@@ -83,6 +88,7 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
         const data: UserProfile = await res.json()
         if (mounted) {
           setProfile(data || {})
+          savedProfileRef.current = data || {}
           // Limpiar preview local cuando cargamos el perfil real
           setFilePreview(null)
           setPendingFile(null)
@@ -93,6 +99,14 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
     })()
     return () => { mounted = false }
   }, [])
+
+  // Dirty tracking
+  useEffect(() => {
+    const dirty = pendingFile !== null ||
+      JSON.stringify(profile) !== JSON.stringify(savedProfileRef.current) ||
+      authName !== savedAuthName
+    onDirtyChange?.(dirty)
+  }, [profile, pendingFile, authName, savedAuthName, onDirtyChange])
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
@@ -263,6 +277,8 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
         setError(txt || 'Error al guardar')
       } else {
         setProfile(payload)
+        savedProfileRef.current = payload
+        setSavedAuthName(authName)
         setPendingFile(null)
         setFilePreview(newAvatarUrl)
 
@@ -419,11 +435,11 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
         </div>
       )}
 
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-2 mt-4 overflow-visible py-1 pl-1">
         <button
           onClick={handleSave}
           disabled={loading}
-          className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-primary hover:border-primary hover:text-white transition-colors disabled:opacity-50 font-medium"
+          className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:border-brand-500 hover:text-brand-600 hover:bg-brand-50 hover:scale-105 transition-all disabled:opacity-50 font-medium"
         >
           {loading ? 'Guardando...' : 'Guardar'}
         </button>
@@ -435,24 +451,66 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
         </div>
       )}
 
-      <div className="border-t pt-4 mt-6 flex justify-center">
+      <div className="border-t pt-4 mt-6 pb-4 flex flex-col items-center gap-3">
         <Button
           type="button"
-          className="bg-brand-500 hover:bg-brand-600 hover:scale-105 transition-all text-white hover:text-white"
+          className="bg-brand-500 hover:bg-brand-600 hover:scale-105 transition-all text-white hover:text-white gap-2"
           onClick={() => {
-            if (onLogout) {
-              onLogout()
+            const dirty = pendingFile !== null ||
+              JSON.stringify(profile) !== JSON.stringify(savedProfileRef.current) ||
+              authName !== savedAuthName
+            const doLogout = () => {
+              if (onLogout) {
+                onLogout()
+              } else {
+                const supabase = createClient()
+                void supabase.auth.signOut().then(() => { window.location.href = '/login' })
+              }
+            }
+            if (dirty) {
+              setPendingAction(() => doLogout)
+              setShowUnsavedDialog(true)
             } else {
-              const supabase = createClient()
-              void supabase.auth.signOut().then(() => {
-                window.location.href = '/login'
-              })
+              doLogout()
             }
           }}
         >
+          <LogOut className="h-4 w-4" />
           Cerrar sesión
         </Button>
+        <p className="text-xs text-muted-foreground/50 italic text-center">
+          Guarda los cambios realizados antes de salir de tu perfil.
+        </p>
       </div>
+
+      {/* Dialog cambios sin guardar */}
+      <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>⚠️</span> ¡Tienes cambios sin guardar!
+            </DialogTitle>
+            <DialogDescription>
+              Si continúas sin guardar, perderás los cambios realizados en tu perfil.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setShowUnsavedDialog(false)}>
+              OK
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowUnsavedDialog(false)
+                pendingAction?.()
+                setPendingAction(null)
+              }}
+            >
+              Salir de todos modos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal para ver imagen en grande */}
       {showImageModal && (filePreview || profile.avatar_url) && (
