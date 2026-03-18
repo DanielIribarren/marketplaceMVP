@@ -288,7 +288,7 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
     <div className="max-w-xl">
       <div className="flex items-center gap-4 mb-4">
         <div
-          className={`w-20 h-20 rounded-full bg-brand-200 overflow-hidden flex items-center justify-center ${
+          className={`relative w-20 h-20 shrink-0 rounded-full bg-brand-200 overflow-hidden flex items-center justify-center ${
             (filePreview || profile.avatar_url) ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''
           }`}
           onClick={() => {
@@ -298,12 +298,24 @@ export default function ProfileEditor({ onLogout }: ProfileEditorProps = {}) {
           }}
         >
           {filePreview || profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={filePreview || profile.avatar_url!}
-              alt="avatar"
-              className="w-full h-full object-cover"
-            />
+            <>
+              {/* Fondo borroso de la misma imagen para rellenar los bordes */}
+              <div
+                className="absolute inset-0 scale-110"
+                style={{
+                  backgroundImage: `url(${filePreview || profile.avatar_url})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'blur(6px)',
+                }}
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={filePreview || profile.avatar_url!}
+                alt="avatar"
+                className="relative w-full h-full object-contain"
+              />
+            </>
           ) : (
             <span className="text-xl font-semibold text-white">
               {getInitials(profile.display_name || authName || '')}

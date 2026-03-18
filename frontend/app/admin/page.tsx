@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { Navbar } from "@/components/navbar"
 import { MvpReviewActions } from "@/components/admin/MvpReviewActions"
+import { DescriptionDialog } from "./DescriptionDialog"
 import { CheckCircle2, XCircle, Clock } from "lucide-react"
 
 
@@ -19,6 +20,7 @@ type MvpRow = {
   description: string
   status: MvpStatus
   demo_url: string | null
+  cover_image_url: string | null
   images_urls: string[] | null
   published_at: string | null
   created_at: string
@@ -86,6 +88,21 @@ function checklist(v: Record<string, boolean> | null | undefined) {
   }))
 }
 
+const MONETIZATION_LABEL: Record<string, string> = {
+  saas_monthly: 'SaaS mensual',
+  one_time_license: 'Licencia única',
+  transactional: 'Transaccional',
+  advertising: 'Publicidad',
+  to_define: 'Por definir',
+}
+
+const DEAL_LABEL: Record<string, string> = {
+  sale: 'Venta',
+  equity: 'Equity',
+  license: 'Licencia',
+  rev_share: 'Rev-Share',
+}
+
 function normalizeFilter(value?: string): FilterStatus {
   if (value === "pending_review" || value === "approved" || value === "rejected") return value
   return "all"
@@ -120,7 +137,7 @@ export default async function AdminPage({
   const { data: mvpsData, error: mvpsError } = await adminSupabase
     .from("mvps")
     .select(
-      "id, title, one_liner, description, status, demo_url, images_urls, published_at, created_at, monetization_model, minimal_evidence, competitive_differentials, deal_modality, price_range, transfer_checklist"
+      "id, title, one_liner, description, status, demo_url, cover_image_url, images_urls, published_at, created_at, monetization_model, minimal_evidence, competitive_differentials, deal_modality, price_range, transfer_checklist"
     )
     .in("status", ["pending_review", "approved", "rejected"])
     .order("created_at", { ascending: false })
@@ -232,12 +249,18 @@ export default async function AdminPage({
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">Descripción</p>
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{mvp.description}</p>
+                        <div className="rounded-lg border bg-muted/20 p-3 text-sm leading-relaxed">
+                          {(mvp.description?.length ?? 0) > 300 ? (
+                            <DescriptionDialog description={mvp.description} />
+                          ) : (
+                            <p className="whitespace-pre-wrap">{mvp.description || '—'}</p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="space-y-3">
                         <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">De.</p>
+                          <p className="text-xs font-medium uppercase text-muted-foreground">Demo</p>
                           {mvp.demo_url ? (
                             <a
                               href={mvp.demo_url}
@@ -254,12 +277,12 @@ export default async function AdminPage({
 
                         <div>
                           <p className="text-xs font-medium uppercase text-muted-foreground">Monetización</p>
-                          <p className="text-sm">{text(mvp.monetization_model)}</p>
+                          <p className="text-sm">{mvp.monetization_model ? (MONETIZATION_LABEL[mvp.monetization_model] ?? mvp.monetization_model) : '—'}</p>
                         </div>
 
                         <div>
                           <p className="text-xs font-medium uppercase text-muted-foreground">Deal</p>
-                          <p className="text-sm">{text(mvp.deal_modality)}</p>
+                          <p className="text-sm">{mvp.deal_modality ? (DEAL_LABEL[mvp.deal_modality] ?? mvp.deal_modality) : '—'}</p>
                         </div>
 
                         <div>
@@ -273,7 +296,7 @@ export default async function AdminPage({
                       <summary className="cursor-pointer text-sm font-medium">Ver detalles de evaluación</summary>
 
                       <div className="mt-3 grid gap-4 md:grid-cols-2">
-                        <div>
+                        <div className="pl-3">
                           <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">Evidencia mínima</p>
                           <p className="whitespace-pre-wrap text-sm">{text(mvp.minimal_evidence)}</p>
                         </div>
@@ -283,11 +306,24 @@ export default async function AdminPage({
                           <p className="text-sm">{list(mvp.competitive_differentials)}</p>
                         </div>
 
-                        <div className="md:col-span-2">
+                        <div className="pl-3">
                           <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Imágenes y videos</p>
-                          {mvp.images_urls?.length ? (
-                            <div className="flex flex-wrap gap-2">
-                              {mvp.images_urls.map((url, idx) => {
+                          {(mvp.cover_image_url || mvp.images_urls?.length) ? (
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {mvp.cover_image_url && (
+                                <a
+                                  href={mvp.cover_image_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border hover:opacity-80 transition-opacity"
+                                  title="Portada"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={mvp.cover_image_url} alt="Portada" className="h-full w-full object-cover" />
+                                  <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] text-white">Portada</span>
+                                </a>
+                              )}
+                              {(mvp.images_urls ?? []).map((url, idx) => {
                                 const isVid = /\.(mp4|webm|mov|avi|mkv|ogv)(\?.*)?$/i.test(url)
                                 return isVid ? (
                                   <a
@@ -295,7 +331,7 @@ export default async function AdminPage({
                                     href={url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="relative flex h-20 w-32 items-center justify-center rounded-lg border bg-black overflow-hidden hover:opacity-80 transition-opacity"
+                                    className="relative flex h-20 w-32 shrink-0 items-center justify-center rounded-lg border bg-black overflow-hidden hover:opacity-80 transition-opacity"
                                   >
                                     <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                                       <path d="M8 5v14l11-7z"/>
@@ -308,7 +344,7 @@ export default async function AdminPage({
                                     href={url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="relative h-20 w-32 overflow-hidden rounded-lg border hover:opacity-80 transition-opacity"
+                                    className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border hover:opacity-80 transition-opacity"
                                   >
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={url} alt={`Imagen ${idx + 1}`} className="h-full w-full object-cover" />
@@ -322,7 +358,7 @@ export default async function AdminPage({
                           )}
                         </div>
 
-                        <div className="md:col-span-2">
+                        <div>
                           <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
                             Checklist transferencia
                           </p>

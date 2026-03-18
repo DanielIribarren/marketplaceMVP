@@ -315,7 +315,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
             {isAuthenticated && (
               <>
                 <Link href="/calendar" className={navLinkClass('/calendar')}>
-                  Calendario
+                  Calendario y Ofertas
                 </Link>
                 <Link href="/my-mvps" className={navLinkClass('/my-mvps')}>
                   Tus MVPs

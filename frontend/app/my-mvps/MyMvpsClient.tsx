@@ -2,12 +2,58 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Eye, Rocket, Heart, Edit3, Trash2, AlertTriangle, Loader2 } from 'lucide-react'
+import {
+  Eye, Rocket, Heart, Edit3, Trash2, AlertTriangle, Loader2, MessageSquareWarning,
+  FileText, LinkIcon, DollarSign, CheckSquare, Image as ImageIcon, Tag, Lightbulb,
+  TrendingUp, Clock, CheckCircle2, XCircle, PlayCircle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { createClient } from '@/lib/supabase/client'
+
+type FullMvpData = {
+  id: string
+  title?: string | null
+  one_liner?: string | null
+  category?: string | null
+  cover_image_url?: string | null
+  images_urls?: string[] | null
+  status?: string | null
+  description?: string | null
+  demo_url?: string | null
+  monetization_model?: string | null
+  deal_modality?: string | null
+  price_range?: string | null
+  minimal_evidence?: string | null
+  competitive_differentials?: string[] | null
+  transfer_checklist?: Record<string, boolean> | null
+}
+
+const DEAL_LABELS: Record<string, string> = {
+  sale: 'Venta directa',
+  equity: 'Equity',
+  license: 'Licencia',
+  rev_share: 'Revenue Share',
+}
+const MONETIZATION_LABELS: Record<string, string> = {
+  saas_monthly: 'SaaS mensual',
+  one_time_license: 'Licencia única',
+  transactional: 'Transaccional',
+  advertising: 'Publicidad',
+  to_define: 'Por definir',
+}
+const CHECKLIST_LABELS: Record<string, string> = {
+  codeAndDocs: 'Código + Documentación',
+  domainOrLanding: 'Dominio / Landing',
+  integrationAccounts: 'Cuentas de integración',
+  ownIp: 'IP propia; sin terceros',
+}
+
+function isVideo(url: string) {
+  return /\.(mp4|webm|mov|avi|mkv|ogv)(\?.*)?$/i.test(url)
+}
 
 type MvpItem = {
   id: string
@@ -17,6 +63,7 @@ type MvpItem = {
   cover_image_url?: string | null
   images_urls?: string[] | null
   status?: string | null
+  rejection_reason?: string | null
   views_count?: number | null
   favorites_count?: number | null
   created_at?: string
@@ -38,6 +85,18 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [rejectionDialog, setRejectionDialog] = useState<{ id: string; title: string; reason: string | null } | null>(null)
+  const [previewData, setPreviewData] = useState<FullMvpData | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+
+  const openPreview = async (id: string) => {
+    setPreviewLoading(true)
+    setPreviewData(null)
+    const supabase = createClient()
+    const { data } = await supabase.from('mvps').select('*').eq('id', id).single()
+    setPreviewData(data as FullMvpData ?? { id })
+    setPreviewLoading(false)
+  }
 
   const handleDeleteDraft = async (id: string) => {
     setDeletingId(id)
@@ -291,6 +350,29 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </>
+                        ) : mvp.status === 'rejected' ? (
+                          <>
+                            <Link href={`/publish?draft=${mvp.id}&from=my-mvps`} className="flex-1">
+                              <Button variant="outline" className="w-full gap-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400">
+                                <Edit3 className="w-4 h-4" />
+                                Volver a editar
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="shrink-0 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300"
+                              title="Ver razón de rechazo"
+                              onClick={() => setRejectionDialog({ id: mvp.id, title: mvp.title, reason: mvp.rejection_reason ?? null })}
+                            >
+                              <MessageSquareWarning className="w-4 h-4" />
+                            </Button>
+                          </>
+                        ) : (mvp.status === 'pending' || mvp.status === 'pending_review') ? (
+                          <Button variant="outline" className="w-full gap-2" onClick={() => openPreview(mvp.id)}>
+                            <Eye className="w-4 h-4" />
+                            Ver vista previa
+                          </Button>
                         ) : (
                           <Link href={`/mvps/${mvp.id}`} className="flex-1">
                             <Button variant="outline" className="w-full">
@@ -307,6 +389,217 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
           })}
         </div>
       )}
+
+      {/* Preview dialog for pending MVPs */}
+      <Dialog open={previewLoading || !!previewData} onOpenChange={(open) => { if (!open) { setPreviewData(null) } }}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
+              <span className="truncate">{previewData?.title || 'Vista previa del MVP'}</span>
+              <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 border font-semibold shrink-0">En revisión</Badge>
+            </DialogTitle>
+          </DialogHeader>
+
+          {previewLoading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
+            </div>
+          )}
+
+          {previewData && !previewLoading && (
+            <div className="space-y-5">
+              {/* Cover image */}
+              {previewData.cover_image_url && (
+                <div className="overflow-hidden rounded-xl border border-border/60">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previewData.cover_image_url} alt="Portada" className="w-full h-48 object-cover" />
+                </div>
+              )}
+
+              {/* One-liner + sector */}
+              <div className="space-y-2">
+                {previewData.one_liner && (
+                  <div className="flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 text-brand-500 mt-0.5 shrink-0" />
+                    <p className="text-sm font-medium text-foreground">{previewData.one_liner}</p>
+                  </div>
+                )}
+                {previewData.category && (
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm text-muted-foreground capitalize">{previewData.category}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              {previewData.description && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4 text-brand-500 shrink-0" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Descripción</p>
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{previewData.description}</p>
+                </div>
+              )}
+
+              {/* Demo URL */}
+              {previewData.demo_url && (
+                <div className="border-t pt-4 flex items-center gap-2">
+                  <LinkIcon className="w-4 h-4 text-brand-500 shrink-0" />
+                  <a href={previewData.demo_url} target="_blank" rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline truncate">
+                    {previewData.demo_url}
+                  </a>
+                </div>
+              )}
+
+              {/* Screenshots */}
+              {previewData.images_urls && previewData.images_urls.length > 0 && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ImageIcon className="w-4 h-4 text-brand-500 shrink-0" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Imágenes y videos ({previewData.images_urls.length})
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {previewData.images_urls.map((url, i) => (
+                      <div key={i} className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                        {isVideo(url) ? (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+                            <PlayCircle className="h-7 w-7 text-white" />
+                            <span className="text-xs text-white/70 mt-1">Video</span>
+                          </div>
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={url} alt={`Media ${i + 1}`} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Deal + Price */}
+              {(previewData.deal_modality || previewData.price_range) && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <DollarSign className="w-4 h-4 text-brand-500 shrink-0" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Deal y precio</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {previewData.deal_modality && (
+                      <Badge variant="outline">{DEAL_LABELS[previewData.deal_modality] ?? previewData.deal_modality}</Badge>
+                    )}
+                    {previewData.price_range && (
+                      <Badge variant="outline" className="font-mono">{previewData.price_range}</Badge>
+                    )}
+                    {previewData.monetization_model && (
+                      <Badge variant="outline">{MONETIZATION_LABELS[previewData.monetization_model] ?? previewData.monetization_model}</Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Minimal evidence */}
+              {previewData.minimal_evidence && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-4 h-4 text-brand-500 shrink-0" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Evidencia mínima</p>
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{previewData.minimal_evidence}</p>
+                </div>
+              )}
+
+              {/* Competitive differentials */}
+              {previewData.competitive_differentials && previewData.competitive_differentials.filter(Boolean).length > 0 && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="w-4 h-4 text-brand-500 shrink-0" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Diferenciales competitivos</p>
+                  </div>
+                  <ul className="space-y-1">
+                    {previewData.competitive_differentials.filter(Boolean).map((d, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                        <span className="text-brand-500 font-bold mt-0.5">{i + 1}.</span> {d}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Transfer checklist */}
+              {previewData.transfer_checklist && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckSquare className="w-4 h-4 text-brand-500 shrink-0" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Checklist de transferencia</p>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {Object.entries(CHECKLIST_LABELS).map(([key, label]) => {
+                      const checked = previewData.transfer_checklist?.[key]
+                      return (
+                        <li key={key} className="flex items-center gap-2 text-sm">
+                          {checked
+                            ? <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                            : <XCircle className="w-4 h-4 text-muted-foreground/40 shrink-0" />}
+                          <span className={checked ? 'text-foreground' : 'text-muted-foreground'}>{label}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Footer note */}
+              <div className="border-t pt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="w-3.5 h-3.5 shrink-0" />
+                Pendiente de revisión por el equipo. Te notificaremos cuando haya una decisión.
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection reason dialog */}
+      <Dialog open={!!rejectionDialog} onOpenChange={(open) => { if (!open) setRejectionDialog(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <MessageSquareWarning className="h-5 w-5 text-red-500 shrink-0" />
+              Aspecto a mejorar
+            </DialogTitle>
+            <DialogDescription className="pt-1">
+              <span className="font-medium text-foreground">{rejectionDialog?.title}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3">
+            {rejectionDialog?.reason ? (
+              <p className="text-sm text-red-800 leading-relaxed">{rejectionDialog.reason}</p>
+            ) : (
+              <p className="text-sm text-red-600 italic">
+                No se especificó una razón de rechazo. Revisa las señales de calidad y asegúrate de que el MVP cumpla todos los requisitos.
+              </p>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Edita los campos indicados y vuelve a enviar tu MVP para revisión.
+          </p>
+          <DialogFooter>
+            <Link href={`/publish?draft=${rejectionDialog?.id ?? ''}&from=my-mvps`} className="flex-1">
+              <Button className="w-full gap-2">
+                <Edit3 className="w-4 h-4" />
+                Ir a editar
+              </Button>
+            </Link>
+            <Button variant="outline" onClick={() => setRejectionDialog(null)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete draft confirmation dialog */}
       <Dialog open={!!confirmDeleteId} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null) }}>

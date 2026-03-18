@@ -35,7 +35,7 @@ export const MAX_ONE_LINER = 120
 export const MAX_DESCRIPTION_WORDS = 500
 export const MAX_MINIMAL_EVIDENCE_WORDS = 300
 export const APPROX_CHARS_PER_WORD = 6 // aproximación para mostrar límite en caracteres
-export const MAX_DIFFERENTIAL = 1000
+export const MAX_DIFFERENTIAL = 60
 
 export function BasicFields({ data, onChange, previewLoading = false, previewError = null, onRetryPreview }: BasicFieldsProps) {
   const [uploading, setUploading] = useState(false)
@@ -437,7 +437,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
               type="text"
               inputMode="numeric"
               placeholder="Ej: 2000"
-              value={data.minPrice ? data.minPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+              value={data.minPrice != null ? data.minPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
               onChange={(e) => {
                 const value = e.target.value.replace(/,/g, '')
                 if (value === '' || /^\d+$/.test(value)) {
@@ -445,12 +445,12 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
                 }
               }}
               className={`mt-1.5 ${
-                data.minPrice && data.maxPrice && data.minPrice >= data.maxPrice
+                data.minPrice != null && data.maxPrice != null && data.minPrice >= data.maxPrice
                   ? 'border-destructive focus-visible:ring-destructive'
                   : ''
               }`}
             />
-            {data.minPrice && data.maxPrice && data.minPrice >= data.maxPrice && (
+            {data.minPrice != null && data.maxPrice != null && data.minPrice >= data.maxPrice && (
               <p className="text-xs text-destructive mt-1">Debe ser menor que el precio máximo</p>
             )}
           </div>
@@ -462,7 +462,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
               type="text"
               inputMode="numeric"
               placeholder="Ej: 5000"
-              value={data.maxPrice ? data.maxPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+              value={data.maxPrice != null ? data.maxPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
               onChange={(e) => {
                 const value = e.target.value.replace(/,/g, '')
                 if (value === '' || /^\d+$/.test(value)) {
@@ -470,7 +470,7 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
                 }
               }}
               className={`mt-1.5 ${
-                (data.minPrice && data.maxPrice && (
+                (data.minPrice != null && data.maxPrice != null && (
                   data.maxPrice <= data.minPrice ||
                   (data.maxPrice - data.minPrice) < 100
                 ))
@@ -478,10 +478,10 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
                   : ''
               }`}
             />
-            {data.minPrice && data.maxPrice && data.maxPrice <= data.minPrice && (
+            {data.minPrice != null && data.maxPrice != null && data.maxPrice <= data.minPrice && (
               <p className="text-xs text-destructive mt-1">Debe ser mayor que el precio mínimo</p>
             )}
-            {data.minPrice && data.maxPrice && data.maxPrice > data.minPrice && (data.maxPrice - data.minPrice) < 100 && (
+            {data.minPrice != null && data.maxPrice != null && data.maxPrice > data.minPrice && (data.maxPrice - data.minPrice) < 100 && (
               <p className="text-xs text-destructive mt-1">Debe haber al menos $100 de diferencia</p>
             )}
           </div>

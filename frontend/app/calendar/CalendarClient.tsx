@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, Clock, Video,
   User, ExternalLink, Loader2, CheckCircle2, XCircle,
-  RefreshCw, AlertCircle, Building2, TrendingUp, DollarSign,
+  RefreshCw, AlertCircle, Building2, TrendingUp, DollarSign, Inbox, Send,
 } from 'lucide-react'
 import {
   getMyMeetings,
@@ -165,7 +165,7 @@ function rolLabel(m: Meeting, uid: string): { texto: string; Icono: React.Elemen
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-type VistaPanel = 'atencion' | 'ofertas'
+type VistaPanel = 'atencion' | 'ofertas' | 'ofertasRealizadas'
 
 export function CalendarClient({ userId }: { userId: string }) {
   const [cursor,      setCursor]   = useState(new Date())
@@ -233,6 +233,16 @@ export function CalendarClient({ userId }: { userId: string }) {
       if (!m.offer_type) return false
       // Solo reuniones pending o en contrapropuesta
       if (!['pending', 'counterproposal_investor', 'counterproposal_entrepreneur'].includes(m.status)) return false
+      return true
+    })
+  }, [meetings, userId])
+
+  // Ofertas realizadas (yo soy el inversor y hice la oferta)
+  const ofertasRealizadas = useMemo(() => {
+    return meetings.filter(m => {
+      if (m.requester_id !== userId) return false
+      if (!m.offer_type) return false
+      if (!['pending', 'confirmed', 'counterproposal_investor', 'counterproposal_entrepreneur'].includes(m.status)) return false
       return true
     })
   }, [meetings, userId])
@@ -406,7 +416,7 @@ export function CalendarClient({ userId }: { userId: string }) {
       )}
 
       {/* ── Panel unificado con selector ── */}
-      {(pendientesAccion.length > 0 || ofertasRecibidas.length > 0) && (
+      {(pendientesAccion.length > 0 || ofertasRecibidas.length > 0 || ofertasRealizadas.length > 0) && (
         <div className="space-y-4">
           {/* Selector de vista */}
           <div className="flex items-center gap-3 flex-wrap">
@@ -439,7 +449,7 @@ export function CalendarClient({ userId }: { userId: string }) {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <DollarSign className={`w-4 h-4 ${vistaPanel === 'ofertas' ? 'text-white' : 'text-orange-600'}`} />
+              <Inbox className={`w-4 h-4 ${vistaPanel === 'ofertas' ? 'text-white' : 'text-orange-600'}`} />
               Ofertas recibidas
               {ofertasRecibidas.length > 0 && (
                 <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
@@ -448,6 +458,27 @@ export function CalendarClient({ userId }: { userId: string }) {
                     : 'bg-orange-600 text-white'
                 }`}>
                   {ofertasRecibidas.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setVistaPanel('ofertasRealizadas')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                vistaPanel === 'ofertasRealizadas'
+                  ? 'bg-brand-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Send className={`w-4 h-4 ${vistaPanel === 'ofertasRealizadas' ? 'text-white' : 'text-brand-600'}`} />
+              Ofertas realizadas
+              {ofertasRealizadas.length > 0 && (
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  vistaPanel === 'ofertasRealizadas'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-brand-600 text-white'
+                }`}>
+                  {ofertasRealizadas.length}
                 </span>
               )}
             </button>
@@ -547,6 +578,280 @@ export function CalendarClient({ userId }: { userId: string }) {
               )
             })}
           </div>
+          )}
+
+          {vistaPanel === 'ofertasRealizadas' && ofertasRealizadas.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <TrendingUp className="w-10 h-10 mx-auto mb-3 text-brand-200"/>
+              <p className="font-medium">No tienes ofertas realizadas</p>
+              <p className="text-sm mt-1">Cuando hagas una oferta a un MVP, aparecerá aquí.</p>
+            </div>
+          )}
+
+          {vistaPanel === 'ofertasRealizadas' && ofertasRealizadas.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {ofertasRealizadas.map(m => {
+                const offerSummary = formatOfferSummary(m)
+                const owner = m.owner
+                const OfferIcon = m.offer_type === 'economic' ? DollarSign : TrendingUp
+                const isExpanded = expandedOfferId === m.id
+                const miTurno = esmiturno(m, userId)
+                const visualStatus = getVisualStatus(m, userId)
+                const cfg = STATUS[visualStatus] || STATUS.pending
+                const esCont = m.status.startsWith('counterproposal')
+
+                return (
+                  <div
+                    key={m.id}
+                    className={`border rounded-xl overflow-hidden transition-all ${isExpanded ? 'border-brand-400 shadow-md' : 'border-brand-200'}`}
+                  >
+                    {/* Header - clickable to expand/collapse */}
+                    <button
+                      className={`w-full p-4 text-left transition-colors ${isExpanded ? 'bg-brand-100/70' : 'bg-brand-50/50 hover:bg-brand-100/70'}`}
+                      onClick={() => {
+                        if (isExpanded) {
+                          setExpandedOfferId(null)
+                          setOfertaActMsg(null)
+                        } else {
+                          setExpandedOfferId(m.id)
+                          setOfertaSubVista('detalle')
+                          setOfertaMotivo('')
+                          setOfertaMeetUrl('')
+                          setOfertaOwnerNotes('')
+                          setOfertaActMsg(null)
+                          setOfertaCp({
+                            proposed_date: m.scheduled_at ? m.scheduled_at.split('T')[0] : '',
+                            proposed_start_time: '09:00',
+                            proposed_end_time: '10:00',
+                            notes: '',
+                          })
+                        }
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide mb-1">
+                            {m.offer_type === 'economic' ? 'Oferta Económica' : 'Aporte No Económico'}
+                          </p>
+                          <p className="font-bold text-sm text-foreground truncate mb-0.5">
+                            {m.mvp?.title || 'MVP'}
+                          </p>
+                          {owner && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              Para: {owner.display_name || owner.email || 'Emprendedor'}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.text}`}>
+                            {cfg.label}
+                          </span>
+                          <OfferIcon className="w-4 h-4 text-brand-500" />
+                          {isExpanded
+                            ? <ChevronUp className="w-4 h-4 text-brand-600" />
+                            : <ChevronDown className="w-4 h-4 text-brand-600" />}
+                        </div>
+                      </div>
+
+                      {!isExpanded && offerSummary && (
+                        <div className="bg-white/80 border border-brand-200/50 rounded-lg px-3 py-2 mt-2">
+                          <p className="text-sm font-semibold text-brand-900 line-clamp-2">{offerSummary}</p>
+                        </div>
+                      )}
+                      {!isExpanded && m.scheduled_at && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          📅 {new Date(m.scheduled_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })} · {fmtHora(m.scheduled_at)}
+                        </p>
+                      )}
+                    </button>
+
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="bg-white border-t border-brand-200 p-4 space-y-4">
+                        {/* Offer summary */}
+                        {offerSummary && (
+                          <div className="p-3 bg-brand-50 border border-brand-200 rounded-xl">
+                            <p className="text-xs font-semibold text-brand-700 uppercase mb-1">
+                              {m.offer_type === 'economic' ? 'Tu oferta económica' : 'Tu aporte no económico'}
+                            </p>
+                            <p className="text-sm text-brand-900">{offerSummary}</p>
+                          </div>
+                        )}
+
+                        {/* Date/time */}
+                        {m.scheduled_at && (
+                          <div className="flex items-start gap-3">
+                            <Clock className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold text-foreground capitalize">{fmtFechaLarga(m.scheduled_at)}</p>
+                              <p className="text-xs text-muted-foreground">{fmtHora(m.scheduled_at)} · {m.duration_minutes} min</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Owner info */}
+                        {owner && (
+                          <div className="flex items-start gap-3">
+                            <User className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold">{owner.display_name || owner.email}</p>
+                              {owner.email && <p className="text-xs text-muted-foreground">{owner.email}</p>}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Counter-proposal from entrepreneur */}
+                        {esCont && m.status === 'counterproposal_entrepreneur' && (
+                          <div className="p-3 bg-muted/30 border rounded-xl text-sm">
+                            <p className="font-semibold mb-1">📩 Contrapropuesta del emprendedor</p>
+                            {m.scheduled_at && <p className="text-muted-foreground capitalize">{fmtFechaLarga(m.scheduled_at)} · {fmtHora(m.scheduled_at)}</p>}
+                            {m.counterproposal_notes && <p className="text-muted-foreground mt-1 text-xs italic">&quot;{m.counterproposal_notes}&quot;</p>}
+                          </div>
+                        )}
+
+                        {/* Waiting state */}
+                        {(m.status === 'pending' || m.status === 'counterproposal_investor') && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-4 py-3 rounded-xl border">
+                            <Loader2 className="w-4 h-4 shrink-0 text-muted-foreground/50" />
+                            {m.status === 'pending'
+                              ? 'Esperando respuesta del emprendedor'
+                              : 'Tu contrapropuesta está pendiente de respuesta'}
+                          </div>
+                        )}
+
+                        {/* Confirmed meeting link */}
+                        {m.status === 'confirmed' && m.meeting_url && (
+                          <div className="flex items-center gap-2 bg-green-50 border border-green-200 px-4 py-3 rounded-xl">
+                            <Video className="w-4 h-4 text-green-600 shrink-0" />
+                            <a href={m.meeting_url} target="_blank" rel="noopener noreferrer"
+                              className="text-sm text-green-800 hover:underline truncate flex items-center gap-1">
+                              Unirse a la reunión <ExternalLink className="w-3 h-3 shrink-0"/>
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Action result message */}
+                        {ofertaActMsg && (
+                          <div className={`flex items-center gap-2 text-sm px-4 py-3 rounded-xl border ${
+                            ofertaActMsg.ok
+                              ? 'bg-green-50 border-green-200 text-green-800'
+                              : 'bg-destructive/10 border-destructive/40 text-destructive'
+                          }`}>
+                            {ofertaActMsg.ok ? <CheckCircle2 className="w-4 h-4 shrink-0"/> : <XCircle className="w-4 h-4 shrink-0"/>}
+                            {ofertaActMsg.txt}
+                          </div>
+                        )}
+
+                        {/* Actions when it's investor's turn (counterproposal from entrepreneur) */}
+                        {ofertaSubVista === 'detalle' && miTurno && (
+                          <div className="border-t pt-4 space-y-2">
+                            <p className="text-sm font-semibold">¿Qué deseas hacer con la contrapropuesta?</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              <Button size="sm" className="bg-green-100 border border-green-600 text-green-800 hover:bg-green-600 hover:border-green-700 hover:text-white transition-colors"
+                                disabled={actLoading}
+                                onClick={() => accionOferta(() => confirmMeeting(m.id))}>
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1"/> Aceptar
+                              </Button>
+                              <Button size="sm" variant="outline" className="bg-white border border-gray-300 text-gray-700 hover:bg-primary hover:border-primary hover:text-white transition-colors"
+                                disabled={actLoading} onClick={() => setOfertaSubVista('contraproponer')}>
+                                <RefreshCw className="w-3.5 h-3.5 mr-1"/> Otra fecha
+                              </Button>
+                              <Button size="sm" className="bg-red-100 border border-red-600 text-red-800 hover:bg-red-600 hover:border-red-700 hover:text-white transition-colors"
+                                disabled={actLoading} onClick={() => setOfertaSubVista('rechazar')}>
+                                <XCircle className="w-3.5 h-3.5 mr-1"/> Rechazar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reject form */}
+                        {ofertaSubVista === 'rechazar' && (
+                          <div className="space-y-3 border-t pt-4">
+                            <div>
+                              <Label htmlFor={`motivo-r-${m.id}`}>Motivo del rechazo <span className="text-muted-foreground">(opcional)</span></Label>
+                              <textarea id={`motivo-r-${m.id}`} rows={3}
+                                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                placeholder="Explica brevemente por qué rechazas esta reunión..."
+                                value={ofertaMotivo} onChange={e => setOfertaMotivo(e.target.value)}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button className="flex-1 bg-destructive hover:bg-destructive/90 text-white" disabled={actLoading}
+                                onClick={() => accionOferta(() => rejectMeeting(m.id, ofertaMotivo || undefined))}>
+                                {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1"/> : <XCircle className="w-4 h-4 mr-1"/>}
+                                Confirmar rechazo
+                              </Button>
+                              <Button variant="outline" onClick={() => setOfertaSubVista('detalle')} disabled={actLoading}>Volver</Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Counter-propose form */}
+                        {ofertaSubVista === 'contraproponer' && (
+                          <div className="space-y-4 border-t pt-4">
+                            <p className="text-sm text-muted-foreground">
+                              Propón una nueva fecha y hora. La otra parte podrá aceptarla, rechazarla o volver a contraproponer.
+                            </p>
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor={`cp-fecha-r-${m.id}`}>Nueva fecha</Label>
+                                <Input id={`cp-fecha-r-${m.id}`} type="date" className="mt-1"
+                                  min={new Date().toISOString().split('T')[0]}
+                                  value={ofertaCp.proposed_date}
+                                  onChange={e => setOfertaCp(c => ({...c, proposed_date: e.target.value}))}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label htmlFor={`cp-inicio-r-${m.id}`}>Hora de inicio</Label>
+                                  <Input id={`cp-inicio-r-${m.id}`} type="time" className="mt-1"
+                                    value={ofertaCp.proposed_start_time}
+                                    onChange={e => setOfertaCp(c => ({...c, proposed_start_time: e.target.value}))}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`cp-fin-r-${m.id}`}>Hora de fin</Label>
+                                  <Input id={`cp-fin-r-${m.id}`} type="time" className="mt-1"
+                                    value={ofertaCp.proposed_end_time}
+                                    onChange={e => setOfertaCp(c => ({...c, proposed_end_time: e.target.value}))}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <Label htmlFor={`cp-msg-r-${m.id}`}>Mensaje <span className="text-muted-foreground">(opcional)</span></Label>
+                                <textarea id={`cp-msg-r-${m.id}`} rows={3}
+                                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                  placeholder="Explica el motivo del cambio de fecha..."
+                                  value={ofertaCp.notes || ''} onChange={e => setOfertaCp(c => ({...c, notes: e.target.value}))}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button className="flex-1" disabled={actLoading || !ofertaCp.proposed_date}
+                                onClick={() => accionOferta(() => counterproposeMeeting(m.id, ofertaCp))}>
+                                {actLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1"/> : <RefreshCw className="w-4 h-4 mr-1"/>}
+                                Enviar contrapropuesta
+                              </Button>
+                              <Button variant="outline" onClick={() => setOfertaSubVista('detalle')} disabled={actLoading}>Volver</Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Link to MVP */}
+                        {m.mvp?.id && (
+                          <div className="border-t pt-3">
+                            <a href={`/mvps/${m.mvp.id}`}
+                              className="text-xs text-primary hover:underline flex items-center gap-1">
+                              Ver MVP: {m.mvp.title} <ExternalLink className="w-3 h-3"/>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           )}
 
           {vistaPanel === 'ofertas' && ofertasRecibidas.length > 0 && (

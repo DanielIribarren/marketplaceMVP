@@ -29,7 +29,7 @@ export async function login(formData: FormData) {
   revalidatePath('/', 'layout')
 
   if (loggedEmail === ADMIN_EMAIL) {
-    redirect('/admin')
+    redirect('/admin/welcome')
   }
 
   console.log('[LOGIN] Success! User:', authData.user?.email)

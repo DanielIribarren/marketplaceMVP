@@ -4,6 +4,7 @@ import { getPublicMvps } from '@/app/actions/mvp'
 import { Navbar } from '@/components/navbar'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Rocket } from 'lucide-react'
 import { MarketplaceClient } from './MarketplaceClient'
 
 interface MarketplacePageProps {
@@ -73,7 +74,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
 
             <div className="flex flex-wrap gap-3">
               <Link href="/publish">
-                <Button size="lg">{userIsAdmin ? 'Publicar de prueba' : 'Publicar MVP'}</Button>
+                <Button size="lg" className="gap-2"><Rocket className="w-4 h-4" />{userIsAdmin ? 'Publicar de prueba' : 'Publicar MVP'}</Button>
               </Link>
             </div>
           </div>

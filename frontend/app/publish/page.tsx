@@ -94,6 +94,8 @@ function PublishPageInner() {
 
   const [currentStep, setCurrentStep] = useState<Step>("basics")
   const [mvpData, setMvpData] = useState<Partial<MVPPublication> & { id?: string }>(createEmptyDraft(""))
+  const [mvpStatus, setMvpStatus] = useState<string | null>(null)
+  const originalRejectedDataRef = React.useRef<string>('')
   const [isPublishing, setIsPublishing] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null)
@@ -136,6 +138,11 @@ function PublishPageInner() {
           if (!error && mvp) {
             const mapped = mapDbMvpToForm(mvp as Record<string, unknown>)
             setMvpData(mapped)
+            const status = mvp.status as string
+            setMvpStatus(status)
+            if (status === 'rejected') {
+              originalRejectedDataRef.current = JSON.stringify(mapped)
+            }
             lastSavedDataRef.current = JSON.stringify(mapped)
             localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped))
             // Restore last-saved step
@@ -374,6 +381,16 @@ function PublishPageInner() {
     setIsPublishing(true)
     setError(null)
 
+    // Si el MVP fue rechazado y no se hizo ningún cambio, advertir
+    if (mvpStatus === 'rejected' && originalRejectedDataRef.current) {
+      const currentData = JSON.stringify(mvpData)
+      if (currentData === originalRejectedDataRef.current) {
+        setError('Este MVP ya fue rechazado anteriormente. Edita los campos antes de volver a enviarlo para aumentar las posibilidades de aprobación.')
+        setIsPublishing(false)
+        return
+      }
+    }
+
     try {
       let mvpId = mvpData.id
 
@@ -575,7 +592,15 @@ function PublishPageInner() {
               <div className="grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                   <Card className="p-6">
-                    <h2 className="mb-6 text-xl font-semibold">Información del MVP</h2>
+                    <h2 className="mb-3 text-xl font-semibold">Información del MVP</h2>
+                    {mvpStatus === 'rejected' && (
+                      <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-red-800">⚠️ MVP rechazado anteriormente</p>
+                        <p className="text-sm text-red-700 mt-0.5">
+                          Revisa y edita los campos antes de volver a enviarlo. Si lo publicas sin cambios, se te avisará.
+                        </p>
+                      </div>
+                    )}
                     <BasicFields
                       data={mvpData}
                       onChange={setMvpData}

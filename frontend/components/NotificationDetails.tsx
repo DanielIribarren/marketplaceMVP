@@ -156,6 +156,7 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
       case 'mvp_rejected': {
         const mvpTitle = (notification.data?.mvp_title as string) || notification.message?.match(/"([^"]+)"/)?.[1] || 'Tu MVP'
         const rejectionReason = notification.data?.rejection_reason as string | undefined
+        const rejectedMvpId = notification.data?.mvp_id as string | undefined
 
         return (
           <div className="space-y-4">
@@ -180,7 +181,7 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
               <p className="text-sm text-muted-foreground">Fecha de rechazo</p>
               <p className="font-medium">{formatFullDate(notification.created_at)}</p>
             </div>
-            <Link href="/publish" className="block">
+            <Link href={rejectedMvpId ? `/publish?draft=${rejectedMvpId}&from=my-mvps` : '/publish'} className="block">
               <Button variant="outline" size="sm" className="w-full hover:bg-primary hover:text-primary-foreground transition-colors">
                 Editar y volver a enviar
               </Button>

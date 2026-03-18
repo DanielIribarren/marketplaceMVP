@@ -87,6 +87,7 @@ export async function getPublicMvps(req, res) {
           one_liner,
           category,
           deal_modality,
+          monetization_model,
           price_range,
           price,
           competitive_differentials,
@@ -127,26 +128,36 @@ export async function getPublicMvps(req, res) {
       (typeof parsedPriceMax === 'number' && !Number.isNaN(parsedPriceMax))
 
     if (published_from) {
-      const fromDate = new Date(published_from)
+      const fromDate = new Date(published_from + 'T00:00:00.000Z')
       if (!Number.isNaN(fromDate.getTime())) {
         query = query.gte('published_at', fromDate.toISOString())
       }
     }
 
     if (published_to) {
-      const toDate = new Date(published_to)
+      const toDate = new Date(published_to + 'T00:00:00.000Z')
       if (!Number.isNaN(toDate.getTime())) {
-        toDate.setHours(23, 59, 59, 999)
+        toDate.setUTCHours(23, 59, 59, 999)
         query = query.lte('published_at', toDate.toISOString())
       }
     }
 
     switch (sort) {
       case 'oldest':
-        query = query.order('published_at', { ascending: true })
+        query = query.order('published_at', { ascending: true, nullsFirst: false })
+        query = query.order('created_at', { ascending: true })
+        break
+      case 'most_views':
+        query = query.order('views_count', { ascending: false, nullsFirst: false })
+        query = query.order('published_at', { ascending: false, nullsFirst: false })
+        break
+      case 'most_favorites':
+        query = query.order('favorites_count', { ascending: false, nullsFirst: false })
+        query = query.order('published_at', { ascending: false, nullsFirst: false })
         break
       default:
-        query = query.order('published_at', { ascending: false })
+        query = query.order('published_at', { ascending: false, nullsFirst: false })
+        query = query.order('created_at', { ascending: false })
         break
     }
 

@@ -22,7 +22,7 @@ type FilterState = {
   q: string
   dealModality: string
   sector: string
-  sort: 'recent' | 'oldest' | 'price_low' | 'price_high'
+  sort: 'recent' | 'oldest' | 'price_low' | 'price_high' | 'most_views' | 'most_favorites'
   priceMin: string
   priceMax: string
   publishedFrom: string
@@ -55,6 +55,25 @@ const SECTOR_OPTIONS: { value: string; label: string; Icon: LucideIcon }[] = [
   { value: 'otros', label: 'Otros', Icon: Package },
 ]
 
+const SECTOR_LABEL: Record<string, string> = Object.fromEntries(
+  SECTOR_OPTIONS.map(({ value, label }) => [value, label])
+)
+
+const MONETIZATION_LABEL: Record<string, string> = {
+  saas_monthly: 'SaaS mensual',
+  one_time_license: 'Licencia única',
+  transactional: 'Transaccional',
+  advertising: 'Publicidad',
+  to_define: 'Por definir',
+}
+
+const DEAL_MODALITY_LABEL: Record<string, string> = {
+  sale: 'Venta',
+  equity: 'Equity',
+  license: 'Licencia',
+  rev_share: 'Rev-Share',
+}
+
 type MvpListItem = {
   id: string
   title: string
@@ -63,10 +82,12 @@ type MvpListItem = {
   cover_image_url?: string | null
   images_urls?: string[] | null
   deal_modality?: string | null
+  monetization_model?: string | null
   price_range?: string | null
   price?: number | null
   status?: string | null
   views_count?: number | null
+  favorites_count?: number | null
   competitive_differentials?: string[] | null
   owner_id?: string | null
 }
@@ -455,7 +476,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
       <Card key={mvp.id} className="rounded-2xl">
         <CardContent className="p-4 md:p-5">
           <div className={`grid gap-4 ${!isGridMode ? 'md:grid-cols-[360px_1fr] md:items-stretch' : ''}`}>
-            <div className={`relative overflow-hidden rounded-xl ${!isGridMode ? 'min-h-[220px] md:min-h-[270px]' : 'h-[200px]'}`}>
+            <div className={`relative overflow-hidden rounded-xl ${!isGridMode ? 'min-h-[220px] md:min-h-[270px] md:ml-3' : 'h-[200px]'}`}>
               {currentMedia && !isCurrentVideo && (
                 <div className="absolute inset-0" style={{ backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.32), rgba(0,0,0,0.08)), url(${currentMedia})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
               )}
@@ -493,7 +514,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col gap-2">
                     <Badge variant="outline" className="w-fit border-brand-200 bg-brand-50/95 text-brand-800">
-                      {mvp.category || 'Sin categoria'}
+                      {mvp.category ? (SECTOR_LABEL[mvp.category] ?? mvp.category) : 'Otros'}
                     </Badge>
                   </div>
                   {!isOwnMvp && (
@@ -508,8 +529,14 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
             {isGridMode ? (
               /* ── VISTA CUADRÍCULA (vertical) ── */
               <div className="flex flex-col gap-3 p-3">
-                {/* Título — 1 línea fija */}
-                <h3 className="text-lg font-bold tracking-tight line-clamp-1">{mvp.title}</h3>
+                {/* Título + vistas/favs */}
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-lg font-bold tracking-tight line-clamp-1 flex-1">{mvp.title}</h3>
+                  <div className="flex items-center gap-2.5 text-xs text-muted-foreground shrink-0">
+                    <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" />{mvp.views_count ?? 0}</span>
+                    <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" />{mvp.favorites_count ?? 0}</span>
+                  </div>
+                </div>
 
                 {/* One-liner — caja gris, siempre 2 líneas */}
                 <div className="rounded-lg border border-border/60 bg-muted/35 px-3 py-2.5 h-[66px] overflow-hidden">
@@ -518,12 +545,12 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                   </p>
                 </div>
 
-                {/* Sección inferior empujada al fondo */}
-                <div className="mt-auto space-y-2.5">
+                {/* Sección inferior */}
+                <div className="space-y-2.5">
                   <div className="grid grid-cols-3 gap-2">
                     <div className="rounded-lg border border-border/80 bg-background/70 px-2 py-2"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Precio</p><p className="font-semibold text-sm leading-tight truncate">{mvp.price_range || (mvp.price ? `$${mvp.price}` : 'N/D')}</p></div>
-                    <div className="rounded-lg border border-border/80 bg-background/70 px-2 py-2"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vistas</p><p className="font-semibold flex items-center gap-1 text-sm leading-tight"><Eye className="w-3 h-3 text-muted-foreground shrink-0" />{mvp.views_count ?? 0}</p></div>
-                    <div className="rounded-lg border border-border/80 bg-background/70 px-2 py-2"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Oferta</p><p className="font-semibold text-sm leading-tight capitalize truncate">{mvp.deal_modality || 'N/D'}</p></div>
+                    <div className="rounded-lg border border-border/80 bg-background/70 px-2 py-2"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Monetización</p><p className="font-semibold text-sm leading-tight truncate">{mvp.monetization_model ? (MONETIZATION_LABEL[mvp.monetization_model] ?? mvp.monetization_model) : 'N/D'}</p></div>
+                    <div className="rounded-lg border border-border/80 bg-background/70 px-2 py-2"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Oferta</p><p className="font-semibold text-sm leading-tight truncate">{mvp.deal_modality ? (DEAL_MODALITY_LABEL[mvp.deal_modality] ?? mvp.deal_modality) : 'N/D'}</p></div>
                   </div>
                   {meetingMeta ? (
                     <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2">
@@ -534,7 +561,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center px-3 py-2">
+                    <div className="rounded-lg border border-transparent px-3 py-3.5">
                       <p className="text-xs text-muted-foreground/40 italic">Sin reuniones programadas con este MVP</p>
                     </div>
                   )}
@@ -567,8 +594,8 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2.5"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">Precio</p><p className="font-semibold text-lg leading-tight">{mvp.price_range || (mvp.price ? `$${mvp.price}` : 'N/D')}</p></div>
-                    <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2.5"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vistas</p><p className="font-semibold flex items-center gap-1 text-base leading-tight"><Eye className="w-3.5 h-3.5 text-muted-foreground shrink-0" />{mvp.views_count ?? 0}</p></div>
-                    <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2.5"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">Oferta</p><p className="font-semibold text-base leading-tight capitalize">{mvp.deal_modality || 'N/D'}</p></div>
+                    <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2.5"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">Monetización</p><p className="font-semibold text-base leading-tight truncate">{mvp.monetization_model ? (MONETIZATION_LABEL[mvp.monetization_model] ?? mvp.monetization_model) : 'N/D'}</p></div>
+                    <div className="rounded-lg border border-border/80 bg-background/70 px-3 py-2.5"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">Oferta</p><p className="font-semibold text-base leading-tight">{mvp.deal_modality ? (DEAL_MODALITY_LABEL[mvp.deal_modality] ?? mvp.deal_modality) : 'N/D'}</p></div>
                   </div>
 
                   {/* Estado reunión (si aplica) */}
@@ -582,15 +609,21 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                     </div>
                   )}
 
-                  {/* Botones — esquina inferior derecha */}
-                  <div className="flex items-center justify-end gap-3 pb-1 pr-1">
-                    <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); const url = `${window.location.origin}/mvps/${mvp.id}`; navigator.clipboard.writeText(url).then(() => { setCopiedMvpId(mvp.id); setTimeout(() => setCopiedMvpId(null), 2000) }) }} className="group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-border/80 bg-background/80 text-muted-foreground shadow-sm transition-all duration-200 hover:border-brand-400 hover:text-brand-600 active:scale-95" title="Compartir link">
-                      <Share2 className="h-4 w-4" />
-                      {copiedMvpId === mvp.id && <span className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg fade-in-up">¡Link Copiado!</span>}
-                    </button>
-                    <Link href={`/mvps/${mvp.id}`}>
-                      <Button size="lg" className="w-[220px] text-base font-semibold shadow-md">{meetingMeta?.isActive ? 'Ver estado de mi reunión' : 'Ver detalles'}</Button>
-                    </Link>
+                  {/* Botones — vistas/favs izquierda, compartir+detalles derecha */}
+                  <div className="flex items-center justify-between pb-1 pr-1">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground pl-1">
+                      <span className="flex items-center gap-1.5"><Eye className="w-4 h-4" />{mvp.views_count ?? 0}</span>
+                      <span className="flex items-center gap-1.5"><Heart className="w-4 h-4" />{mvp.favorites_count ?? 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); const url = `${window.location.origin}/mvps/${mvp.id}`; navigator.clipboard.writeText(url).then(() => { setCopiedMvpId(mvp.id); setTimeout(() => setCopiedMvpId(null), 2000) }) }} className="group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-border/80 bg-background/80 text-muted-foreground shadow-sm transition-all duration-200 hover:border-brand-400 hover:text-brand-600 active:scale-95" title="Compartir link">
+                        <Share2 className="h-4 w-4" />
+                        {copiedMvpId === mvp.id && <span className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg fade-in-up">¡Link Copiado!</span>}
+                      </button>
+                      <Link href={`/mvps/${mvp.id}`}>
+                        <Button size="lg" className="w-[220px] text-base font-semibold shadow-md">{meetingMeta?.isActive ? 'Ver estado de mi reunión' : 'Ver detalles'}</Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -641,6 +674,8 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                 <option value="oldest">Mas antiguos</option>
                 <option value="price_low">Precio mas bajo</option>
                 <option value="price_high">Precio mas alto</option>
+                <option value="most_views">Más vistos</option>
+                <option value="most_favorites">Más favoritos</option>
               </select>
             </div>
 
@@ -688,7 +723,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
 
           {showAdvancedFilters && (
             <div className="mt-3 grid gap-3 rounded-xl border border-brand-100 bg-brand-50/60 p-3 md:grid-cols-4 fade-in-up">
-              <div className="md:col-span-4">
+              <div className="md:col-span-2">
                 <label className="text-xs font-medium text-muted-foreground">Sector</label>
                 <select
                   value={filters.sector}
@@ -699,6 +734,18 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                   {SECTOR_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs font-medium text-muted-foreground">Ordenar por actividad</label>
+                <select
+                  value={['most_views', 'most_favorites'].includes(filters.sort) ? filters.sort : ''}
+                  onChange={(e) => handleFilterChange('sort', e.target.value || 'recent')}
+                  className="border-input mt-1 h-9 w-full rounded-lg border bg-background/85 pl-3 pr-8 py-1 text-sm shadow-xs transition-[border-color,box-shadow,background-color] duration-200 ease-out focus:border-brand-300 focus:bg-background focus:outline-none focus:ring-[3px] focus:ring-brand-300/45"
+                >
+                  <option value="">Sin filtro</option>
+                  <option value="most_views">Más vistos</option>
+                  <option value="most_favorites">Más favoritos</option>
                 </select>
               </div>
               <div>
