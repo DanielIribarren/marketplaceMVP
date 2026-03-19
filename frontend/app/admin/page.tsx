@@ -20,6 +20,7 @@ type MvpRow = {
   description: string
   status: MvpStatus
   demo_url: string | null
+  category: string | null
   cover_image_url: string | null
   images_urls: string[] | null
   published_at: string | null
@@ -88,6 +89,16 @@ function checklist(v: Record<string, boolean> | null | undefined) {
   }))
 }
 
+const SECTOR_LABEL: Record<string, string> = {
+  tecnologia: 'Tecnología', educacion: 'Educación', salud: 'Salud y Medicina',
+  alimentacion: 'Alimentación', finanzas: 'Finanzas y Fintech', ecommerce: 'E-commerce',
+  entretenimiento: 'Entretenimiento', viajes: 'Viajes y Turismo', bienes_raices: 'Bienes Raíces',
+  logistica: 'Logística', marketing: 'Marketing', rrhh: 'Recursos Humanos',
+  legal: 'Legal', agricultura: 'Agricultura', energia: 'Energía',
+  deportes: 'Deportes y Fitness', moda: 'Moda y Belleza', higiene: 'Higiene',
+  construccion: 'Construcción', manufactura: 'Manufactura', otros: 'Otros',
+}
+
 const MONETIZATION_LABEL: Record<string, string> = {
   saas_monthly: 'SaaS mensual',
   one_time_license: 'Licencia única',
@@ -137,7 +148,7 @@ export default async function AdminPage({
   const { data: mvpsData, error: mvpsError } = await adminSupabase
     .from("mvps")
     .select(
-      "id, title, one_liner, description, status, demo_url, cover_image_url, images_urls, published_at, created_at, monetization_model, minimal_evidence, competitive_differentials, deal_modality, price_range, transfer_checklist"
+      "id, title, one_liner, description, status, demo_url, category, cover_image_url, images_urls, published_at, created_at, monetization_model, minimal_evidence, competitive_differentials, deal_modality, price_range, transfer_checklist"
     )
     .in("status", ["pending_review", "approved", "rejected"])
     .order("created_at", { ascending: false })
@@ -275,19 +286,23 @@ export default async function AdminPage({
                           )}
                         </div>
 
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">Monetización</p>
-                          <p className="text-sm">{mvp.monetization_model ? (MONETIZATION_LABEL[mvp.monetization_model] ?? mvp.monetization_model) : '—'}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">Deal</p>
-                          <p className="text-sm">{mvp.deal_modality ? (DEAL_LABEL[mvp.deal_modality] ?? mvp.deal_modality) : '—'}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">Rango precio</p>
-                          <p className="text-sm">{text(mvp.price_range)}</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                          <div>
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Sector</p>
+                            <p className="text-sm">{mvp.category ? (SECTOR_LABEL[mvp.category] ?? mvp.category) : '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Rango precio</p>
+                            <p className="text-sm">{text(mvp.price_range)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Deal</p>
+                            <p className="text-sm">{mvp.deal_modality ? (DEAL_LABEL[mvp.deal_modality] ?? mvp.deal_modality) : '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Monetización</p>
+                            <p className="text-sm">{mvp.monetization_model ? (MONETIZATION_LABEL[mvp.monetization_model] ?? mvp.monetization_model) : '—'}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -363,11 +378,11 @@ export default async function AdminPage({
                             Checklist transferencia
                           </p>
                           {checks.length ? (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                               {checks.map((c) => (
                                 <span
                                   key={c.key}
-                                  className={`rounded-full border px-3 py-1 text-xs ${
+                                  className={`rounded-full border px-3 py-1.5 text-xs text-center ${
                                     c.ok
                                       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                                       : "border-slate-200 bg-slate-50 text-slate-600"

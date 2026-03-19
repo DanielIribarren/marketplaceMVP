@@ -276,12 +276,18 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
   const isFirstLoad = useRef(true)
 
   function getMediaItems(mvp: MvpListItem): string[] {
+    const getPath = (url: string) => {
+      try { return new URL(url).pathname } catch { return url }
+    }
+    const seenPaths = new Set<string>()
     const items: string[] = []
-    if (mvp.cover_image_url) items.push(mvp.cover_image_url)
+    const addIfNew = (url: string) => {
+      const path = getPath(url)
+      if (!seenPaths.has(path)) { seenPaths.add(path); items.push(url) }
+    }
+    if (mvp.cover_image_url) addIfNew(mvp.cover_image_url)
     if (mvp.images_urls) {
-      for (const url of mvp.images_urls) {
-        if (!items.includes(url)) items.push(url)
-      }
+      for (const url of mvp.images_urls) addIfNew(url)
     }
     return items
   }
@@ -478,25 +484,45 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
           <div className={`grid gap-4 ${!isGridMode ? 'md:grid-cols-[360px_1fr] md:items-stretch' : ''}`}>
             <div className={`relative overflow-hidden rounded-xl ${!isGridMode ? 'min-h-[220px] md:min-h-[270px] md:ml-3' : 'h-[200px]'}`}>
               {currentMedia && !isCurrentVideo && (
-                <div className="absolute inset-0" style={{ backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.32), rgba(0,0,0,0.08)), url(${currentMedia})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                <>
+                  <img
+                    key={currentMedia}
+                    src={currentMedia}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.32), rgba(0,0,0,0.08))' }} />
+                </>
               )}
               {currentMedia && isCurrentVideo && (
-                <div className="absolute inset-0 bg-black flex items-center justify-center">
-                  <button type="button" onClick={(e) => { e.preventDefault(); setVideoModal(currentMedia) }} className="flex flex-col items-center gap-2 group">
-                    <div className="bg-white/20 hover:bg-white/30 rounded-full p-4 backdrop-blur-sm transition-all group-hover:scale-110">
-                      <PlayCircle className="h-12 w-12 text-white" />
-                    </div>
-                    <span className="text-white/80 text-sm font-medium">Ver video</span>
-                  </button>
+                <div className="absolute inset-0">
+                  <video
+                    key={currentMedia}
+                    src={currentMedia}
+                    preload="metadata"
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <Link href={`/mvps/${mvp.id}`} className="flex flex-col items-center gap-2 group">
+                      <div className="bg-white/20 hover:bg-white/30 rounded-full p-4 backdrop-blur-sm transition-all group-hover:scale-110">
+                        <PlayCircle className="h-12 w-12 text-white" />
+                      </div>
+                      <span className="text-white/80 text-sm font-medium">Ver video</span>
+                    </Link>
+                  </div>
                 </div>
               )}
               {!currentMedia && (<div className="absolute inset-0 bg-gradient-to-br from-brand-100 via-brand-50 to-background" />)}
+              {/* Clickable overlay to navigate to details (below arrows at z-20) */}
+              <Link href={`/mvps/${mvp.id}`} className="absolute inset-0 z-10" aria-label={`Ver detalles de ${mvp.title}`} />
               {mediaItems.length > 1 && (
                 <>
-                  <button type="button" onClick={(e) => { e.preventDefault(); setMediaIndex(mvp.id, currentIdx - 1) }} disabled={currentIdx === 0} className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/65 disabled:opacity-0 rounded-full p-1.5 text-white transition-all backdrop-blur-sm"><ChevronLeft className="h-5 w-5" /></button>
-                  <button type="button" onClick={(e) => { e.preventDefault(); setMediaIndex(mvp.id, currentIdx + 1) }} disabled={currentIdx === mediaItems.length - 1} className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/65 disabled:opacity-0 rounded-full p-1.5 text-white transition-all backdrop-blur-sm"><ChevronRight className="h-5 w-5" /></button>
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMediaIndex(mvp.id, currentIdx - 1) }} disabled={currentIdx === 0} className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/65 disabled:opacity-0 rounded-full p-1.5 text-white transition-all backdrop-blur-sm"><ChevronLeft className="h-5 w-5" /></button>
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMediaIndex(mvp.id, currentIdx + 1) }} disabled={currentIdx === mediaItems.length - 1} className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/65 disabled:opacity-0 rounded-full p-1.5 text-white transition-all backdrop-blur-sm"><ChevronRight className="h-5 w-5" /></button>
                   <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-                    {mediaItems.map((_, i) => (<button key={i} type="button" onClick={(e) => { e.preventDefault(); setMediaIndex(mvp.id, i) }} className={`rounded-full transition-all ${i === currentIdx ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'}`} />))}
+                    {mediaItems.map((_, i) => (<button key={i} type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMediaIndex(mvp.id, i) }} className={`rounded-full transition-all ${i === currentIdx ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'}`} />))}
                   </div>
                 </>
               )}

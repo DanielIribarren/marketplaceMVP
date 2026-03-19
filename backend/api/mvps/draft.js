@@ -31,6 +31,7 @@ export async function saveDraft(req, res) {
       title: mvpData.title || '',
       one_liner: mvpData.one_liner || null,
       slug: mvpData.slug || buildSlug(mvpData.title),
+      category: mvpData.category || null,
       description: mvpData.description || '',
       demo_url: mvpData.demo_url || null,
       cover_image_url: mvpData.cover_image_url || null,

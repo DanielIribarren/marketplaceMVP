@@ -288,9 +288,18 @@ export function BasicFields({ data, onChange, previewLoading = false, previewErr
               {data.screenshots.map((url, index) => (
                 <div key={index} className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
                   {isVideo(url) ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
-                      <PlayCircle className="h-8 w-8 text-white" />
-                      <span className="text-xs text-white/70 mt-1">Video</span>
+                    <div className="absolute inset-0">
+                      <video
+                        src={url}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+                        <PlayCircle className="h-8 w-8 text-white" />
+                        <span className="text-xs text-white/70 mt-1">Video</span>
+                      </div>
                     </div>
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
