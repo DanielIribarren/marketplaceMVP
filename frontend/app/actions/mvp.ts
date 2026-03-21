@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import type { MVPPublication, QualitySignals } from '@/lib/types/mvp-publication'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
@@ -456,6 +456,88 @@ export async function getPublicMvps(params: {
       success: false,
       error: 'Error de conexión'
     }
+  }
+}
+
+/**
+ * Obtiene el perfil público del creador de un MVP y sus otros MVPs publicados
+ */
+export async function getCreatorPublicData(ownerId: string, currentMvpId: string) {
+  try {
+    const supabase = await createClient()
+    const adminClient = createAdminClient()
+
+    // display_name, email y fecha de registro vienen de auth.users (admin API)
+    let displayName: string | null = null
+    let avatarFromAuth: string | null = null
+    let email: string | null = null
+    let joinedAt: string | null = null
+    try {
+      const { data: authUser } = await adminClient.auth.admin.getUserById(ownerId)
+      displayName = authUser?.user?.user_metadata?.display_name
+        || authUser?.user?.user_metadata?.name
+        || null
+      avatarFromAuth = authUser?.user?.user_metadata?.avatar_url || null
+      email = authUser?.user?.email || null
+      joinedAt = authUser?.user?.created_at || null
+    } catch (_) { /* ignorar si no hay permisos */ }
+
+    // Perfil extendido: intentar con 'id' primero, luego 'user_id'
+    let profileData: Record<string, unknown> = {}
+    const { data: p1, error: e1 } = await supabase
+      .from('user_profiles')
+      .select('avatar_url, bio, company, linkedin_url, location, website')
+      .eq('id', ownerId)
+      .single()
+
+    if (!e1 && p1) {
+      profileData = p1
+    } else {
+      const { data: p2 } = await supabase
+        .from('user_profiles')
+        .select('avatar_url, bio, company, linkedin_url, location, website')
+        .eq('user_id', ownerId)
+        .single()
+      profileData = p2 || {}
+    }
+
+    const [otherMvpsRes, meetingsRes, totalMvpsRes] = await Promise.all([
+      supabase
+        .from('mvps')
+        .select('id, title, cover_image_url, views_count, favorites_count, deal_modality, one_liner, slug')
+        .eq('owner_id', ownerId)
+        .eq('status', 'approved')
+        .neq('id', currentMvpId)
+        .order('published_at', { ascending: false }),
+      supabase
+        .from('meetings')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', ownerId),
+      supabase
+        .from('mvps')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', ownerId)
+        .eq('status', 'approved'),
+    ])
+
+    return {
+      success: true,
+      data: {
+        profile: {
+          display_name: displayName,
+          avatar_url: (profileData.avatar_url as string | null) || avatarFromAuth,
+          ...profileData,
+        },
+        email,
+        joinedAt,
+        otherMvps: otherMvpsRes.data || [],
+        meetingsCount: meetingsRes.count || 0,
+        totalMvps: totalMvpsRes.count || 0,
+      },
+    }
+  } catch (error) {
+    console.error('Error fetching creator data:', error)
+    return { success: false, error: 'Error al obtener datos del creador' }
   }
 }
 

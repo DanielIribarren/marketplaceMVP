@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getMvpDetails } from '@/app/actions/mvp'
+import { getMvpDetails, getCreatorPublicData } from '@/app/actions/mvp'
 import { recordMvpUniqueView } from '@/app/actions/mvpViews'
 import { getMyMeetings } from '@/app/actions/meetings'
 import type { Meeting } from '@/app/actions/meetings'
@@ -16,7 +16,8 @@ import {
   Heart, Calendar, CalendarClock, Share2,
   Banknote, Layers, CalendarDays, User,
   ChevronLeft, ChevronRight, PlayCircle,
-  FileText, Images, Zap, Code2, ListChecks, BarChart2, Info, Tag, TrendingUp
+  FileText, Images, Zap, Code2, ListChecks, BarChart2, Info, Tag, TrendingUp,
+  Linkedin, MapPin, Building2, Globe
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogTitle
@@ -63,6 +64,9 @@ interface MVP {
     avatar_url?: string
     company?: string
     bio?: string
+    linkedin_url?: string
+    location?: string
+    website?: string
   }
 }
 
@@ -112,12 +116,53 @@ const SECTOR_LABEL: Record<string, string> = {
   otros: 'Otros',
 }
 
+interface CreatorProfile {
+  display_name?: string | null
+  avatar_url?: string | null
+  bio?: string | null
+  company?: string | null
+  linkedin_url?: string | null
+  location?: string | null
+  website?: string | null
+  github_url?: string | null
+  created_at?: string | null
+}
+
+interface OtherMvp {
+  id: string
+  title: string
+  cover_image_url?: string | null
+  views_count?: number
+  favorites_count?: number
+  deal_modality?: string | null
+  one_liner?: string | null
+  slug?: string
+}
+
+interface CreatorData {
+  profile: CreatorProfile
+  email: string | null
+  joinedAt: string | null
+  otherMvps: OtherMvp[]
+  meetingsCount: number
+  totalMvps: number
+}
+
+function getInitials(name?: string | null) {
+  const v = (name || '').trim()
+  if (!v) return '?'
+  const parts = v.split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + (parts[1][0] || '')).toUpperCase()
+}
+
 export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean }) {
   const params = useParams()
   const router = useRouter()
   const [mvp, setMvp] = useState<MVP | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [showScheduler, setShowScheduler] = useState(false)
@@ -129,6 +174,9 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
   const [selectedMedia, setSelectedMedia] = useState<{ url: string; isVideo: boolean } | null>(null)
   const [showFullDescription, setShowFullDescription] = useState(false)
   const [showDifferentialsDialog, setShowDifferentialsDialog] = useState(false)
+  const [showCreatorDialog, setShowCreatorDialog] = useState(false)
+  const [creatorData, setCreatorData] = useState<CreatorData | null>(null)
+  const [creatorDataLoading, setCreatorDataLoading] = useState(false)
 
   const isVideo = (url: string) => /\.(mp4|webm|ogg|mov)$/i.test(url) || url.includes('video')
 
@@ -140,6 +188,47 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
   const handleImageError = (imageUrl: string) => {
     setImageErrors((prev) => new Set(prev).add(imageUrl))
   }
+
+  const handleViewCreator = async () => {
+    if (!mvp?.owner_id) return
+    setShowCreatorDialog(true)
+    if (creatorData) return
+    setCreatorDataLoading(true)
+
+    // Usar inmediatamente lo que ya viene del MVP (evita RLS)
+    const initialProfile: CreatorProfile = {
+      display_name: mvp.user_profiles?.display_name,
+      avatar_url: mvp.user_profiles?.avatar_url,
+      company: mvp.user_profiles?.company,
+      bio: mvp.user_profiles?.bio,
+      linkedin_url: mvp.user_profiles?.linkedin_url,
+      location: mvp.user_profiles?.location,
+      website: mvp.user_profiles?.website,
+    }
+    setCreatorData({ profile: initialProfile, email: null, joinedAt: null, otherMvps: [], meetingsCount: 0, totalMvps: 0 })
+
+    const result = await getCreatorPublicData(mvp.owner_id, mvp.id)
+    if (result.success && result.data) {
+      setCreatorData({
+        profile: {
+          ...initialProfile,
+          ...(result.data.profile as CreatorProfile),
+          display_name: (result.data.profile as CreatorProfile).display_name || initialProfile.display_name,
+          avatar_url: (result.data.profile as CreatorProfile).avatar_url || initialProfile.avatar_url,
+        },
+        email: result.data.email as string | null,
+        joinedAt: result.data.joinedAt as string | null,
+        otherMvps: result.data.otherMvps as OtherMvp[],
+        meetingsCount: result.data.meetingsCount,
+        totalMvps: result.data.totalMvps,
+      })
+    }
+    setCreatorDataLoading(false)
+  }
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -336,6 +425,19 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
               </div>
               {/* Share + Favorite */}
               <div className="flex items-center gap-2">
+              {/* Creado por */}
+              {mvp.owner_id && (
+                <button
+                  type="button"
+                  onClick={handleViewCreator}
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                >
+                  <span className="text-xs">Creado por:</span>
+                  <span className="font-semibold text-foreground underline underline-offset-2 decoration-dotted group-hover:decoration-solid transition-all">
+                    {mvp.user_profiles?.display_name || 'Ver perfil'}
+                  </span>
+                </button>
+              )}
               <div className="relative">
                 <button
                   type="button"
@@ -817,6 +919,7 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
       </div>
 
       {/* Dialog descripción completa */}
+      {mounted && (
       <Dialog open={showFullDescription} onOpenChange={setShowFullDescription}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogTitle className="text-xl font-semibold mb-1">Descripción completa</DialogTitle>
@@ -825,8 +928,10 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Dialog diferenciales competitivos */}
+      {mounted && (
       <Dialog open={showDifferentialsDialog} onOpenChange={setShowDifferentialsDialog}>
         <DialogContent className="max-w-lg">
           <DialogTitle className="text-xl font-semibold">Diferenciales Competitivos</DialogTitle>
@@ -849,8 +954,180 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
           </div>
         </DialogContent>
       </Dialog>
+      )}
+
+      {/* ── Dialog: Perfil del Creador ── */}
+      {mounted && (
+      <Dialog open={showCreatorDialog} onOpenChange={setShowCreatorDialog}>
+        <DialogContent className="max-w-xl p-0 gap-0 [&>button]:text-white [&>button]:hover:text-white/80 [&>button]:top-3 [&>button]:right-3 [&>button]:z-10">
+          <DialogTitle className="sr-only">Perfil del creador</DialogTitle>
+
+          {/* Banner con avatar + nombre encima */}
+          <div className="h-36 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-700 relative flex-shrink-0 rounded-t-xl" style={{ overflow: 'visible' }}>
+            <div className="absolute inset-0 opacity-[0.07] rounded-t-xl" style={{ backgroundImage: 'linear-gradient(rgba(255,107,53,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,107,53,0.6) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+
+            {/* Avatar: mitad en el banner, mitad en blanco */}
+            <div className="absolute bottom-0 left-6 translate-y-1/2 z-20">
+              {creatorData?.profile.avatar_url ? (
+                <Image
+                  src={creatorData.profile.avatar_url}
+                  alt={creatorData.profile.display_name || 'Avatar'}
+                  width={96} height={96}
+                  className="w-24 h-24 rounded-2xl border-4 border-background object-cover shadow-xl"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-2xl border-4 border-background bg-brand-100 flex items-center justify-center shadow-xl">
+                  <span className="text-3xl font-bold text-brand-700">
+                    {getInitials(creatorData?.profile.display_name)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Nombre + empresa + fecha — a la derecha del avatar, sobre el banner */}
+            <div className="absolute bottom-0 left-[136px] right-4 pb-4 flex flex-col justify-end gap-0.5">
+              <h2 className="text-xl font-bold text-white leading-tight line-clamp-1">
+                {creatorData?.profile.display_name || 'Usuario'}
+              </h2>
+              {creatorData?.profile.company && (
+                <p className="text-[11px] text-white/65 flex items-center gap-1 line-clamp-1">
+                  <Building2 className="w-3 h-3 flex-shrink-0" />
+                  {creatorData.profile.company}
+                </p>
+              )}
+              {creatorData?.joinedAt && (
+                <p className="text-[10px] text-white/50 mt-0.5">
+                  Se unió el {new Date(creatorData.joinedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Contenido scrolleable */}
+          <div className="overflow-y-auto" style={{ maxHeight: 'calc(85vh - 9rem)' }}>
+
+            {creatorDataLoading && !creatorData ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="animate-spin w-7 h-7 text-muted-foreground" />
+              </div>
+            ) : creatorData ? (
+              <div className="px-6 pb-6">
+
+                {/* Espacio para el avatar que sobresale + info de contacto */}
+                <div className="pt-14">
+                  {/* Email */}
+                  {creatorData.email && (
+                    <p className="text-[12px] text-zinc-500 mb-1">{creatorData.email}</p>
+                  )}
+
+                  {/* LinkedIn */}
+                  {creatorData.profile.linkedin_url && (
+                    <Link
+                      href={creatorData.profile.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-[#0077b5] hover:underline"
+                    >
+                      <Linkedin className="w-3 h-3" />
+                      {creatorData.profile.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}
+                    </Link>
+                  )}
+                </div>
+
+                {/* Bio */}
+                {creatorData.profile.bio && (
+                  <p className="text-sm text-muted-foreground leading-relaxed pl-3 border-l-2 border-brand-200 mt-4 mb-1">
+                    {creatorData.profile.bio}
+                  </p>
+                )}
+
+                {/* Separador */}
+                <div className="border-t border-border/50 my-4" />
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {[
+                    { value: creatorData.totalMvps, label: 'MVPs publicados' },
+                    { value: creatorData.meetingsCount, label: 'Reuniones recibidas' },
+                    { value: creatorData.otherMvps.reduce((acc, m) => acc + (m.favorites_count || 0), mvp?.favorites_count || 0), label: 'Total favoritos' },
+                  ].map(({ value, label }) => (
+                    <div key={label} className="rounded-xl bg-brand-50 border border-brand-100 p-3 text-center">
+                      <p className="text-2xl font-extrabold text-brand-700">{value}</p>
+                      <p className="text-[11px] text-brand-500 font-medium mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Otros MVPs */}
+                {creatorData.otherMvps.length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <h3 className="text-sm font-semibold">Otros MVPs</h3>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {creatorData.otherMvps.length}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', overflowX: 'scroll', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
+                      {creatorData.otherMvps.map((m) => (
+                        <Link
+                          key={m.id}
+                          href={`/mvps/${m.id}`}
+                          onClick={() => setShowCreatorDialog(false)}
+                          style={{ flexShrink: 0, width: '176px' }}
+                          className="rounded-xl border border-border bg-muted/30 overflow-hidden hover:border-brand-300 hover:shadow-md transition-all duration-200 group block"
+                        >
+                          <div className="relative h-24 bg-muted overflow-hidden">
+                            {m.cover_image_url ? (
+                              <Image
+                                src={m.cover_image_url}
+                                alt={m.title}
+                                fill
+                                unoptimized
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Layers className="w-8 h-8 text-muted-foreground/30" />
+                              </div>
+                            )}
+                            {m.deal_modality && (
+                              <span className="absolute top-1.5 left-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-sm">
+                                {DEAL_MODALITY_LABELS[m.deal_modality] ?? m.deal_modality}
+                              </span>
+                            )}
+                          </div>
+                          <div className="p-2.5">
+                            <p className="text-xs font-semibold text-foreground line-clamp-1 mb-1">{m.title}</p>
+                            {m.one_liner && (
+                              <p className="text-[10px] text-muted-foreground line-clamp-2 leading-tight mb-2">{m.one_liner}</p>
+                            )}
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" /> {m.views_count || 0}</span>
+                              <span className="flex items-center gap-0.5"><Heart className="w-3 h-3" /> {m.favorites_count || 0}</span>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Este es el único MVP publicado por este creador.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                No se pudo cargar el perfil del creador.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      )}
 
       {/* Dialog para ver imagen/video en grande */}
+      {mounted && (
       <Dialog open={!!selectedMedia} onOpenChange={(open) => { if (!open) setSelectedMedia(null) }}>
         <DialogContent className="max-w-5xl w-[90vw] p-0 border border-white/10 bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl [&>button]:text-white/70 [&>button]:hover:text-white [&>button]:top-3 [&>button]:right-3 [&>button]:h-8 [&>button]:w-8 [&>button]:rounded-full [&>button]:bg-white/10 [&>button]:hover:bg-white/20 [&>button]:ring-offset-zinc-900 [&>button]:flex [&>button]:items-center [&>button]:justify-center">
           <DialogTitle className="sr-only">Vista ampliada</DialogTitle>
@@ -882,6 +1159,7 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
           ) : null}
         </DialogContent>
       </Dialog>
+      )}
     </div>
   )
 }
