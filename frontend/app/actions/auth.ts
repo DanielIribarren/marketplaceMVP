@@ -76,7 +76,7 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/marketplace')
+  return { success: true }
 }
 
 export async function logout() {

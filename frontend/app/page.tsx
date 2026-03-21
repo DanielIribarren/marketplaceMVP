@@ -220,7 +220,9 @@ export default async function Home() {
         </section>
       </main>
 
-      <Footer />
+      <div className="-mt-20">
+        <Footer />
+      </div>
     </div>
   )
 }

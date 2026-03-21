@@ -16,10 +16,14 @@ export default async function HowItWorksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background">
       <Navbar isAuthenticated={isAuthenticated} isAdmin={userIsAdmin} />
-      <HowItWorksClient />
-      <Footer />
+      <div className="overflow-x-hidden">
+        <HowItWorksClient />
+        <div className="-mt-20">
+          <Footer />
+        </div>
+      </div>
     </div>
   )
 }

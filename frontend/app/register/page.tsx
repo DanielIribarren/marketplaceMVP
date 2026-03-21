@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { signup } from '@/app/actions/auth'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 function GoogleIcon() {
@@ -28,51 +30,19 @@ interface FieldErrors {
   confirm_password?: string
 }
 
-const STORAGE_KEY = 'register-form'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [loading, setLoading] = useState(false)
-  const [formValues, setFormValues] = useState(() => {
-    // Cargar datos guardados (excepto contraseñas por seguridad)
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        try {
-          const { display_name, email } = JSON.parse(saved)
-          return {
-            display_name: display_name || '',
-            email: email || '',
-            password: '',
-            confirm_password: ''
-          }
-        } catch {
-          return {
-            display_name: '',
-            email: '',
-            password: '',
-            confirm_password: ''
-          }
-        }
-      }
-    }
-    return {
-      display_name: '',
-      email: '',
-      password: '',
-      confirm_password: ''
-    }
+  const [successDialog, setSuccessDialog] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [formValues, setFormValues] = useState({
+    display_name: '',
+    email: '',
+    password: '',
+    confirm_password: ''
   })
-
-  // Guardar nombre y email en localStorage (no contraseñas)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        display_name: formValues.display_name,
-        email: formValues.email
-      }))
-    }
-  }, [formValues.display_name, formValues.email])
 
   function validatePassword(password: string): string | null {
     if (password.length < 8) {
@@ -171,10 +141,8 @@ export default function RegisterPage() {
       }
       setLoading(false)
     } else {
-      // Limpiar localStorage al registrarse exitosamente
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(STORAGE_KEY)
-      }
+      setLoading(false)
+      setSuccessDialog(true)
     }
   }
 
@@ -247,17 +215,27 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  disabled={loading}
-                  value={formValues.password}
-                  onChange={(e) => setFormValues(prev => ({ ...prev, password: e.target.value }))}
-                  className={fieldErrors.password ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                    value={formValues.password}
+                    onChange={(e) => setFormValues(prev => ({ ...prev, password: e.target.value }))}
+                    className={fieldErrors.password ? 'border-red-500 pr-10' : 'pr-10'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(prev => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {fieldErrors.password && (
                   <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-md text-xs">
                     {fieldErrors.password}
@@ -354,6 +332,29 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+
+      <Dialog open={successDialog} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-sm text-center [&>button]:hidden">
+          <DialogTitle className="sr-only">Cuenta creada con éxito</DialogTitle>
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle2 className="h-9 w-9 text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-green-700">¡Cuenta creada con éxito!</h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Tu cuenta ha sido creada correctamente.<br />Inicia sesión para comenzar.
+              </p>
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => router.push('/login')}
+            >
+              Ok, iniciar sesión
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

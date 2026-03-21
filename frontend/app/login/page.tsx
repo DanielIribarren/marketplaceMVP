@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { login } from '@/app/actions/auth'
 import Link from 'next/link'
@@ -22,8 +22,6 @@ function GoogleIcon() {
   )
 }
 
-const STORAGE_KEY = 'login-form'
-
 export default function LoginPage() {
   const searchParams = useSearchParams()
   const errorParam = searchParams.get('error')
@@ -34,35 +32,11 @@ export default function LoginPage() {
   )
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [formValues, setFormValues] = useState(() => {
-    // Solo cargar en cliente
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        try {
-          const { email } = JSON.parse(saved)
-          return { email: email || '', password: '' }
-        } catch {
-          return { email: '', password: '' }
-        }
-      }
-    }
-    return { email: '', password: '' }
-  })
-
-  // Guardar solo el email en localStorage
-  useEffect(() => {
-    if (formValues.email) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ email: formValues.email }))
-    }
-  }, [formValues.email])
+  const [formValues, setFormValues] = useState({ email: '', password: '' })
 
   async function handleGoogleSignIn() {
     setLoading(true)
     setError(null)
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY)
-    }
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -92,11 +66,6 @@ export default function LoginPage() {
       // Solo borrar contraseña en caso de error, mantener email
       setFormValues(prev => ({ ...prev, password: '' }))
       setLoading(false)
-    } else {
-      // Limpiar localStorage al hacer login exitoso
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(STORAGE_KEY)
-      }
     }
   }
 

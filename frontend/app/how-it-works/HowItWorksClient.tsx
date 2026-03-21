@@ -5,9 +5,9 @@ import Link from 'next/link'
 import {
   Rocket, Search, Calendar, CheckCircle2, ArrowRight,
   Users, Shield, Zap, TrendingUp, FileText, Clock,
-  MessageSquare, Star, ChevronDown, Eye, DollarSign,
-  Handshake, RefreshCw, XCircle, BadgeCheck, BarChart3,
-  Lock, Globe, Play
+  MessageSquare, Eye, DollarSign,
+  Handshake, RefreshCw, BadgeCheck, BarChart3,
+  Lock, Globe
 } from 'lucide-react'
 import useEmblaCarousel from 'embla-carousel-react'
 import AutoScroll from 'embla-carousel-auto-scroll'
@@ -104,6 +104,7 @@ interface RoleSelectorProps {
 }
 
 function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
+  const [hoveredRole, setHoveredRole] = useState<Role | null>(null)
   // Define el color del punto según el rol actual
   const dotColor = role === 'entrepreneur' ? '#FF6B35' : '#1a1a1a'
 
@@ -193,12 +194,14 @@ function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
         {/* Caja Emprendedor */}
         <motion.button
           onClick={() => setRole('entrepreneur')}
+          onMouseEnter={() => setHoveredRole('entrepreneur')}
+          onMouseLeave={() => setHoveredRole(null)}
           animate={{
             background: role === 'entrepreneur'
               ? 'linear-gradient(135deg, #FF6B35, #e85a22)'
               : '#ffffff',
             color: role === 'entrepreneur' ? '#ffffff' : '#6b7280',
-            scale: role === 'entrepreneur' ? 1.05 : 1,
+            scale: role === 'entrepreneur' ? 1.05 : hoveredRole === 'entrepreneur' ? 1.04 : 1,
           }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
           style={{
@@ -238,12 +241,14 @@ function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
         {/* Caja Inversor */}
         <motion.button
           onClick={() => setRole('investor')}
+          onMouseEnter={() => setHoveredRole('investor')}
+          onMouseLeave={() => setHoveredRole(null)}
           animate={{
             background: role === 'investor'
               ? 'linear-gradient(135deg, #1a1a1a, #333333)'
               : '#ffffff',
             color: role === 'investor' ? '#ffffff' : '#6b7280',
-            scale: role === 'investor' ? 1.05 : 1,
+            scale: role === 'investor' ? 1.05 : hoveredRole === 'investor' ? 1.04 : 1,
           }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
           style={{
@@ -421,7 +426,7 @@ function MeetingCarouselSection() {
   )
 
   return (
-    <section style={{ padding: '80px 0', background: '#ffffff', overflowX: 'hidden', overflowY: 'visible' }}>
+    <section style={{ padding: '80px 0 40px', background: '#ffffff', overflowX: 'hidden', overflowY: 'visible' }}>
       {/* Título — con padding lateral */}
       <div style={{ padding: '0 16px', maxWidth: '1280px', margin: '0 auto' }}>
         <FadeIn>
@@ -559,34 +564,6 @@ function MeetingCarouselSection() {
   )
 }
 
-// ─── FAQ con stickman ────────────────────────────────────────────────────────
-const faqItems = [
-  {
-    q: '¿Cuánto tarda la revisión de un MVP?',
-    a: 'El equipo revisa cada publicación en menos de 24 horas hábiles. Recibirás un email con el resultado y, si hay correcciones, tendrás instrucciones claras para ajustar tu listing.',
-  },
-  {
-    q: '¿Necesito cuenta para explorar el marketplace?',
-    a: 'Puedes navegar y ver las tarjetas públicas sin cuenta. Para ver el demo URL, capturas completas y solicitar reuniones necesitas registrarte. El registro es gratuito y tarda menos de 2 minutos.',
-  },
-  {
-    q: '¿Qué pasa si el emprendedor no puede en el horario que seleccioné?',
-    a: 'El sistema de reuniones permite contrapropuestas. El emprendedor puede rechazar la fecha y proponer un horario alternativo. Vos puedes aceptar, volver a contraproposer, o cancelar sin penalización.',
-  },
-  {
-    q: '¿MVPMarket cobra comisión por las transacciones?',
-    a: 'MVPMarket no interviene en el cierre del deal ni cobra comisión sobre el precio de venta. El valor está en la conexión y la confianza: el acuerdo final es entre tú y el comprador.',
-  },
-  {
-    q: '¿Puedo publicar más de un MVP?',
-    a: 'Sí. Podés tener múltiples listings activos simultáneamente. Cada uno pasa por revisión independiente y tiene su propio sistema de reuniones y estado.',
-  },
-  {
-    q: '¿Cómo se protege el código durante las negociaciones?',
-    a: 'El código fuente nunca se comparte en la plataforma. Tú decides qué muestras (demo, capturas, repositorio privado con acceso puntual). MVPMarket facilita el contacto, el control del activo es tuyo.',
-  },
-]
-
 // ─── Lupa inspeccionando documento ──────────────────────────────────────────
 function MagnifierWidget({ activeIndex, color }: { activeIndex: number | null; color: string }) {
   const isActive = activeIndex !== null
@@ -682,168 +659,11 @@ function MagnifierWidget({ activeIndex, color }: { activeIndex: number | null; c
   )
 }
 
-function FaqSection() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
-
-  const colors = ['#FF6B35', '#ef4444', '#fbbf24', '#16a34a', '#fb923c', '#1a1a1a']
-  const activeColor = openFaq !== null ? colors[openFaq % colors.length] : '#FF6B35'
-
-  return (
-    <section style={{ padding: '80px 16px', background: '#f9fafb' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <FadeIn>
-          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-            <h2 style={{
-              fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
-              fontWeight: 800, color: '#111827', marginBottom: '12px',
-            }}>
-              Preguntas frecuentes
-            </h2>
-            <p style={{ color: '#6b7280', fontSize: '1rem' }}>
-              Todo lo que necesitas saber antes de publicar o invertir.
-            </p>
-          </div>
-        </FadeIn>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 220px',
-          gap: '32px',
-          alignItems: 'start',
-          position: 'relative',
-        }}>
-          {/* FAQs */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {faqItems.map((item, i) => {
-              const isOpen = openFaq === i
-              const color = colors[i % colors.length]
-              return (
-                <div
-                  key={i}
-                  onClick={() => setOpenFaq(isOpen ? null : i)}
-                  style={{
-                    background: '#ffffff',
-                    border: `1px solid ${isOpen ? color + '50' : '#e5e7eb'}`,
-                    borderLeft: `4px solid ${isOpen ? color : '#e5e7eb'}`,
-                    borderRadius: '12px',
-                    padding: '20px 24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s',
-                    boxShadow: isOpen ? `0 4px 20px ${color}15` : 'none',
-                    transform: isOpen ? 'translateX(6px)' : 'none',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isOpen) (e.currentTarget as HTMLElement).style.borderLeftColor = color
-                  }}
-                  onMouseLeave={e => {
-                    if (!isOpen) (e.currentTarget as HTMLElement).style.borderLeftColor = '#e5e7eb'
-                  }}
-                >
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between',
-                    alignItems: 'center', gap: '16px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{
-                        width: '28px', height: '28px', borderRadius: '50%',
-                        background: isOpen ? color : '#f3f4f6',
-                        color: isOpen ? '#fff' : '#9ca3af',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '12px', fontWeight: 800, flexShrink: 0,
-                        transition: 'all 0.25s',
-                      }}>{i + 1}</span>
-                      <span style={{
-                        fontWeight: 600, fontSize: '15px',
-                        color: isOpen ? '#111827' : '#374151',
-                      }}>
-                        {item.q}
-                      </span>
-                    </div>
-                    <span style={{
-                      fontSize: '20px', color: isOpen ? color : '#d1d5db',
-                      transform: isOpen ? 'rotate(45deg)' : 'none',
-                      transition: 'all 0.25s',
-                      flexShrink: 0,
-                    }}>+</span>
-                  </div>
-
-                  {isOpen && (
-                    <div style={{
-                      marginTop: '16px',
-                      paddingTop: '16px',
-                      borderTop: `1px solid ${color}20`,
-                      color: '#6b7280',
-                      fontSize: '14px',
-                      lineHeight: 1.7,
-                    }}>
-                      {item.a}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Lupa con posicion dinamica */}
-          <div style={{ position: 'relative', minHeight: '500px' }}>
-            {(() => {
-              const CARD_HEIGHT = 68
-              const CARD_GAP = 12
-
-              // Posicion vertical: cuando hay seleccion, apunta a esa card
-              const topOffset = openFaq !== null
-                ? openFaq * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2 - 110
-                : 60
-
-              // Posicion horizontal: más a la derecha en reposo, corre a la izquierda al seleccionar
-              const leftVal = openFaq !== null ? '10px' : '75%'
-              const translateX = openFaq !== null ? '0' : '-50%'
-              const scale = openFaq !== null ? 1 : 1.25
-
-              return (
-                <div style={{
-                  position: 'sticky',
-                  top: '120px',
-                }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: leftVal,
-                    top: `${Math.max(0, topOffset)}px`,
-                    transform: `translateX(${translateX}) scale(${scale})`,
-                    transformOrigin: 'center top',
-                    transition: 'all 0.5s cubic-bezier(0.34, 1.3, 0.64, 1)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0px',
-                  }}>
-                    <MagnifierWidget activeIndex={openFaq} color={activeColor} />
-                    <p style={{
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: openFaq !== null ? activeColor : '#a0aec0',
-                      textAlign: 'center',
-                      letterSpacing: '0.02em',
-                      transition: 'color 0.35s ease',
-                      whiteSpace: 'nowrap',
-                      marginTop: '-25px',
-                    }}>
-                      {openFaq !== null ? 'Inspeccionando...' : '¡Selecciona una pregunta!'}
-                    </p>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 // ─── Componente principal ────────────────────────────────────────────────────
 export function HowItWorksClient() {
   const [role, setRole] = useState<Role>('entrepreneur')
+  const [econActive, setEconActive] = useState(false)
+  const [nonEconActive, setNonEconActive] = useState(false)
 
   const steps = role === 'entrepreneur' ? entrepreneurSteps : investorSteps
 
@@ -1051,7 +871,7 @@ export function HowItWorksClient() {
         <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
 
           <FadeIn>
-            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
               <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 800, color: '#111827', marginBottom: '12px' }}>
                 El proceso paso a paso
               </h2>
@@ -1126,6 +946,131 @@ export function HowItWorksClient() {
 
       {/* ── SISTEMA DE REUNIONES ── */}
       <MeetingCarouselSection />
+
+      {/* ── OFERTAS ── */}
+      <section style={{ background: '#ffffff', paddingBottom: '56px' }}>
+        <FadeIn>
+          <div style={{ textAlign: 'center', padding: '56px 16px 40px' }}>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 800, color: '#111827', marginBottom: '12px', letterSpacing: '-0.02em' }}>Tipos de oferta</h2>
+            <p style={{ color: '#6b7280', fontSize: '1rem', maxWidth: '500px', margin: '0 auto' }}>Cuando se agenda una reunión, el inversor puede adjuntar una oferta formal con dos modalidades.</p>
+          </div>
+        </FadeIn>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'stretch', borderTop: '1px solid #f3f4f6', borderBottom: '1px solid #f3f4f6' }}>
+
+          {/* ── Oferta económica ── */}
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: '28px',
+            padding: '52px 48px 52px 56px', boxSizing: 'border-box',
+            background: econActive ? 'linear-gradient(135deg, #f8fafc, #f1f5f9)' : 'transparent',
+            boxShadow: econActive ? 'inset 0 0 40px rgba(0,0,0,0.04)' : 'none',
+            transition: 'background 0.35s ease, box-shadow 0.35s ease',
+          }}>
+            <motion.div
+              animate={econActive
+                ? { y: 0, boxShadow: '0 0 0px 0px rgba(249,115,22,0)' }
+                : { y: [0, -7, 0], boxShadow: ['0 4px 14px 3px rgba(249,115,22,0.22)', '0 8px 28px 8px rgba(249,115,22,0.42)', '0 4px 14px 3px rgba(249,115,22,0.22)'] }}
+              transition={econActive
+                ? { duration: 0.25 }
+                : { repeat: Infinity, duration: 1.15, ease: 'easeInOut' }}
+              style={{ flexShrink: 0, cursor: 'pointer', borderRadius: '20px' }}
+              onClick={() => setEconActive(p => !p)}
+            >
+              <div style={{ width: 72, height: 72, borderRadius: '20px', background: 'linear-gradient(135deg, #fff7ed, #ffedd5)', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <DollarSign size={36} style={{ color: '#f97316' }} />
+              </div>
+            </motion.div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                <div style={{ fontWeight: 800, fontSize: '20px', color: '#111827', letterSpacing: '-0.01em' }}>Oferta económica</div>
+                {econActive && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10, scale: 0.9 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ background: '#fff7ed', borderRadius: '8px', padding: '5px 12px', color: '#c2410c', fontSize: '12px', fontWeight: 700, border: '1px solid #fed7aa', whiteSpace: 'nowrap' }}
+                  >
+                    Monto + % Equity del MVP
+                  </motion.div>
+                )}
+              </div>
+              <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: 1.75 }}>
+                El inversor propone un monto en USD más un porcentaje de equity del MVP. Por ejemplo: <strong style={{ color: '#f97316' }}>$10,000 por 15% del MVP</strong>.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Centro: Handshake interactivo ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', borderLeft: '1px solid #f3f4f6', borderRight: '1px solid #f3f4f6' }}>
+            <div
+              style={{ position: 'relative', width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'hidden' }}
+            >
+              {/* Left half background — orange when econ active */}
+              <div style={{
+                position: 'absolute', left: 0, top: 0, width: '50%', height: '100%',
+                background: econActive ? 'rgba(249,115,22,0.22)' : 'transparent',
+                transition: 'background 0.3s ease', pointerEvents: 'none',
+              }} />
+              {/* Right half background — green when non active */}
+              <div style={{
+                position: 'absolute', right: 0, top: 0, width: '50%', height: '100%',
+                background: nonEconActive ? 'rgba(22,163,74,0.22)' : 'transparent',
+                transition: 'background 0.3s ease', pointerEvents: 'none',
+              }} />
+              {/* Icon — always gray, on top */}
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <Handshake size={42} color="#94a3b8" />
+              </div>
+            </div>
+            <div style={{ marginTop: '12px', color: '#cbd5e1', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', maxWidth: '70px', lineHeight: 1.4 }}>o bien</div>
+          </div>
+
+          {/* ── Aporte no económico ── */}
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: '28px',
+            padding: '52px 56px 52px 48px', boxSizing: 'border-box',
+            background: nonEconActive ? 'linear-gradient(135deg, #f8fafc, #f1f5f9)' : 'transparent',
+            boxShadow: nonEconActive ? 'inset 0 0 40px rgba(0,0,0,0.04)' : 'none',
+            transition: 'background 0.35s ease, box-shadow 0.35s ease',
+          }}>
+            <motion.div
+              animate={nonEconActive
+                ? { y: 0, boxShadow: '0 0 0px 0px rgba(22,163,74,0)' }
+                : { y: [0, -7, 0], boxShadow: ['0 4px 14px 3px rgba(22,163,74,0.20)', '0 8px 28px 8px rgba(22,163,74,0.38)', '0 4px 14px 3px rgba(22,163,74,0.20)'] }}
+              transition={nonEconActive
+                ? { duration: 0.25 }
+                : { repeat: Infinity, duration: 1.25, ease: 'easeInOut', delay: 0.25 }}
+              style={{ flexShrink: 0, cursor: 'pointer', borderRadius: '20px' }}
+              onClick={() => setNonEconActive(p => !p)}
+            >
+              <div style={{ width: 72, height: 72, borderRadius: '20px', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={36} style={{ color: '#16a34a' }} />
+              </div>
+            </motion.div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                <div style={{ fontWeight: 800, fontSize: '20px', color: '#111827', letterSpacing: '-0.01em' }}>Aporte no económico</div>
+                {nonEconActive && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10, scale: 0.9 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ background: '#f0fdf4', borderRadius: '8px', padding: '5px 12px', color: '#15803d', fontSize: '12px', fontWeight: 700, border: '1px solid #bbf7d0', whiteSpace: 'nowrap' }}
+                  >
+                    Valor estratégico sin dinero
+                  </motion.div>
+                )}
+              </div>
+              <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: 1.75 }}>
+                El inversor describe su aporte en forma de mentoría, red de contactos, distribución u otro valor estratégico para el MVP.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
 
       {/* ── SEÑALES DE CALIDAD ── */}
       <section style={{ padding: '80px 16px', background: '#111827' }}>
@@ -1346,9 +1291,6 @@ export function HowItWorksClient() {
           </div>
         </div>
       </section>
-
-      {/* ── FAQ ── */}
-      <FaqSection />
 
       {/* ── CTA FINAL ── */}
       <section style={{

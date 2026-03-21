@@ -22,6 +22,10 @@ import {
   Rocket,
   LogOut,
   Shield,
+  Settings,
+  Wrench,
+  HelpCircle,
+  ChevronRight,
 } from 'lucide-react'
 import {
   Dialog,
@@ -107,7 +111,12 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
   const [profileOpen, setProfileOpen] = useState(false)
   const [profileDirty, setProfileDirty] = useState(false)
   const [profileUnsavedDialog, setProfileUnsavedDialog] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [supportDialogOpen, setSupportDialogOpen] = useState(false)
+  const [faqDialogOpen, setFaqDialogOpen] = useState(false)
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
   const notificationsRef = useRef<HTMLDivElement | null>(null)
+  const settingsRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
 
   const totalUnread = unreadNotifications > 0 ? unreadNotifications : unreadMessages
@@ -254,18 +263,25 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
 
   useEffect(() => {
     if (!notificationsOpen) return
-
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setNotificationsOpen(false)
       }
     }
-
     window.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      window.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => window.removeEventListener('mousedown', handleClickOutside)
   }, [notificationsOpen])
+
+  useEffect(() => {
+    if (!settingsOpen) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setSettingsOpen(false)
+      }
+    }
+    window.addEventListener('mousedown', handleClickOutside)
+    return () => window.removeEventListener('mousedown', handleClickOutside)
+  }, [settingsOpen])
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -474,6 +490,114 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                             onLogout={() => setLogoutDialogOpen(true)}
                             onDirtyChange={setProfileDirty}
                           />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* Tuerquita de ajustes */}
+                    <div className="relative" ref={settingsRef}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:bg-muted text-muted-foreground hover:text-foreground"
+                        onClick={() => setSettingsOpen(prev => !prev)}
+                      >
+                        <Settings className="h-[18px] w-[18px]" />
+                      </Button>
+
+                      {settingsOpen && (
+                        <div className="absolute right-0 top-12 w-52 rounded-xl border border-border bg-background shadow-lg z-50 py-1 overflow-hidden">
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
+                            onClick={() => { setSettingsOpen(false); setSupportDialogOpen(true) }}
+                          >
+                            <Wrench className="h-4 w-4 text-muted-foreground" />
+                            Soporte técnico
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
+                            onClick={() => { setSettingsOpen(false); setFaqDialogOpen(true) }}
+                          >
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            Preguntas frecuentes
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dialog: Soporte técnico */}
+                    <Dialog open={supportDialogOpen} onOpenChange={setSupportDialogOpen}>
+                      <DialogContent className="max-w-sm text-center">
+                        <DialogTitle className="sr-only">Soporte técnico</DialogTitle>
+                        <div className="flex flex-col items-center gap-4 py-2">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                            <Wrench className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <h2 className="text-lg font-semibold">Soporte técnico</h2>
+                            <p className="mt-1.5 text-sm text-muted-foreground">
+                              Esta función está actualmente en desarrollo.<br />
+                              Pronto podrás contactar a nuestro equipo directamente desde aquí.
+                            </p>
+                          </div>
+                          <div className="w-full rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 px-4 py-3">
+                            <p className="text-xs text-muted-foreground">🚧 En construcción — disponible próximamente</p>
+                          </div>
+                          <Button className="w-full" onClick={() => setSupportDialogOpen(false)}>Entendido</Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* Dialog: Preguntas frecuentes */}
+                    <Dialog open={faqDialogOpen} onOpenChange={setFaqDialogOpen}>
+                      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 [&>button]:hidden">
+                        <DialogTitle className="sr-only">Preguntas frecuentes</DialogTitle>
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                          <div className="flex items-center gap-2">
+                            <HelpCircle className="h-5 w-5 text-primary" />
+                            <h2 className="text-lg font-bold">Preguntas frecuentes</h2>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFaqDialogOpen(false)}
+                            className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          >
+                            <XCircle className="h-5 w-5" />
+                          </button>
+                        </div>
+                        <div className="overflow-y-auto px-6 py-5 flex flex-col gap-3">
+                          {[
+                            { q: '¿Cuánto tarda la revisión de un MVP?', a: 'El equipo revisa cada publicación en menos de 24 horas hábiles. Recibirás un email con el resultado y, si hay correcciones, tendrás instrucciones claras para ajustar tu listing.' },
+                            { q: '¿Necesito cuenta para explorar el marketplace?', a: 'Puedes navegar y ver las tarjetas públicas sin cuenta. Para ver el demo URL, capturas completas y solicitar reuniones necesitas registrarte. El registro es gratuito y tarda menos de 2 minutos.' },
+                            { q: '¿Qué pasa si el emprendedor no puede en el horario que seleccioné?', a: 'El sistema de reuniones permite contrapropuestas. El emprendedor puede rechazar la fecha y proponer un horario alternativo. Vos puedes aceptar, volver a contraproposer, o cancelar sin penalización.' },
+                            { q: '¿MVPMarket cobra comisión por las transacciones?', a: 'MVPMarket no interviene en el cierre del deal ni cobra comisión sobre el precio de venta. El valor está en la conexión y la confianza: el acuerdo final es entre tú y el comprador.' },
+                            { q: '¿Puedo publicar más de un MVP?', a: 'Sí. Podés tener múltiples listings activos simultáneamente. Cada uno pasa por revisión independiente y tiene su propio sistema de reuniones y estado.' },
+                            { q: '¿Cómo se protege el código durante las negociaciones?', a: 'El código fuente nunca se comparte en la plataforma. Tú decides qué muestras (demo, capturas, repositorio privado con acceso puntual). MVPMarket facilita el contacto, el control del activo es tuyo.' },
+                          ].map((item, i) => {
+                            const isOpen = openFaqIndex === i
+                            return (
+                              <div
+                                key={i}
+                                className="rounded-xl border border-border overflow-hidden transition-all"
+                              >
+                                <button
+                                  type="button"
+                                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-muted/40 transition-colors"
+                                  onClick={() => setOpenFaqIndex(isOpen ? null : i)}
+                                >
+                                  <span className="font-medium text-sm">{item.q}</span>
+                                  <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                                </button>
+                                {isOpen && (
+                                  <div className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed border-t border-border pt-3">
+                                    {item.a}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
                       </DialogContent>
                     </Dialog>
