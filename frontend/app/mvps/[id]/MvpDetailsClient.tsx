@@ -14,7 +14,7 @@ import { MeetingScheduler } from '@/components/publish/MeetingScheduler'
 import {
   Loader2, ArrowLeft, ExternalLink, Star, Eye,
   Heart, Calendar, CalendarClock, Share2,
-  Banknote, Layers, CalendarDays, User,
+  Banknote, Layers, CalendarDays,
   ChevronLeft, ChevronRight, PlayCircle,
   FileText, Images, Zap, Code2, ListChecks, BarChart2, Info, Tag, TrendingUp,
   Linkedin, MapPin, Building2, Globe
@@ -432,13 +432,13 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
                   onClick={handleViewCreator}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                 >
-                  <span className="text-xs">Creado por:</span>
-                  <span className="font-semibold text-foreground underline underline-offset-2 decoration-dotted group-hover:decoration-solid transition-all">
+                  <span className="text-sm">Creado por:</span>
+                  <span className="text-sm font-semibold text-foreground underline underline-offset-2 decoration-dotted group-hover:decoration-solid transition-all">
                     {mvp.user_profiles?.display_name || 'Ver perfil'}
                   </span>
                 </button>
               )}
-              <div className="relative">
+              <div className="relative ml-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -901,20 +901,6 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
             </Card>
           )}
 
-          {/* Creador — ancho completo */}
-          {mvp.user_profiles && (mvp.user_profiles.display_name || mvp.user_profiles.company || mvp.user_profiles.bio) && (
-            <Card className="border-2 lg:col-span-2">
-              <CardContent className="px-6 pt-1 pb-5 space-y-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold">Creador</h3>
-                </div>
-                {mvp.user_profiles.display_name && <p className="font-semibold">{mvp.user_profiles.display_name}</p>}
-                {mvp.user_profiles.company && <p className="text-sm text-muted-foreground">{mvp.user_profiles.company}</p>}
-                {mvp.user_profiles.bio && <p className="text-sm text-muted-foreground">{mvp.user_profiles.bio}</p>}
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
 
@@ -963,7 +949,7 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
           <DialogTitle className="sr-only">Perfil del creador</DialogTitle>
 
           {/* Banner con avatar + nombre encima */}
-          <div className="h-36 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-700 relative flex-shrink-0 rounded-t-xl" style={{ overflow: 'visible' }}>
+          <div className="h-[116px] bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-700 relative flex-shrink-0 rounded-t-xl" style={{ overflow: 'visible' }}>
             <div className="absolute inset-0 opacity-[0.07] rounded-t-xl" style={{ backgroundImage: 'linear-gradient(rgba(255,107,53,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,107,53,0.6) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
             {/* Avatar: mitad en el banner, mitad en blanco */}
@@ -972,11 +958,11 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
                 <Image
                   src={creatorData.profile.avatar_url}
                   alt={creatorData.profile.display_name || 'Avatar'}
-                  width={96} height={96}
-                  className="w-24 h-24 rounded-2xl border-4 border-background object-cover shadow-xl"
+                  width={112} height={112}
+                  className="w-28 h-28 rounded-2xl border-4 border-background object-cover shadow-md"
                 />
               ) : (
-                <div className="w-24 h-24 rounded-2xl border-4 border-background bg-brand-100 flex items-center justify-center shadow-xl">
+                <div className="w-28 h-28 rounded-2xl border-4 border-background bg-brand-100 flex items-center justify-center shadow-md">
                   <span className="text-3xl font-bold text-brand-700">
                     {getInitials(creatorData?.profile.display_name)}
                   </span>
@@ -985,7 +971,7 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
             </div>
 
             {/* Nombre + empresa + fecha — a la derecha del avatar, sobre el banner */}
-            <div className="absolute bottom-0 left-[136px] right-4 pb-4 flex flex-col justify-end gap-0.5">
+            <div className="absolute bottom-0 left-[152px] right-4 pb-4 flex flex-col justify-end gap-0.5">
               <h2 className="text-xl font-bold text-white leading-tight line-clamp-1">
                 {creatorData?.profile.display_name || 'Usuario'}
               </h2>
@@ -1013,25 +999,27 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
             ) : creatorData ? (
               <div className="px-6 pb-6">
 
-                {/* Espacio para el avatar que sobresale + info de contacto */}
-                <div className="pt-14">
-                  {/* Email */}
-                  {creatorData.email && (
-                    <p className="text-[12px] text-zinc-500 mb-1">{creatorData.email}</p>
-                  )}
-
-                  {/* LinkedIn */}
-                  {creatorData.profile.linkedin_url && (
-                    <Link
-                      href={creatorData.profile.linkedin_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-[#0077b5] hover:underline"
-                    >
-                      <Linkedin className="w-3 h-3" />
-                      {creatorData.profile.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}
-                    </Link>
-                  )}
+                {/* Zona de transición: avatar (espacio) a la izquierda, email+linkedin a la derecha */}
+                <div className="flex items-start gap-4 pt-1">
+                  {/* Hueco para el avatar que sobresale del banner */}
+                  <div className="w-28 flex-shrink-0" />
+                  {/* Contacto alineado con el nombre en el banner */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ minHeight: '56px' }}>
+                    {creatorData.email && (
+                      <p className="text-[12px] text-zinc-500 mb-0.5">{creatorData.email}</p>
+                    )}
+                    {creatorData.profile.linkedin_url && (
+                      <Link
+                        href={creatorData.profile.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-[#0077b5] hover:underline"
+                      >
+                        <Linkedin className="w-3 h-3" />
+                        {creatorData.profile.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '')}
+                      </Link>
+                    )}
+                  </div>
                 </div>
 
                 {/* Bio */}
