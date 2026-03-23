@@ -972,7 +972,7 @@ export function HowItWorksClient() {
                 : { y: [0, -7, 0], boxShadow: ['0 4px 14px 3px rgba(249,115,22,0.22)', '0 8px 28px 8px rgba(249,115,22,0.42)', '0 4px 14px 3px rgba(249,115,22,0.22)'] }}
               transition={econActive
                 ? { duration: 0.25 }
-                : { repeat: Infinity, duration: 1.15, ease: 'easeInOut' }}
+                : { repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
               style={{ flexShrink: 0, cursor: 'pointer', borderRadius: '20px' }}
               onClick={() => setEconActive(p => !p)}
             >
@@ -1040,7 +1040,7 @@ export function HowItWorksClient() {
                 : { y: [0, -7, 0], boxShadow: ['0 4px 14px 3px rgba(22,163,74,0.20)', '0 8px 28px 8px rgba(22,163,74,0.38)', '0 4px 14px 3px rgba(22,163,74,0.20)'] }}
               transition={nonEconActive
                 ? { duration: 0.25 }
-                : { repeat: Infinity, duration: 1.25, ease: 'easeInOut', delay: 0.25 }}
+                : { repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
               style={{ flexShrink: 0, cursor: 'pointer', borderRadius: '20px' }}
               onClick={() => setNonEconActive(p => !p)}
             >
