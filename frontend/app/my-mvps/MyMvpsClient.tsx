@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Eye, Rocket, Heart, Edit3, Trash2, AlertTriangle, Loader2, MessageSquareWarning,
   FileText, LinkIcon, DollarSign, CheckSquare, Image as ImageIcon, Tag, Lightbulb,
-  TrendingUp, Clock, CheckCircle2, XCircle, PlayCircle,
+  TrendingUp, Clock, CheckCircle2, XCircle, PlayCircle, ChevronLeft, ChevronRight, ArrowRight, ImagePlus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -67,6 +67,9 @@ type MvpItem = {
   views_count?: number | null
   favorites_count?: number | null
   created_at?: string
+  price_range?: string | null
+  monetization_model?: string | null
+  deal_modality?: string | null
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -89,6 +92,10 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
   const [rejectionDialogData, setRejectionDialogData] = useState<{ id: string; title: string; reason: string | null } | null>(null)
   const [previewData, setPreviewData] = useState<FullMvpData | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [imageIndexes, setImageIndexes] = useState<Record<string, number>>({})
+
+  const getImgIdx = (id: string) => imageIndexes[id] ?? 0
+  const setImgIdx = (id: string, idx: number) => setImageIndexes(prev => ({ ...prev, [id]: idx }))
 
   const openPreview = async (id: string) => {
     setPreviewLoading(true)
@@ -267,126 +274,192 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
         <div className="space-y-4">
           {filteredMvps.map((mvp) => {
             const statusInfo = STATUS_LABELS[mvp.status || 'draft'] || STATUS_LABELS.draft
-            const previewImage = mvp.cover_image_url || mvp.images_urls?.[0] || null
             const isDraft = mvp.status === 'draft'
 
-            return (
-              <Card key={mvp.id} className="rounded-2xl hover:shadow-lg transition-shadow">
-                <CardContent className="p-4 md:p-5">
-                  <div className="grid gap-4 md:grid-cols-[360px_1fr] md:items-stretch">
-                    {/* Image */}
-                    <div className="relative min-h-[220px] md:h-[270px] md:min-h-[270px] overflow-hidden rounded-xl">
+            return (() => {
+              const allImages = [
+                ...(mvp.cover_image_url ? [mvp.cover_image_url] : []),
+                ...(mvp.images_urls?.filter(u => u && u !== mvp.cover_image_url) ?? []),
+              ]
+              const imgIdx = getImgIdx(mvp.id)
+              const clampedIdx = Math.min(imgIdx, Math.max(0, allImages.length - 1))
+
+              return (
+                <Card key={mvp.id} className="rounded-2xl hover:shadow-lg transition-shadow">
+                  <CardContent className="p-4 pl-5 md:p-5 md:pl-6">
+                    <div className="flex gap-5 md:gap-6 items-stretch">
+
+                      {/* ── Media panel — gradient border wrapper ── */}
                       <div
-                        className="absolute inset-0 bg-gradient-to-br from-brand-100 via-brand-50 to-background"
-                        style={
-                          previewImage
-                            ? {
-                                backgroundImage: `url(${previewImage})`,
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
-                              }
-                            : {}
-                        }
-                      />
-                      {!previewImage && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Rocket className="w-16 h-16 text-brand-300" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge className={`${statusInfo.color} border font-semibold`}>
-                              {statusInfo.label}
-                            </Badge>
-                            {mvp.category && (
-                              <Badge variant="outline" className="font-normal">
-                                {mvp.category}
-                              </Badge>
-                            )}
+                        className="shrink-0 rounded-[14px]"
+                        style={{ padding: '2.5px', background: 'conic-gradient(from 0deg at 50% 50%, #ea580c, #f97316, #fb923c, #fdba74, #fb923c, #f97316, #ea580c)' }}
+                      >
+                      <div className="relative w-[220px] md:w-[240px] h-[172px] overflow-hidden rounded-[12px] bg-muted">
+                        {allImages.length === 0 ? (
+                          /* Empty state */
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3" style={{ background: 'linear-gradient(135deg, #fffaf7 0%, #fff5ec 50%, #ffeedd 100%)' }}>
+                            <ImagePlus className="w-12 h-12 text-orange-300" />
+                            <p className="text-[10px] text-center text-orange-500/70 leading-tight font-medium">
+                              ¡Agrega tu primer archivo multimedia!
+                            </p>
                           </div>
-                          <h3 className="text-xl font-bold text-foreground line-clamp-2">
-                            {mvp.title || <span className="text-muted-foreground italic">Sin título</span>}
-                          </h3>
-                        </div>
-                      </div>
-
-                      {mvp.one_liner && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {mvp.one_liner}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-auto">
-                        <div className="flex items-center gap-1">
-                          <Eye className="w-4 h-4" />
-                          <span>{mvp.views_count || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Heart className="w-4 h-4" />
-                          <span>{mvp.favorites_count || 0}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 mt-2">
-                        {isDraft ? (
-                          <>
-                            <Link href={`/publish?draft=${mvp.id}&from=my-mvps`} className="flex-1">
-                              <Button variant="outline" className="w-full gap-2">
-                                <Edit3 className="w-4 h-4" />
-                                Continuar editando
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => { setDeleteError(null); setConfirmDeleteId(mvp.id) }}
-                              className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 shrink-0"
-                              title="Eliminar borrador"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </>
-                        ) : mvp.status === 'rejected' ? (
-                          <>
-                            <Link href={`/publish?draft=${mvp.id}&from=my-mvps`} className="flex-1">
-                              <Button variant="outline" className="w-full gap-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400">
-                                <Edit3 className="w-4 h-4" />
-                                Volver a editar
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="shrink-0 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300"
-                              title="Ver razón de rechazo"
-                              onClick={() => { setRejectionDialogData({ id: mvp.id, title: mvp.title, reason: mvp.rejection_reason ?? null }); setRejectionDialogOpen(true) }}
-                            >
-                              <MessageSquareWarning className="w-4 h-4" />
-                            </Button>
-                          </>
-                        ) : (mvp.status === 'pending' || mvp.status === 'pending_review') ? (
-                          <Button variant="outline" className="w-full gap-2" onClick={() => openPreview(mvp.id)}>
-                            <Eye className="w-4 h-4" />
-                            Ver vista previa
-                          </Button>
+                        ) : allImages.length === 1 ? (
+                          /* Single image — fixed */
+                          isVideo(allImages[0]) ? (
+                            <video src={allImages[0]} className="absolute inset-0 w-full h-full object-cover" muted />
+                          ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={allImages[0]} alt="portada" className="absolute inset-0 w-full h-full object-cover" />
+                          )
                         ) : (
-                          <Link href={`/mvps/${mvp.id}`} className="flex-1">
-                            <Button variant="outline" className="w-full">
-                              Ver detalles
-                            </Button>
-                          </Link>
+                          /* Carousel */
+                          <>
+                            {isVideo(allImages[clampedIdx]) ? (
+                              <video src={allImages[clampedIdx]} className="absolute inset-0 w-full h-full object-cover" muted />
+                            ) : (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={allImages[clampedIdx]} alt={`imagen ${clampedIdx + 1}`} className="absolute inset-0 w-full h-full object-cover" />
+                            )}
+                            {/* Prev */}
+                            {clampedIdx > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setImgIdx(mvp.id, clampedIdx - 1)}
+                                className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
+                              >
+                                <ChevronLeft className="w-3.5 h-3.5 text-white" />
+                              </button>
+                            )}
+                            {/* Next */}
+                            {clampedIdx < allImages.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setImgIdx(mvp.id, clampedIdx + 1)}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"
+                              >
+                                <ChevronRight className="w-3.5 h-3.5 text-white" />
+                              </button>
+                            )}
+                            {/* Dots */}
+                            <div className="absolute bottom-1.5 left-0 right-0 flex justify-center gap-1">
+                              {allImages.map((_, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => setImgIdx(mvp.id, i)}
+                                  className={`w-1.5 h-1.5 rounded-full transition-colors ${i === clampedIdx ? 'bg-white' : 'bg-white/40'}`}
+                                />
+                              ))}
+                            </div>
+                          </>
                         )}
                       </div>
+                      </div>{/* end gradient border wrapper */}
+
+                      {/* ── Content panel ── */}
+                      <div className="flex flex-col flex-1 min-w-0 py-1">
+
+                        {/* Row 1: badge + title on left, stats on right */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Badge className={`${statusInfo.color} border font-semibold text-[11px] px-2 py-0 shrink-0`}>
+                              {statusInfo.label}
+                            </Badge>
+                            <h3 className="text-lg font-bold text-foreground line-clamp-1 leading-snug">
+                              {mvp.title || <span className="text-muted-foreground italic">Sin título</span>}
+                            </h3>
+                          </div>
+                          <div className="flex items-center gap-2.5 text-xs text-muted-foreground shrink-0">
+                            <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" />{mvp.views_count || 0}</span>
+                            <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" />{mvp.favorites_count || 0}</span>
+                          </div>
+                        </div>
+
+                        {/* Row 2: one-liner labeled */}
+                        <div className="flex items-center gap-2.5 mb-0.5 text-sm text-muted-foreground">
+                          <span className="font-semibold uppercase tracking-wide text-[11px] text-muted-foreground/60 shrink-0">One-liner</span>
+                          {mvp.one_liner
+                            ? <span className="line-clamp-1">{mvp.one_liner}</span>
+                            : <span className="italic text-muted-foreground/50">Sin rellenar</span>
+                          }
+                        </div>
+
+                        {/* Row 3: Info boxes — label + value on same line */}
+                        <div className="flex gap-2 mt-auto mb-6">
+                          {[
+                            { label: 'Precio', value: mvp.price_range },
+                            { label: 'Monetización', value: mvp.monetization_model ? (MONETIZATION_LABELS[mvp.monetization_model] ?? mvp.monetization_model) : null },
+                            { label: 'Oferta', value: mvp.deal_modality ? (DEAL_LABELS[mvp.deal_modality] ?? mvp.deal_modality) : null },
+                          ].map(({ label, value }) => (
+                            <div key={label} className="flex-1 min-w-0 rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 flex items-center gap-2">
+                              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">{label}</p>
+                              {value
+                                ? <p className="text-[13px] font-medium text-foreground truncate">{value}</p>
+                                : <p className="text-[13px] italic text-muted-foreground/50">Sin rellenar</p>
+                              }
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          {isDraft ? (
+                            <>
+                              <Link href={`/publish?draft=${mvp.id}&from=my-mvps`} className="flex-1">
+                                <Button variant="outline" size="sm" className="w-full gap-1.5 text-[13px] h-8">
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  Continuar editando
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => { setDeleteError(null); setConfirmDeleteId(mvp.id) }}
+                                className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 shrink-0 h-8 w-8"
+                                title="Eliminar borrador"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          ) : mvp.status === 'rejected' ? (
+                            <>
+                              <Link href={`/publish?draft=${mvp.id}&from=my-mvps`} className="flex-1">
+                                <Button variant="outline" size="sm" className="w-full gap-1.5 text-[13px] h-8 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400">
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  Volver a editar
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="shrink-0 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 h-8 w-8"
+                                title="Ver razón de rechazo"
+                                onClick={() => { setRejectionDialogData({ id: mvp.id, title: mvp.title, reason: mvp.rejection_reason ?? null }); setRejectionDialogOpen(true) }}
+                              >
+                                <MessageSquareWarning className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          ) : (mvp.status === 'pending' || mvp.status === 'pending_review') ? (
+                            <Button variant="outline" size="sm" className="w-full gap-1.5 text-[13px] h-8" onClick={() => openPreview(mvp.id)}>
+                              <Eye className="w-3.5 h-3.5" />
+                              Ver vista previa
+                            </Button>
+                          ) : (
+                            <Link href={`/mvps/${mvp.id}`} className="flex-1">
+                              <Button variant="outline" size="sm" className="w-full text-[13px] h-8 gap-1.5">
+                                <Eye className="w-3.5 h-3.5" />
+                                Ver detalles
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
+                  </CardContent>
+                </Card>
+              )
+            })()
           })}
         </div>
       )}

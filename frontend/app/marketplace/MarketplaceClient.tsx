@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Activity, BookOpen, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Cpu, Droplets, Eye, Factory, Film, Hammer, Heart, Home, Layers, Leaf, LayoutList, LayoutGrid, Megaphone, Package, Plane, PlayCircle, Scale, Share2, ShoppingCart, SlidersHorizontal, Tag, Truck, TrendingUp, Trophy, Users, Utensils, X, Zap } from 'lucide-react'
+import { Activity, BookOpen, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Cpu, Droplets, Eye, Factory, Film, Hammer, Heart, Home, Layers, Leaf, LayoutList, LayoutGrid, Megaphone, Package, Plane, PlayCircle, Rocket, Scale, Share2, ShoppingCart, SlidersHorizontal, Tag, Truck, TrendingUp, Trophy, Users, Utensils, X, Zap } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -514,7 +514,13 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                   </div>
                 </div>
               )}
-              {!currentMedia && (<div className="absolute inset-0 bg-gradient-to-br from-brand-100 via-brand-50 to-background" />)}
+              {!currentMedia && (
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 40%, #fed7aa 100%)' }}>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                    <Rocket className="w-20 h-20 text-orange-400" />
+                  </div>
+                </div>
+              )}
               {/* Clickable overlay to navigate to details (below arrows at z-20) */}
               <Link href={`/mvps/${mvp.id}`} className="absolute inset-0 z-10" aria-label={`Ver detalles de ${mvp.title}`} />
               {mediaItems.length > 1 && (
@@ -549,7 +555,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                     </button>
                   )}
                 </div>
-                {!currentMedia && (<p className="max-w-[18ch] text-sm font-medium text-muted-foreground">Agrega portada para destacar este MVP en el marketplace.</p>)}
+                {!currentMedia && (<p className="max-w-[18ch] text-sm font-medium text-orange-300/80">Agrega portada para destacar este MVP en el marketplace.</p>)}
               </div>
             </div>
             {isGridMode ? (

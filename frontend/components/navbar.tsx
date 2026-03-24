@@ -482,10 +482,31 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                         </Button>
                       </DialogTrigger>
 
-                      <DialogContent>
-                        <div className="max-h-[90vh] overflow-y-auto">
-                          <DialogTitle>Editar perfil</DialogTitle>
-                          <DialogDescription className="mb-4">Actualiza tu información pública</DialogDescription>
+                      <DialogContent className="p-0 gap-0 [&>button]:hidden">
+                        <DialogTitle className="sr-only">Editar perfil</DialogTitle>
+                        <DialogDescription className="sr-only">Actualiza tu información pública</DialogDescription>
+                        {/* Header fijo */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+                          <div>
+                            <p className="text-base font-bold leading-tight">Editar perfil</p>
+                            <p className="text-xs text-muted-foreground">Actualiza tu información pública</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (profileDirty) {
+                                setProfileUnsavedDialog(true)
+                              } else {
+                                setProfileOpen(false)
+                              }
+                            }}
+                            className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          >
+                            <XCircle className="h-5 w-5" />
+                          </button>
+                        </div>
+                        {/* Contenido scrolleable */}
+                        <div className="overflow-y-auto max-h-[80vh] px-6 py-4">
                           <ProfileEditor
                             onLogout={() => setLogoutDialogOpen(true)}
                             onDirtyChange={setProfileDirty}
@@ -510,6 +531,15 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                           <button
                             type="button"
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
+                            onClick={() => { setSettingsOpen(false); setProfileOpen(true) }}
+                          >
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            Perfil
+                          </button>
+                          <div className="my-1 border-t border-border/60" />
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
                             onClick={() => { setSettingsOpen(false); setSupportDialogOpen(true) }}
                           >
                             <Wrench className="h-4 w-4 text-muted-foreground" />
@@ -522,6 +552,15 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                           >
                             <HelpCircle className="h-4 w-4 text-muted-foreground" />
                             Preguntas frecuentes
+                          </button>
+                          <div className="my-1 border-t border-border/60" />
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted/60 transition-colors text-left text-rose-600"
+                            onClick={() => { setSettingsOpen(false); setLogoutDialogOpen(true) }}
+                          >
+                            <LogOut className="h-4 w-4" />
+                            Cerrar sesión
                           </button>
                         </div>
                       )}
@@ -558,6 +597,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                           <div className="flex items-center gap-2">
                             <HelpCircle className="h-5 w-5 text-primary" />
                             <h2 className="text-lg font-bold">Preguntas frecuentes</h2>
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200 tracking-wide">FAQs</span>
                           </div>
                           <button
                             type="button"
