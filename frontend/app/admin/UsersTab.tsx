@@ -123,9 +123,11 @@ export async function UsersTab({ view }: { view: 'registered' | 'banned' }) {
                     </div>
                     <div className="flex flex-col gap-2 sm:items-end">
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-medium">
-                          <Handshake className="w-3 h-3" />{offerCount} {offerCount === 1 ? 'oferta' : 'ofertas'}
-                        </span>
+                        {offerCount > 0 && (
+                          <span className="inline-flex items-center gap-1.5 text-xs bg-brand-50 text-brand-700 border border-brand-200 px-2.5 py-1 rounded-full font-medium">
+                            <Handshake className="w-3 h-3" />{offerCount} {offerCount === 1 ? 'oferta' : 'ofertas'}
+                          </span>
+                        )}
                         <span className="inline-flex items-center gap-1.5 text-xs bg-brand-50 text-brand-700 border border-brand-200 px-2.5 py-1 rounded-full font-medium">
                           <Package className="w-3 h-3" />{mvpCount} {mvpCount === 1 ? 'MVP' : 'MVPs'}
                         </span>

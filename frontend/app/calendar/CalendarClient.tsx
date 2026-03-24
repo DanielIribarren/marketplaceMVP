@@ -102,7 +102,7 @@ function formatOfferSummary(meeting: Meeting): string | null {
 }
 
 const STATUS: Record<string,{label:string;dot:string;bg:string;text:string;glow?:boolean}> = {
-  pending:                      {label:'Pendiente',         dot:'bg-orange-400',     bg:'bg-orange-100 border-orange-300',      text:'text-orange-800'},
+  pending:                      {label:'Pendiente',         dot:'bg-orange-400',     bg:'bg-orange-100 border-orange-300',      text:'text-orange-800', glow:true},
   pending_not_my_turn:          {label:'Pendiente',         dot:'bg-orange-700',     bg:'bg-orange-100 border-orange-300',     text:'text-orange-900', glow:true},
   confirmed:                    {label:'Confirmada',        dot:'bg-green-700',      bg:'bg-green-100 border-green-300',       text:'text-green-900'},
   completed:                    {label:'✓ Completada',      dot:'bg-gray-600',       bg:'bg-gray-100 border-gray-300',         text:'text-gray-700'},
@@ -148,8 +148,8 @@ function getVisualStatus(m: Meeting, uid: string): string {
 function getGlowStyles(visualStatus: string, miTurno: boolean): string {
   if (!miTurno) return ''
 
-  if (visualStatus === 'pending_not_my_turn') {
-    return 'ring-1 ring-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]'
+  if (visualStatus === 'pending') {
+    return 'ring-1 ring-orange-500 shadow-[0_0_16px_rgba(249,115,22,0.55)]'
   }
   if (visualStatus === 'counterproposal_my_turn') {
     return 'ring-1 ring-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)]'
@@ -425,7 +425,7 @@ export function CalendarClient({ userId }: { userId: string }) {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
                 vistaPanel === 'atencion'
                   ? 'bg-brand-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md hover:scale-[1.03]'
               }`}
             >
               <AlertCircle className={`w-4 h-4 ${vistaPanel === 'atencion' ? 'text-white' : 'text-orange-600'}`} />
@@ -446,7 +446,7 @@ export function CalendarClient({ userId }: { userId: string }) {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
                 vistaPanel === 'ofertas'
                   ? 'bg-orange-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md hover:scale-[1.03]'
               }`}
             >
               <Inbox className={`w-4 h-4 ${vistaPanel === 'ofertas' ? 'text-white' : 'text-orange-600'}`} />
@@ -467,7 +467,7 @@ export function CalendarClient({ userId }: { userId: string }) {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
                 vistaPanel === 'ofertasRealizadas'
                   ? 'bg-brand-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md hover:scale-[1.03]'
               }`}
             >
               <Send className={`w-4 h-4 ${vistaPanel === 'ofertasRealizadas' ? 'text-white' : 'text-brand-600'}`} />
