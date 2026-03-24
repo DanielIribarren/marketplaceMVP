@@ -15,5 +15,17 @@ export async function POST(request: NextRequest) {
   const adminClient = createAdminClient()
   const { error } = await adminClient.from('banned_users').delete().eq('email', email.toLowerCase())
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Send restoration email
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.access_token) {
+    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+    await fetch(`${BACKEND_URL}/api/admin/notify-account-restored`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ email })
+    }).catch(() => {})
+  }
+
   return NextResponse.json({ success: true })
 }

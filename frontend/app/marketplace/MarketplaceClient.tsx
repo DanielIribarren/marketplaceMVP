@@ -543,12 +543,11 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                 </div>
               )}
               <div className="relative flex h-full min-h-[220px] flex-col justify-between p-5 md:p-6">
+                <Badge variant="outline" className="absolute top-2.5 left-2.5 z-20 w-fit border-brand-200 bg-brand-50/95 text-brand-800 shadow-[0_0_8px_rgba(249,115,22,0.35)]">
+                  {mvp.category ? (SECTOR_LABEL[mvp.category] ?? mvp.category) : 'Otros'}
+                </Badge>
                 <div className="flex items-start justify-between">
-                  <div className="flex flex-col gap-2">
-                    <Badge variant="outline" className="w-fit border-brand-200 bg-brand-50/95 text-brand-800">
-                      {mvp.category ? (SECTOR_LABEL[mvp.category] ?? mvp.category) : 'Otros'}
-                    </Badge>
-                  </div>
+                  <div />
                   {!isOwnMvp && (
                     <button type="button" onClick={(e) => handleToggleFavorite(mvp.id, e)} className="group flex h-9 w-9 items-center justify-center rounded-full bg-background/80 shadow-md backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-background/95 active:scale-95" title={favoriteIds.has(mvp.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}>
                       <Heart className={`h-5 w-5 transition-colors duration-200 ${favoriteIds.has(mvp.id) ? 'fill-red-500 text-red-500' : 'text-muted-foreground group-hover:text-red-400'}`} />

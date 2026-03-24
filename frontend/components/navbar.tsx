@@ -27,6 +27,8 @@ import {
   HelpCircle,
   ChevronRight,
   AlertTriangle,
+  Trash2,
+  ShieldOff,
 } from 'lucide-react'
 import {
   Dialog,
@@ -59,6 +61,20 @@ interface NotificationItem {
   data: Record<string, unknown> | null
 }
 
+const NOTIF_EMOJI: Record<string, string> = {
+  mvp_favorited:            '❤️',
+  mvp_approved:             '🎉',
+  mvp_rejected:             '❌',
+  mvp_deleted:              '🗑️',
+  meeting_requested:        '📅',
+  meeting_confirmed:        '✅',
+  meeting_rejected:         '❌',
+  meeting_counterproposal:  '🔄',
+  meeting_cancelled:        '🚫',
+  offer_pending_review:     '💰',
+  account_banned:           '🚫',
+}
+
 function NotificationTypeIcon({ type }: { type: string }) {
   const iconClass = 'h-4 w-4'
   const themedColorClass = 'text-primary'
@@ -70,6 +86,10 @@ function NotificationTypeIcon({ type }: { type: string }) {
       return <CheckCircle2 className={`${iconClass} text-green-600`} />
     case 'mvp_rejected':
       return <XCircle className={`${iconClass} text-red-600`} />
+    case 'mvp_deleted':
+      return <Trash2 className={`${iconClass} text-red-600`} />
+    case 'account_banned':
+      return <ShieldOff className={`${iconClass} text-gray-500`} />
     case 'meeting_requested':
       return <CalendarClock className={`${iconClass} ${themedColorClass}`} />
     case 'offer_pending_review':
@@ -444,7 +464,12 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                                       <div className="mt-0.5 rounded-md bg-muted/60 p-1.5">
                                         <NotificationTypeIcon type={notification.type} />
                                       </div>
-                                      <p className="text-sm font-medium leading-5">{notification.title}</p>
+                                      <p className="text-sm font-medium leading-5">
+                                        {notification.title.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim()}
+                                        {NOTIF_EMOJI[notification.type] && (
+                                          <span className="ml-1">{NOTIF_EMOJI[notification.type]}</span>
+                                        )}
+                                      </p>
                                     </div>
                                     {!notification.read && (
                                       <span className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />

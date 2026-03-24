@@ -25,7 +25,10 @@ import {
   getMyNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  notifyMvpDecision
+  notifyMvpDecision,
+  notifyMvpDeleted,
+  notifyAccountBanned,
+  notifyAccountRestored
 } from './api/notifications.js'
 
 dotenv.config()
@@ -77,6 +80,9 @@ app.get('/api/notifications', verifyAuth, getMyNotifications)
 app.post('/api/notifications/:id/read', verifyAuth, markNotificationAsRead)
 app.post('/api/notifications/read-all', verifyAuth, markAllNotificationsAsRead)
 app.post('/api/admin/mvp/:id/notify-decision', verifyAuth, notifyMvpDecision)
+app.post('/api/admin/notify-mvp-deleted', verifyAuth, notifyMvpDeleted)
+app.post('/api/admin/notify-account-banned', verifyAuth, notifyAccountBanned)
+app.post('/api/admin/notify-account-restored', verifyAuth, notifyAccountRestored)
 
 // Profile
 app.get('/api/profile', verifyAuth, getProfile)

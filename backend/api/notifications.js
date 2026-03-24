@@ -149,7 +149,7 @@ export async function notifyMvpDecision(req, res) {
     const notification = {
       user_id: mvp.owner_id,
       type: isApproved ? 'mvp_approved' : 'mvp_rejected',
-      title: isApproved ? 'MVP aprobado 🎉' : 'MVP rechazado',
+      title: isApproved ? 'MVP aprobado' : 'MVP rechazado',
       message: isApproved
         ? `Tu MVP "${mvp.title}" fue aprobado y ya está visible en el marketplace.`
         : `Tu MVP "${mvp.title}" fue rechazado. Motivo: ${reason || 'Sin motivo especificado'}.`,
@@ -168,6 +168,89 @@ export async function notifyMvpDecision(req, res) {
   } catch (error) {
     console.error('Error al notificar decisión de MVP:', error)
     res.status(500).json({ error: 'Error del servidor', message: error.message })
+  }
+}
+
+/**
+ * POST /api/admin/notify-mvp-deleted
+ * Notifica al owner de un MVP que su publicación fue eliminada por el admin.
+ */
+export async function notifyMvpDeleted(req, res) {
+  try {
+    const callerEmail = req.user?.email?.toLowerCase()
+    if (callerEmail !== ADMIN_EMAIL.toLowerCase()) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+    const { mvpId, mvpTitle, ownerId } = req.body
+    if (!mvpId || !mvpTitle || !ownerId) {
+      return res.status(400).json({ error: 'mvpId, mvpTitle y ownerId son requeridos' })
+    }
+    await createNotification({
+      user_id: ownerId,
+      type: 'mvp_deleted',
+      title: 'Tu MVP fue eliminado',
+      message: `Tu MVP "${mvpTitle}" fue eliminado de la plataforma por el equipo de administración.`,
+      data: { mvp_id: mvpId, mvp_title: mvpTitle, href: '/my-mvps' },
+      read: false
+    })
+    res.status(200).json({ success: true })
+  } catch (error) {
+    console.error('Error al notificar MVP eliminado:', error)
+    res.status(500).json({ error: error.message })
+  }
+}
+
+/**
+ * POST /api/admin/notify-account-restored
+ * Envía un correo al usuario informando que su correo fue restaurado.
+ * Solo por email (puede volver a registrarse).
+ */
+export async function notifyAccountRestored(req, res) {
+  try {
+    const callerEmail = req.user?.email?.toLowerCase()
+    if (callerEmail !== ADMIN_EMAIL.toLowerCase()) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+    const { email } = req.body
+    if (!email) return res.status(400).json({ error: 'email es requerido' })
+    const notification = {
+      type: 'account_restored',
+      title: 'Correo restaurado',
+      message: `Tu correo ${email} ha sido restaurado en MVPMarket. Ya puedes crear una nueva cuenta y volver a la plataforma.`,
+      data: { href: '/register' }
+    }
+    await sendNotificationEmail(email, notification)
+    res.status(200).json({ success: true })
+  } catch (error) {
+    console.error('Error al enviar email de restauración:', error)
+    res.status(500).json({ error: error.message })
+  }
+}
+
+/**
+ * POST /api/admin/notify-account-banned
+ * Envía un correo al usuario informando que su cuenta fue baneada.
+ * Solo por email (ya no puede iniciar sesión).
+ */
+export async function notifyAccountBanned(req, res) {
+  try {
+    const callerEmail = req.user?.email?.toLowerCase()
+    if (callerEmail !== ADMIN_EMAIL.toLowerCase()) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+    const { email, userName } = req.body
+    if (!email) return res.status(400).json({ error: 'email es requerido' })
+    const notification = {
+      type: 'account_banned',
+      title: 'Cuenta suspendida',
+      message: `Hola${userName ? ` ${userName}` : ''}, tu cuenta en MVPMarket ha sido suspendida por actividad sospechosa. Si crees que esto es un error, contacta al soporte.`,
+      data: { href: '/login' }
+    }
+    await sendNotificationEmail(email, notification)
+    res.status(200).json({ success: true })
+  } catch (error) {
+    console.error('Error al enviar email de ban:', error)
+    res.status(500).json({ error: error.message })
   }
 }
 

@@ -4,9 +4,10 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { Navbar } from "@/components/navbar"
 import { MvpReviewActions } from "@/components/admin/MvpReviewActions"
+import { MvpDeleteButton } from "./MvpDeleteButton"
 import { DescriptionDialog } from "./DescriptionDialog"
 import { UsersTab } from "./UsersTab"
-import { CheckCircle2, XCircle, Clock, ShieldCheck, Users, Package } from "lucide-react"
+import { CheckCircle2, XCircle, Clock, ShieldCheck, Users, Package, Check } from "lucide-react"
 
 
 const ADMIN_EMAIL = "admin123@correo.unimet.edu.ve"
@@ -246,8 +247,11 @@ export default async function AdminPage({
                   return (
                     <article key={mvp.id} className="rounded-xl border bg-card shadow-sm">
                       <div className="flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                          <h2 className="text-lg font-semibold">{mvp.title}</h2>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-3">
+                            <h2 className="text-lg font-semibold">{mvp.title}</h2>
+                            {mvp.status === "approved" && <MvpDeleteButton mvpId={mvp.id} mvpTitle={mvp.title} />}
+                          </div>
                           <p className="text-sm text-muted-foreground">{text(mvp.one_liner)}</p>
                           <p className="text-xs text-muted-foreground">
                             {text(owner?.owner_name)} · {text(owner?.owner_email)}
@@ -266,7 +270,7 @@ export default async function AdminPage({
                           <p className="text-xs text-muted-foreground">
                             Publicado: {date(mvp.published_at, mvp.created_at)}
                           </p>
-                          {mvp.status === "pending_review" ? <MvpReviewActions mvpId={mvp.id} /> : null}
+                          {mvp.status === "pending_review" && <MvpReviewActions mvpId={mvp.id} />}
                         </div>
                       </div>
 
@@ -331,8 +335,21 @@ export default async function AdminPage({
                             </div>
 
                             <div>
-                              <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">Diferenciales</p>
-                              <p className="text-sm">{list(mvp.competitive_differentials)}</p>
+                              <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Diferenciales</p>
+                              {mvp.competitive_differentials?.filter(d => d?.trim()).length ? (
+                                <ul className="space-y-1.5">
+                                  {mvp.competitive_differentials.filter(d => d?.trim()).map((d, i) => (
+                                    <li key={i} className="flex items-start gap-2.5">
+                                      <span className="relative mt-0.5 flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-[4px] border-2 border-brand-500 bg-white">
+                                        <Check className="absolute h-[18px] w-[18px] text-brand-600 stroke-[3]" />
+                                      </span>
+                                      <span className="text-sm leading-snug">{d}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">—</p>
+                              )}
                             </div>
 
                             <div className="pl-3">

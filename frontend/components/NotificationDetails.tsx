@@ -10,7 +10,9 @@ import {
   Repeat,
   Ban,
   HandCoins,
-  ExternalLink
+  ExternalLink,
+  Trash2,
+  ShieldOff
 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -60,6 +62,10 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
         return <Ban className={`${iconClass} text-gray-500`} />
       case 'offer_pending_review':
         return <HandCoins className={`${iconClass} text-yellow-600`} />
+      case 'mvp_deleted':
+        return <Trash2 className={`${iconClass} text-red-500`} />
+      case 'account_banned':
+        return <ShieldOff className={`${iconClass} text-gray-500`} />
       default:
         return null
     }
@@ -338,7 +344,7 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
           {renderIcon()}
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-semibold">{notification.title}</h3>
+          <h3 className="text-lg font-semibold">{notification.title.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim()}</h3>
         </div>
       </div>
 

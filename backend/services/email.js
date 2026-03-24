@@ -75,6 +75,27 @@ const TYPE_CONFIG = {
     bgColor: '#fef2f2',
     borderColor: '#fecaca',
     label: 'MVP rechazado'
+  },
+  mvp_deleted: {
+    icon: '🗑️',
+    color: '#dc2626',
+    bgColor: '#fef2f2',
+    borderColor: '#fecaca',
+    label: 'MVP eliminado por administración'
+  },
+  account_banned: {
+    icon: '🚫',
+    color: '#6b7280',
+    bgColor: '#f9fafb',
+    borderColor: '#e5e7eb',
+    label: 'Cuenta suspendida'
+  },
+  account_restored: {
+    icon: '✅',
+    color: '#16a34a',
+    bgColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
+    label: 'Correo restaurado'
   }
 }
 
