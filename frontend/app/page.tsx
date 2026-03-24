@@ -100,7 +100,7 @@ export default async function Home() {
             </div>
 
             {/* ── Tarjeta plataforma ── */}
-            <div className="fade-in-up lg:pl-4" style={{ animationDelay: '120ms' }}>
+            <div className="fade-in-up lg:pl-4 lg:pr-8" style={{ animationDelay: '120ms' }}>
               <Card className="border-white/10 bg-white/[0.06] backdrop-blur-sm text-white overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-white/10 px-5 py-3.5">
