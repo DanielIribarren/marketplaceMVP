@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { NextRequest } from 'next/server'
 
@@ -12,7 +13,22 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Successfully verified email - redirect to marketplace
+      // Check if email is banned
+      try {
+        const { data: { user: cbUser } } = await supabase.auth.getUser()
+        if (cbUser?.email) {
+          const adminClient = createAdminClient()
+          const { data: banData } = await adminClient
+            .from('banned_users')
+            .select('email')
+            .eq('email', cbUser.email.toLowerCase())
+            .maybeSingle()
+          if (banData) {
+            await supabase.auth.signOut()
+            return NextResponse.redirect(new URL('/login?error=banned', requestUrl.origin))
+          }
+        }
+      } catch { /* ignore */ }
       return NextResponse.redirect(new URL(next, requestUrl.origin))
     }
   }

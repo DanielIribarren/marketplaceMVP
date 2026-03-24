@@ -299,7 +299,7 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
                           /* Empty state */
                           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3" style={{ background: 'linear-gradient(135deg, #fffaf7 0%, #fff5ec 50%, #ffeedd 100%)' }}>
                             <ImagePlus className="w-12 h-12 text-orange-300" />
-                            <p className="text-[10px] text-center text-orange-500/70 leading-tight font-medium">
+                            <p className="text-[11.5px] text-center text-orange-600/80 leading-tight font-medium">
                               ¡Agrega tu primer archivo multimedia!
                             </p>
                           </div>

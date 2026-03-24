@@ -144,6 +144,8 @@ function PublishPageInner() {
               originalRejectedDataRef.current = JSON.stringify(mapped)
             }
             lastSavedDataRef.current = JSON.stringify(mapped)
+            // Prevent auto-preview from re-fetching on load and dirtying the form
+            if (mapped.demoUrl) lastPreviewUrlRef.current = mapped.demoUrl.trim()
             localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped))
             // Restore last-saved step
             const savedStep = localStorage.getItem(DRAFT_STEP_KEY(draftIdParam)) as Step | null
@@ -595,7 +597,7 @@ function PublishPageInner() {
                     <h2 className="mb-3 text-xl font-semibold">Información del MVP</h2>
                     {mvpStatus === 'rejected' && (
                       <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-                        <p className="text-sm font-semibold text-red-800">⚠️ MVP rechazado anteriormente</p>
+                        <p className="flex items-center gap-1.5 text-sm font-semibold text-red-800"><AlertTriangle className="h-4 w-4 text-red-600 shrink-0" /> MVP rechazado anteriormente</p>
                         <p className="text-sm text-red-700 mt-0.5">
                           Revisa y edita los campos antes de volver a enviarlo. Si lo publicas sin cambios, se te avisará.
                         </p>

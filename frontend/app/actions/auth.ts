@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
 
@@ -16,6 +17,17 @@ export async function login(formData: FormData) {
 
   console.log('[LOGIN] Attempting login for:', data.email)
   console.log('[LOGIN] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
+  const emailLower = (formData.get('email') as string)?.toLowerCase()
+  try {
+    const adminClient = createAdminClient()
+    const { data: banData } = await adminClient
+      .from('banned_users')
+      .select('email')
+      .eq('email', emailLower)
+      .maybeSingle()
+    if (banData) return { error: 'ACCOUNT_BANNED' }
+  } catch { /* table might not exist yet */ }
 
   const { data: authData, error } = await supabase.auth.signInWithPassword(data)
 
@@ -46,6 +58,17 @@ export async function signup(formData: FormData) {
 
   const email = formData.get('email') as string
   const displayName = formData.get('display_name') as string
+
+  const emailLower = email?.toLowerCase()
+  try {
+    const adminClient = createAdminClient()
+    const { data: banData } = await adminClient
+      .from('banned_users')
+      .select('email')
+      .eq('email', emailLower)
+      .maybeSingle()
+    if (banData) return { error: 'ACCOUNT_BANNED' }
+  } catch { /* table might not exist yet */ }
 
   const data = {
     email,

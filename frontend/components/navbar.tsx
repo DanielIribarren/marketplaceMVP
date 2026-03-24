@@ -26,6 +26,7 @@ import {
   Wrench,
   HelpCircle,
   ChevronRight,
+  AlertTriangle,
 } from 'lucide-react'
 import {
   Dialog,
@@ -295,6 +296,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/70 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/85 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/85 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
@@ -646,7 +648,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                     <Dialog open={profileUnsavedDialog} onOpenChange={setProfileUnsavedDialog}>
                       <DialogContent className="max-w-md">
                         <DialogTitle className="flex items-center gap-2">
-                          <span>⚠️</span> ¡Tienes cambios sin guardar!
+                          <AlertTriangle className="h-5 w-5 text-amber-500" /> ¡Tienes cambios sin guardar!
                         </DialogTitle>
                         <DialogDescription>
                           Si cierras sin guardar, perderás los cambios realizados en tu perfil.

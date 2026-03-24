@@ -9,8 +9,48 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, ScrollText, ShieldCheck, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+
+function LegalDialogShell({
+  open, onClose, icon, iconBg, title, subtitle, children,
+}: {
+  open: boolean; onClose: () => void; icon: React.ReactNode; iconBg: string
+  title: string; subtitle: string; children: React.ReactNode
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 [&>button]:hidden">
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${iconBg}`}>{icon}</div>
+            <div>
+              <p className="text-base font-bold leading-tight">{title}</p>
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto px-6 py-5 text-sm text-muted-foreground leading-relaxed space-y-5">{children}</div>
+        <div className="border-t border-border px-6 py-3 flex-shrink-0 flex justify-end">
+          <Button onClick={onClose} className="bg-brand-500 hover:bg-brand-600 text-white">Entendido</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-foreground mb-1.5">{title}</h3>
+      <div className="space-y-1.5">{children}</div>
+    </div>
+  )
+}
 
 function GoogleIcon() {
   return (
@@ -37,6 +77,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [successDialog, setSuccessDialog] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [termsOpen, setTermsOpen] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState(false)
   const [formValues, setFormValues] = useState({
     display_name: '',
     email: '',
@@ -323,15 +365,99 @@ export default function RegisterPage() {
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           Al registrarte, aceptas nuestros{' '}
-          <Link href="/terms" className="underline hover:text-foreground">
+          <button type="button" onClick={() => setTermsOpen(true)} className="underline hover:text-foreground transition-colors">
             Términos de Servicio
-          </Link>{' '}
+          </button>{' '}
           y{' '}
-          <Link href="/privacy" className="underline hover:text-foreground">
+          <button type="button" onClick={() => setPrivacyOpen(true)} className="underline hover:text-foreground transition-colors">
             Política de Privacidad
-          </Link>
+          </button>
         </p>
       </div>
+
+      {/* ── Dialog: Términos de Servicio ── */}
+      <LegalDialogShell
+        open={termsOpen} onClose={() => setTermsOpen(false)}
+        icon={<ScrollText className="w-5 h-5 text-brand-600" />}
+        iconBg="bg-brand-50 border border-brand-200"
+        title="Términos de Servicio" subtitle="Última actualización: marzo 2026"
+      >
+        <p>Bienvenido a <strong>MVPMarket</strong>. Al acceder o utilizar nuestra plataforma, aceptas quedar vinculado por los presentes Términos de Servicio.</p>
+        <Section title="1. Descripción del servicio">
+          <p>MVPMarket es una plataforma en línea que conecta a emprendedores y desarrolladores que desean vender o transferir productos de software en etapa MVP con inversores, compradores y otros emprendedores interesados en adquirirlos.</p>
+          <p>MVPMarket actúa únicamente como intermediario y facilitador del contacto. No somos parte de ningún acuerdo de compraventa ni asumimos responsabilidad sobre las transacciones que se realicen fuera de la plataforma.</p>
+        </Section>
+        <Section title="2. Registro y cuenta">
+          <p>Para publicar o interactuar con listings debes crear una cuenta con información veraz y actualizada. Eres responsable de mantener la confidencialidad de tus credenciales y de todas las actividades realizadas desde tu cuenta.</p>
+        </Section>
+        <Section title="3. Publicación de MVPs">
+          <p>Al publicar un MVP declaras que eres el titular legítimo del producto, la información es veraz, no infringe derechos de terceros y no contiene código malicioso. Cada publicación pasa por revisión editorial.</p>
+        </Section>
+        <Section title="4. Reuniones y negociaciones">
+          <p>MVPMarket facilita la coordinación de reuniones entre compradores y vendedores. El acuerdo final, precio y condiciones son responsabilidad exclusiva de las partes involucradas.</p>
+        </Section>
+        <Section title="5. Conducta prohibida">
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Publicar contenido fraudulento, engañoso o difamatorio.</li>
+            <li>Hacer scraping automatizado o extraer datos masivamente.</li>
+            <li>Hacerse pasar por otra persona o entidad.</li>
+            <li>Contactar a otros usuarios fuera de la plataforma con fines de spam.</li>
+          </ul>
+        </Section>
+        <Section title="6. Propiedad intelectual">
+          <p>Todo el contenido de MVPMarket es propiedad de MVPMarket o de sus licenciantes. Los MVPs publicados son propiedad de sus respectivos creadores.</p>
+        </Section>
+        <Section title="7. Limitación de responsabilidad">
+          <p>MVPMarket no garantiza la exactitud de la información publicada por los usuarios ni el resultado de ninguna transacción. No seremos responsables por daños indirectos o pérdida de beneficios.</p>
+        </Section>
+        <Section title="8. Contacto">
+          <p>Para dudas sobre estos términos escríbenos a <strong>legal@mvpmarket.com</strong>.</p>
+        </Section>
+      </LegalDialogShell>
+
+      {/* ── Dialog: Política de Privacidad ── */}
+      <LegalDialogShell
+        open={privacyOpen} onClose={() => setPrivacyOpen(false)}
+        icon={<ShieldCheck className="w-5 h-5 text-emerald-600" />}
+        iconBg="bg-emerald-50 border border-emerald-200"
+        title="Política de Privacidad" subtitle="Última actualización: marzo 2026"
+      >
+        <p>En <strong>MVPMarket</strong> nos tomamos muy en serio la privacidad de nuestros usuarios. Esta política describe qué datos recopilamos, cómo los utilizamos y qué derechos tienes sobre ellos.</p>
+        <Section title="1. Datos que recopilamos">
+          <p><strong>Datos que tú nos proporcionas:</strong> nombre, email, foto de perfil, bio, LinkedIn, GitHub y cualquier información incluida en tus listings.</p>
+          <p><strong>Datos automáticos:</strong> IP, navegador, páginas visitadas, tiempo de sesión e interacciones con listings.</p>
+          <p><strong>Datos de terceros:</strong> si te registras con Google, recibimos tu nombre y email desde tu cuenta de Google.</p>
+        </Section>
+        <Section title="2. Cómo usamos tus datos">
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Gestionar tu cuenta y autenticar tu identidad.</li>
+            <li>Mostrar tu perfil público y tus listings en el marketplace.</li>
+            <li>Enviar notificaciones relevantes sobre reuniones y ofertas.</li>
+            <li>Mejorar la plataforma mediante análisis de uso anónimos.</li>
+          </ul>
+        </Section>
+        <Section title="3. Compartición de datos">
+          <p>No vendemos ni alquilamos tus datos. Podemos compartirlos con proveedores de servicio bajo acuerdos de confidencialidad, o con autoridades cuando sea requerido por ley.</p>
+        </Section>
+        <Section title="4. Seguridad">
+          <p>Aplicamos cifrado en tránsito (HTTPS), autenticación segura y almacenamiento de contraseñas con hashing. Te recomendamos usar contraseñas robustas y únicas.</p>
+        </Section>
+        <Section title="5. Tus derechos">
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Acceso:</strong> solicitar una copia de tus datos personales.</li>
+            <li><strong>Rectificación:</strong> corregir datos inexactos desde tu perfil.</li>
+            <li><strong>Eliminación:</strong> solicitar la eliminación de tu cuenta y datos.</li>
+            <li><strong>Portabilidad:</strong> recibir tus datos en formato estructurado.</li>
+          </ul>
+          <p>Para ejercer estos derechos escríbenos a <strong>privacidad@mvpmarket.com</strong>.</p>
+        </Section>
+        <Section title="6. Retención de datos">
+          <p>Conservamos tus datos mientras tu cuenta esté activa. Si la eliminas, borraremos tus datos personales en un plazo máximo de 30 días.</p>
+        </Section>
+        <Section title="7. Contacto">
+          <p>Para consultas sobre privacidad contacta a nuestro equipo en <strong>privacidad@mvpmarket.com</strong>.</p>
+        </Section>
+      </LegalDialogShell>
 
       <Dialog open={successDialog} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-sm text-center [&>button]:hidden">

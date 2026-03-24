@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { X, LogOut, ImageUp, Trash2, User, Mail, FileText, Linkedin, Github, CalendarDays, Clock } from "lucide-react"
+import { X, LogOut, ImageUp, Trash2, User, Mail, FileText, Linkedin, Github, CalendarDays, Clock, AlertTriangle } from "lucide-react"
 
 interface UserProfile {
   id?: string
@@ -546,7 +546,7 @@ export default function ProfileEditor({ onLogout, onDirtyChange }: ProfileEditor
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>⚠️</span> ¡Tienes cambios sin guardar!
+              <AlertTriangle className="h-5 w-5 text-amber-500" /> ¡Tienes cambios sin guardar!
             </DialogTitle>
             <DialogDescription>
               Si continúas sin guardar, perderás los cambios realizados en tu perfil.
