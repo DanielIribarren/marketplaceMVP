@@ -1,31 +1,36 @@
 import { supabase } from '../utils/supabase-client.js'
 import { sendNotificationEmail } from '../services/email.js'
 
-const MAX_LIMIT = 50
+const MAX_LIMIT = 200
 
 export async function getMyNotifications(req, res) {
   try {
     const userId = req.user.id
-    const limitRaw = Number(req.query.limit || 10)
+    const limitRaw = Number(req.query.limit || 20)
+    const offsetRaw = Number(req.query.offset || 0)
     const unreadOnly = req.query.unread_only === 'true'
 
-    const limit = Number.isFinite(limitRaw)
-      ? Math.min(Math.max(limitRaw, 1), MAX_LIMIT)
-      : 10
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), MAX_LIMIT) : 20
+    const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0
+
+    // Total de notificaciones (para paginación)
+    let totalQuery = supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+    if (unreadOnly) totalQuery = totalQuery.eq('read', false)
+    const { count: totalCount } = await totalQuery
 
     let query = supabase
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(limit)
+      .range(offset, offset + limit - 1)
 
-    if (unreadOnly) {
-      query = query.eq('read', false)
-    }
+    if (unreadOnly) query = query.eq('read', false)
 
     const { data: notifications, error } = await query
-
     if (error) throw error
 
     const { count: unreadCount, error: unreadError } = await supabase
@@ -40,6 +45,7 @@ export async function getMyNotifications(req, res) {
       success: true,
       data: notifications || [],
       count: notifications?.length || 0,
+      total: totalCount || 0,
       unread_count: unreadCount || 0
     })
   } catch (error) {

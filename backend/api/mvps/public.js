@@ -75,7 +75,7 @@ export async function getPublicMvps(req, res) {
     } = req.query
 
     const statuses = parseStatuses(status)
-    const parsedLimit = Math.min(Number(limit) || 12, 50)
+    const parsedLimit = Math.min(Number(limit) || 12, 500)
     const parsedOffset = Math.max(Number(offset) || 0, 0)
 
     let query = supabase

@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/dialog'
 import ProfileEditor from '@/components/ProfileEditor'
 import { NotificationDetails } from '@/components/NotificationDetails'
+import { NotificationCenter } from '@/components/NotificationCenter'
 import { createClient } from '@/lib/supabase/client'
 
 interface NavbarProps {
@@ -128,6 +129,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null)
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false)
+  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [profileDirty, setProfileDirty] = useState(false)
@@ -150,7 +152,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
       if (!token) return
 
       const base = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
-      const response = await fetch(`${base}/api/notifications?limit=8`, {
+      const response = await fetch(`${base}/api/notifications?limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store'
       })
@@ -483,6 +485,16 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                               ))
                             )}
                           </div>
+                          {/* Ver todas */}
+                          <div className="border-t border-border px-3 py-2 text-center">
+                            <button
+                              type="button"
+                              className="text-xs text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                              onClick={() => { setNotificationsOpen(false); setNotificationCenterOpen(true) }}
+                            >
+                              Ver todas
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -694,6 +706,20 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                     </Dialog>
                   </>
                 )}
+
+                {/* Centro de notificaciones (Ver todas) */}
+                <NotificationCenter
+                  open={notificationCenterOpen}
+                  onOpenChange={setNotificationCenterOpen}
+                  onExternalRead={(id) => {
+                    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+                    setUnreadNotifications(prev => Math.max(0, prev - 1))
+                  }}
+                  onExternalReadAll={() => {
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+                    setUnreadNotifications(0)
+                  }}
+                />
 
                 {/* Diálogo de detalles de notificación */}
                 <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
