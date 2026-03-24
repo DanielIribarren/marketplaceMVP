@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { UserDeleteButton } from './UserDeleteButton'
+import { UnbanButton } from './UnbanButton'
 import { Users, Mail, Calendar, Package, ShieldBan, Handshake } from 'lucide-react'
 
 const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
@@ -168,8 +169,9 @@ export async function UsersTab({ view }: { view: 'registered' | 'banned' }) {
                       <p className="text-xs text-muted-foreground italic mt-0.5">{b.reason || 'Actividad sospechosa'}</p>
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground shrink-0">
-                    {b.banned_at ? formatDate(b.banned_at) : '—'}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs text-muted-foreground">{b.banned_at ? formatDate(b.banned_at) : '—'}</span>
+                    <UnbanButton email={b.email} />
                   </div>
                 </div>
               </div>

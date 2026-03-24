@@ -42,12 +42,12 @@ export default async function Home() {
               </p>
 
               <div className="flex flex-wrap gap-4">
-                <Link href="/login">
+                <Link href={isAuthenticated ? "/marketplace" : "/login"}>
                   <Button size="lg" className="gap-2">
                     Explorar Marketplace <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/login">
+                <Link href={isAuthenticated ? "/publish?from=home" : "/login"}>
                   <Button
                     size="lg"
                     variant="outline"
@@ -201,12 +201,12 @@ export default async function Home() {
               MVPMarket.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/login">
+              <Link href={isAuthenticated ? "/marketplace" : "/login"}>
                 <Button size="lg" className="gap-2">
                   Explorar proyectos <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/login">
+              <Link href={isAuthenticated ? "/publish?from=home" : "/login"}>
                 <Button
                   size="lg"
                   variant="outline"

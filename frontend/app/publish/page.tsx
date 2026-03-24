@@ -88,9 +88,11 @@ function PublishPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const draftIdParam = searchParams.get('draft')
-  const fromMyMvps = searchParams.get('from') === 'my-mvps'
-  const backHref = fromMyMvps ? '/my-mvps' : '/marketplace'
-  const backLabel = fromMyMvps ? 'Volver a tus MVPs' : 'Volver al marketplace'
+  const fromParam = searchParams.get('from')
+  const fromMyMvps = fromParam === 'my-mvps'
+  const fromHome = fromParam === 'home'
+  const backHref = fromMyMvps ? '/my-mvps' : fromHome ? '/' : '/marketplace'
+  const backLabel = fromMyMvps ? 'Volver a tus MVPs' : fromHome ? 'Volver al inicio' : 'Volver al marketplace'
 
   const [currentStep, setCurrentStep] = useState<Step>("basics")
   const [mvpData, setMvpData] = useState<Partial<MVPPublication> & { id?: string }>(createEmptyDraft(""))
