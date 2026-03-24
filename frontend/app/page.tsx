@@ -41,7 +41,7 @@ export default async function Home() {
           <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-2">
 
             {/* ── Texto ── */}
-            <div className="fade-in-up">
+            <div className="fade-in-up lg:pl-8">
               <Badge className="mb-6 gap-2 border-brand-400/30 bg-brand-500/15 text-brand-300 backdrop-blur-sm px-3 py-1">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
