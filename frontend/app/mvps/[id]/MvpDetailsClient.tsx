@@ -166,6 +166,7 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [showScheduler, setShowScheduler] = useState(false)
+  const [schedulerBooked, setSchedulerBooked] = useState(false)
   const [investorMeeting, setInvestorMeeting] = useState<Meeting | null>(null)
   const [meetingStatusLoading, setMeetingStatusLoading] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -489,31 +490,29 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
           <div className="mb-8" id="agendar-reunion">
             {meetingMeta && (
               <Card className="border-2 mb-4">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <CalendarClock className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-sm font-semibold">Tu estado con este MVP</p>
+                <CardContent className="p-5">
+                  {/* Tres columnas iguales: título+desc | botón+fecha | badge */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <p className="text-sm font-semibold text-muted-foreground">Tu estado con este MVP</p>
+                      </div>
+                      <p className="text-sm text-foreground mt-1.5">{meetingMeta.description}</p>
                     </div>
-                    <Badge variant="outline" className={meetingMeta.badgeClassName}>
-                      {meetingMeta.label}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{meetingMeta.description}</p>
-                  {meetingDateLabel && (
-                    <p className="text-sm text-muted-foreground">
-                      Fecha de reunión: {meetingDateLabel}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    <Link href="/calendar">
-                      <Button variant="outline" size="sm">Ver reunión en calendario</Button>
-                    </Link>
-                    {hasActiveMeeting && (
-                      <p className="text-xs text-muted-foreground self-center">
-                        Ya tienes una reunión activa para este MVP
-                      </p>
-                    )}
+                    <div className="flex-1 flex flex-wrap items-center justify-center gap-3">
+                      <Link href="/calendar">
+                        <Button variant="outline" size="sm">Ver reunión en calendario</Button>
+                      </Link>
+                      {meetingDateLabel && (
+                        <p className="text-xs text-muted-foreground">Fecha de reunión: {meetingDateLabel}</p>
+                      )}
+                    </div>
+                    <div className="flex-1 flex justify-end">
+                      <Badge variant="outline" className={`${meetingMeta.badgeClassName} shrink-0`}>
+                        {meetingMeta.label}
+                      </Badge>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -529,7 +528,7 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg leading-tight mb-1">
-                          {meetingMeta ? '¿Querés hacer seguimiento?' : '¿Te interesa este MVP?'}
+                          {meetingMeta ? '¿Quieres hacer seguimiento?' : '¿Te interesa este MVP?'}
                         </h3>
                         <p className="text-sm text-muted-foreground">
                           {meetingMeta
@@ -556,14 +555,17 @@ export function MvpDetailsClient({ isAdmin: isAdminUser }: { isAdmin: boolean })
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold">Agendar Reunión</h2>
-                  <Button variant="ghost" size="sm" onClick={() => setShowScheduler(false)}>
-                    Cancelar
-                  </Button>
+                  {!schedulerBooked && (
+                    <Button variant="ghost" size="sm" onClick={() => setShowScheduler(false)}>
+                      Cancelar
+                    </Button>
+                  )}
                 </div>
                 <MeetingScheduler
                   mvpId={mvp.id}
                   mvpTitle={mvp.title}
                   ownerName={mvp.user_profiles?.display_name}
+                  onBooked={() => setSchedulerBooked(true)}
                 />
               </div>
             )}

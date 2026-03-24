@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { bookAvailabilitySlot } from '@/app/actions/availability.actions'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, Clock, Video, Phone, MapPin, AlertCircle, Check } from 'lucide-react'
+import { Calendar, Clock, Video, Phone, MapPin, AlertCircle, Check, CalendarCheck, Handshake, TrendingUp } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -19,6 +19,7 @@ interface MeetingSchedulerProps {
   mvpId: string
   mvpTitle: string
   ownerName?: string
+  onBooked?: () => void
 }
 
 interface AvailabilitySlot {
@@ -47,7 +48,7 @@ const MEETING_TYPES: MeetingTypeOption[] = [
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
 
-export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedulerProps) {
+export function MeetingScheduler({ mvpId, mvpTitle, ownerName, onBooked }: MeetingSchedulerProps) {
   const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null)
   const [meetingType, setMeetingType] = useState<MeetingType>('video_call')
@@ -59,6 +60,10 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
   const [loading, setLoading] = useState(true)
   const [booking, setBooking] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [bookedMeeting, setBookedMeeting] = useState<{
+    slot: AvailabilitySlot; meetingType: MeetingType
+    offerType: OfferType; offerAmount: string; offerEquityPercent: string; offerNote: string
+  } | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loadInfo, setLoadInfo] = useState<string | null>(null)
 
@@ -146,21 +151,11 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
       })
 
       if (result.success) {
-        setMessage({
-          type: 'success',
-          text: '¡Reunión solicitada con éxito! El emprendedor verá tu oferta inicial y podrá confirmar la reunión.'
-        })
-        setSelectedSlot(null)
-        setNotes('')
-        setOfferAmount('')
-        setOfferEquityPercent('')
-        setOfferNote('')
-        loadAvailability()
+        setBookedMeeting({ slot: selectedSlot, meetingType, offerType, offerAmount, offerEquityPercent, offerNote })
+        setSelectedSlot(null); setNotes(''); setOfferAmount(''); setOfferEquityPercent(''); setOfferNote('')
+        onBooked?.()
       } else {
-        setMessage({
-          type: 'error',
-          text: result.message || 'No se pudo agendar la reunión'
-        })
+        setMessage({ type: 'error', text: result.message || 'No se pudo agendar la reunión' })
       }
       setBooking(false)
       return
@@ -168,10 +163,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
 
     const trimmedOfferNote = offerNote.trim()
     if (trimmedOfferNote.length < 20) {
-      setMessage({
-        type: 'error',
-        text: 'Describe tu aporte no económico con al menos 20 caracteres.'
-      })
+      setMessage({ type: 'error', text: 'Describe tu aporte no económico con al menos 20 caracteres.' })
       setBooking(false)
       return
     }
@@ -182,21 +174,11 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
     })
 
     if (result.success) {
-      setMessage({
-        type: 'success',
-        text: '¡Reunión solicitada con éxito! El emprendedor verá tu oferta inicial y podrá confirmar la reunión.'
-      })
-      setSelectedSlot(null)
-      setNotes('')
-      setOfferAmount('')
-      setOfferEquityPercent('')
-      setOfferNote('')
-      loadAvailability()
+      setBookedMeeting({ slot: selectedSlot, meetingType, offerType, offerAmount, offerEquityPercent, offerNote: trimmedOfferNote })
+      setSelectedSlot(null); setNotes(''); setOfferAmount(''); setOfferEquityPercent(''); setOfferNote('')
+      onBooked?.()
     } else {
-      setMessage({
-        type: 'error',
-        text: result.message || 'No se pudo agendar la reunión'
-      })
+      setMessage({ type: 'error', text: result.message || 'No se pudo agendar la reunión' })
     }
     setBooking(false)
   }
@@ -280,6 +262,67 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
     )
   }
 
+  if (bookedMeeting) {
+    const { slot, meetingType: mt, offerType: ot, offerAmount: oa, offerEquityPercent: oep, offerNote: on } = bookedMeeting
+    const MtIcon = MEETING_TYPES.find(m => m.value === mt)?.icon ?? Video
+    const dateLabel = format(parseLocalDate(slot.date), "EEEE, d 'de' MMMM yyyy", { locale: es })
+    const timeLabel = `${slot.start_time.slice(0, 5)} – ${slot.end_time.slice(0, 5)}`
+    const meetingLabel = MEETING_TYPES.find(m => m.value === mt)?.label ?? mt
+    return (
+      <div className="space-y-4">
+        <Card className="border-green-200 bg-green-50/40">
+          <CardContent className="pt-6 space-y-5">
+            {/* Encabezado éxito */}
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white border border-green-300">
+                <CalendarCheck className="h-6 w-6 text-green-700" />
+              </div>
+              <div>
+                <p className="font-semibold text-green-800">¡Reunión solicitada con éxito!</p>
+                <p className="text-xs text-green-700">{ownerName || 'El emprendedor'} verá tu oferta y podrá confirmar la reunión.</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-green-200 bg-white divide-y divide-green-100">
+              {/* Fecha y hora */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Calendar className="h-4 w-4 text-green-600 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground tracking-wide">Fecha y hora</p>
+                  <p className="text-sm font-semibold capitalize">{dateLabel} · {timeLabel}</p>
+                </div>
+              </div>
+              {/* Tipo de reunión */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <MtIcon className="h-4 w-4 text-green-600 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground tracking-wide">Modalidad</p>
+                  <p className="text-sm font-semibold">{meetingLabel}</p>
+                </div>
+              </div>
+              {/* Oferta */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                {ot === 'economic' ? <TrendingUp className="h-4 w-4 text-green-600 shrink-0" /> : <Handshake className="h-4 w-4 text-green-600 shrink-0" />}
+                <div>
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground tracking-wide">
+                    {ot === 'economic' ? 'Oferta económica' : 'Aporte no económico'}
+                  </p>
+                  <p className="text-sm font-semibold">
+                    {ot === 'economic'
+                      ? `USD ${Number(oa).toLocaleString('es-VE')} · ${oep}% equity`
+                      : on}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">Puedes ver el estado de esta reunión en <span className="font-medium text-brand-600">Calendario y Ofertas</span>.</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <Card>
@@ -325,7 +368,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                                 <span className="font-medium">
                                   {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                                 </span>
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs bg-white">
                                   {slot.timezone}
                                 </Badge>
                               </div>
@@ -468,7 +511,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>{formatTime(selectedSlot.start_time)} - {formatTime(selectedSlot.end_time)}</span>
-                    <Badge variant="outline" className="text-xs">{selectedSlot.timezone}</Badge>
+                    <Badge variant="outline" className="text-xs bg-white">{selectedSlot.timezone}</Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     {React.createElement(

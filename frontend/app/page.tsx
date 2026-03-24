@@ -1,49 +1,73 @@
 import Link from "next/link"
-import { ArrowRight, CheckCircle2, Shield, TrendingUp, Users, Zap } from "lucide-react"
+import {
+  ArrowRight, Shield, Users, Zap,
+  CheckCircle2, Package, Handshake, TrendingUp
+} from "lucide-react"
 import { getUser, isAdmin as checkIsAdmin } from "@/app/actions/auth"
 import { Footer } from "@/components/footer"
 import { Navbar } from "@/components/navbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { createClient } from "@/lib/supabase/server"
+
+const CATEGORIES = ['SaaS', 'FinTech', 'IA / ML', 'EdTech', 'E-commerce']
 
 export default async function Home() {
   const user = await getUser()
   const isAuthenticated = !!user
   const userIsAdmin = await checkIsAdmin()
 
+  const supabase = await createClient()
+  const [{ count: userCount }, { count: mvpCount }] = await Promise.all([
+    supabase.from('user_profiles').select('*', { count: 'exact', head: true }),
+    supabase.from('mvps').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+  ])
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar isAuthenticated={isAuthenticated} isAdmin={userIsAdmin} />
 
       <main>
-        <section className="relative overflow-hidden bg-ink-900 py-20 px-4 text-white">
-          <div className="pointer-events-none absolute inset-0 orange-grid opacity-[0.15]" />
-          <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-500/25 blur-3xl" />
-          <div className="pointer-events-none absolute -left-28 bottom-0 h-72 w-72 rounded-full bg-brand-600/20 blur-3xl" />
+        {/* ══════════════════════════════════════
+            HERO
+        ══════════════════════════════════════ */}
+        <section className="relative overflow-hidden bg-ink-900 pb-28 pt-20 px-4 text-white">
+          <div className="pointer-events-none absolute inset-0 orange-grid opacity-[0.12]" />
+          <div className="pointer-events-none absolute -right-40 -top-40 h-[480px] w-[480px] rounded-full bg-brand-500/20 blur-[110px]" />
+          <div className="pointer-events-none absolute -left-40 bottom-0 h-96 w-96 rounded-full bg-brand-600/15 blur-[100px]" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-400/8 blur-[80px]" />
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-2">
+
+            {/* ── Texto ── */}
             <div className="fade-in-up">
-              <Badge className="mb-4" variant="secondary">
-                <span className="mr-1">🚀</span>
-                El futuro del software está aquí
+              <Badge className="mb-6 gap-2 border-brand-400/30 bg-brand-500/15 text-brand-300 backdrop-blur-sm px-3 py-1">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
+                </span>
+                Plataforma activa · LATAM
               </Badge>
 
-              <h1 className="mb-6 text-5xl font-bold leading-tight md:text-6xl">
-                Compra y vende{" "}
-                <span className="text-brand-400">MVPs validados</span>{" "}
-                con confianza
+              <h1 className="mb-6 text-5xl font-bold leading-[1.1] tracking-tight md:text-[3.75rem]">
+                El marketplace de{" "}
+                <span className="relative inline-block">
+                  <span className="relative z-10 text-brand-400">MVPs validados</span>
+                  <span className="absolute -bottom-1 left-0 right-0 h-[3px] rounded-full bg-gradient-to-r from-brand-500 via-brand-400 to-transparent opacity-70" />
+                </span>
+                {" "}para LATAM
               </h1>
 
-              <p className="mb-8 max-w-xl text-lg text-white/75">
-                El marketplace que conecta creadores con compradores e
-                inversionistas. Transacciones seguras, scoring transparente y
-                comunicación directa.
+              <p className="mb-9 max-w-lg text-lg leading-relaxed text-white/70">
+                Conecta creadores con compradores e inversionistas.
+                Publica tu MVP, agenda reuniones y cierra tratos en un
+                ecosistema seguro y transparente.
               </p>
 
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-3 mb-10">
                 <Link href={isAuthenticated ? "/marketplace" : "/login"}>
-                  <Button size="lg" className="gap-2">
+                  <Button size="lg" className="gap-2 shadow-lg shadow-brand-500/30 hover:shadow-brand-500/45 transition-shadow">
                     Explorar Marketplace <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -51,138 +75,208 @@ export default async function Home() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white/25 bg-white/5 text-white hover:bg-white hover:text-foreground"
+                    className="border-white/20 bg-white/5 text-white hover:bg-white hover:text-foreground"
                   >
-                    Vender mi MVP
+                    Publicar mi MVP
                   </Button>
                 </Link>
               </div>
+
+              {/* Trust bar */}
+              <div className="flex flex-wrap items-center gap-6 text-sm text-white/45">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-brand-400 shrink-0" />
+                  <span>Revisión manual de MVPs</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-brand-400 shrink-0" />
+                  <span>Reuniones verificadas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Handshake className="h-4 w-4 text-brand-400 shrink-0" />
+                  <span>Ofertas directas</span>
+                </div>
+              </div>
             </div>
 
-            <Card className="fade-in-up border-white/10 bg-white/5 text-white">
-              <CardContent className="space-y-4 p-6">
-                <div className="flex items-center justify-between">
-                  <Badge className="gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Verificado
-                  </Badge>
-                </div>
-
-                <div>
-                  <div className="mb-2 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-brand-400" />
-                    <span className="font-semibold">Métricas verificadas</span>
+            {/* ── Tarjeta plataforma ── */}
+            <div className="fade-in-up lg:pl-4" style={{ animationDelay: '120ms' }}>
+              <Card className="border-white/10 bg-white/[0.06] backdrop-blur-sm text-white overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-3 w-3 rounded-full bg-brand-500 shadow-[0_0_8px_rgba(255,107,53,0.6)]" />
+                    <span className="text-sm font-semibold tracking-wide text-white/80">MVPMarket</span>
                   </div>
-                  <p className="text-sm text-white/70">Transparencia total</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 border-y border-white/10 py-4">
-                  <div>
-                    <p className="mb-1 text-sm text-white/65">Usuarios activos</p>
-                    <p className="text-2xl font-bold">1,250</p>
-                  </div>
-                  <div>
-                    <p className="mb-1 text-sm text-white/65">MRR</p>
-                    <p className="text-2xl font-bold text-brand-300">$2,400</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm text-white/70">Score técnico</p>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
-                      <div className="h-full w-[92%] bg-primary" />
-                    </div>
-                    <span className="text-lg font-bold text-brand-300">
-                      9.2/10
+                  <div className="flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
                     </span>
+                    <span className="text-xs text-green-400 font-medium">En vivo</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 text-sm text-brand-300">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>Auditoría técnica completada</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
+                <CardContent className="p-5 space-y-5">
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-white/[0.06] border border-white/10 p-4">
+                      <p className="text-[11px] text-white/45 mb-2 uppercase tracking-wider font-medium">Usuarios activos</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-4xl font-black text-white">{userCount ?? 0}</p>
+                        <span className="relative flex h-2.5 w-2.5 shrink-0 self-center translate-y-px">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-400" />
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white/[0.06] border border-white/10 p-4">
+                      <p className="text-[11px] text-white/45 mb-2 uppercase tracking-wider font-medium">MVPs aprobados</p>
+                      <p className="text-4xl font-black text-brand-300 leading-none">{mvpCount ?? 0}</p>
+                    </div>
+                  </div>
 
-        <section className="brand-surface py-16 px-4">
-          <div className="mx-auto max-w-7xl">
-            <div className="grid gap-8 text-center md:grid-cols-3">
-              <div className="fade-in-up">
-                <p className="mb-2 text-5xl font-bold text-primary">150+</p>
-                <p className="text-muted-foreground">MVPs listados</p>
-              </div>
-              <div className="fade-in-up">
-                <p className="mb-2 text-5xl font-bold text-primary">$2.5M</p>
-                <p className="text-muted-foreground">En transacciones</p>
-              </div>
-              <div className="fade-in-up">
-                <p className="mb-2 text-5xl font-bold text-primary">89%</p>
-                <p className="text-muted-foreground">Tasa de cierre</p>
-              </div>
+                  {/* Categories */}
+                  <div>
+                    <p className="text-[11px] text-white/45 mb-2.5 uppercase tracking-wider font-medium">Categorías disponibles</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CATEGORIES.map(cat => (
+                        <span
+                          key={cat}
+                          className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs text-white/65 hover:border-brand-400/40 hover:text-white/90 transition-colors"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Mini steps */}
+                  <div className="space-y-2.5 border-t border-white/10 pt-4">
+                    {[
+                      { icon: Package, label: 'Publica tu MVP', sub: 'Con métricas reales' },
+                      { icon: Handshake, label: 'Agenda reuniones', sub: 'Con inversores directos' },
+                      { icon: TrendingUp, label: 'Cierra el trato', sub: 'Con oferta verificada' },
+                    ].map(({ icon: Icon, label, sub }) => (
+                      <div key={label} className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 border border-brand-500/25">
+                          <Icon className="h-4 w-4 text-brand-400" />
+                        </div>
+                        <p className="flex-1 text-sm font-medium text-white/85">{label}</p>
+                        <p className="text-xs text-white/35 shrink-0">{sub}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
 
-        <section className="py-20 px-4">
+        {/* ══════════════════════════════════════
+            CÓMO FUNCIONA
+        ══════════════════════════════════════ */}
+        <section className="brand-surface pb-24 pt-14 px-4 relative">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-16 text-center">
-              <h2 className="mb-4 text-4xl font-bold">¿Por qué MVPMarket?</h2>
+            <div className="mb-14 text-center">
+              <p className="mb-2 text-sm font-bold uppercase tracking-widest text-primary">Proceso simple</p>
+              <h2 className="text-4xl font-bold text-foreground">¿Cómo funciona?</h2>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {([
+                {
+                  step: '01',
+                  icon: Package,
+                  title: 'Publica tu MVP',
+                  description: 'Describe tu proyecto, sube métricas reales, define tu precio y envíalo a revisión. Aprobación en menos de 48 horas.',
+                  gradient: 'from-brand-500 to-brand-600',
+                },
+                {
+                  step: '02',
+                  icon: Handshake,
+                  title: 'Conecta con inversores',
+                  description: 'Recibe solicitudes de reunión, revisa las ofertas y agenda llamadas directamente desde el calendario integrado.',
+                  gradient: 'from-brand-400 to-brand-500',
+                },
+                {
+                  step: '03',
+                  icon: TrendingUp,
+                  title: 'Cierra el trato',
+                  description: 'Negocia en tiempo real, acepta la oferta que mejor se adapte y formaliza la transacción con respaldo de la plataforma.',
+                  gradient: 'from-brand-300 to-brand-400',
+                },
+              ] as const).map(({ step, icon: Icon, title, description, gradient }) => (
+                <Card key={step} className="group relative overflow-hidden motion-lift border-border/60 hover:border-brand-300 hover:brand-border-glow">
+                  <CardContent className="p-7">
+                    <div className="mb-5 flex items-start justify-between">
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} shadow-md`}>
+                        <Icon className="h-6 w-6 text-white" />
+                      </div>
+                      <span className="select-none text-5xl font-black text-border group-hover:text-brand-200 transition-colors duration-300">
+                        {step}
+                      </span>
+                    </div>
+                    <h3 className="mb-2 text-xl font-bold">{title}</h3>
+                    <p className="leading-relaxed text-muted-foreground">{description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Curva de transición naranja → blanco */}
+          <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none pointer-events-none">
+            <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-20">
+              <defs>
+                <linearGradient id="waveOrangeWhite" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(21 100% 80%)" stopOpacity="0.55" />
+                  <stop offset="100%" stopColor="white" stopOpacity="1" />
+                </linearGradient>
+              </defs>
+              <path d="M0,0 Q360,80 720,50 Q1080,20 1440,70 L1440,80 L0,80 Z" fill="url(#waveOrangeWhite)" />
+            </svg>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════
+            FEATURES
+        ══════════════════════════════════════ */}
+        <section className="py-14 px-4">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-14 text-center">
+              <p className="mb-2 text-sm font-bold uppercase tracking-widest text-primary">Por qué elegirnos</p>
+              <h2 className="mb-4 text-4xl font-bold">Todo lo que necesitas en un solo lugar</h2>
               <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                El marketplace diseñado para maximizar el valor y minimizar el
-                riesgo en cada transacción.
+                Construido para maximizar el valor en cada transacción y minimizar el riesgo de ambos lados.
               </p>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-3">
-              {[
+            <div className="grid gap-6 md:grid-cols-3">
+              {([
                 {
                   icon: Shield,
-                  title: "Transacciones seguras",
-                  description:
-                    "Sistema de escrow, contratos estandarizados y verificación KYC para proteger compradores y vendedores.",
-                },
-                {
-                  icon: TrendingUp,
-                  title: "Métricas verificadas",
-                  description:
-                    "Auditoría técnica automatizada, scoring transparente y validación de métricas de tracción.",
-                },
-                {
-                  icon: Zap,
-                  title: "Proceso rápido",
-                  description:
-                    "Comunicación directa, data rooms seguros y transferencia verificada de activos digitales.",
+                  title: "Revisión manual",
+                  description: "Cada MVP pasa por un proceso de aprobación antes de ser visible. Solo proyectos con métricas reales y documentación completa.",
                 },
                 {
                   icon: Users,
-                  title: "Comunidad activa",
-                  description:
-                    "Conecta con creadores, compradores e inversionistas verificados en un ecosistema de confianza.",
+                  title: "Conexiones directas",
+                  description: "Sin intermediarios. Comunícate directamente con inversores, agenda reuniones y negocia condiciones en tiempo real.",
                 },
                 {
-                  icon: CheckCircle2,
-                  title: "Deal-flow curado",
-                  description:
-                    "Solo proyectos validados con métricas reales, documentación completa y auditoría técnica.",
+                  icon: Zap,
+                  title: "Proceso ágil",
+                  description: "Desde la publicación hasta el cierre del trato, todo en la misma plataforma. Sin fricciones, sin correos interminables.",
                 },
-                {
-                  icon: Shield,
-                  title: "Soporte completo",
-                  description:
-                    "Asistencia durante todo el proceso: negociación, due diligence, cierre y transferencia.",
-                },
-              ].map(({ icon: Icon, title, description }) => (
-                <Card key={title}>
-                  <CardContent className="p-6">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100">
-                      <Icon className="h-6 w-6 text-primary" />
+              ] as const).map(({ icon: Icon, title, description }) => (
+                <Card key={title} className="group motion-lift border-border/60 hover:border-brand-300 hover:brand-border-glow">
+                  <CardContent className="p-7">
+                    <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-200 bg-brand-50 transition-colors group-hover:bg-brand-100">
+                      <Icon className="h-7 w-7 text-primary" />
                     </div>
-                    <h3 className="mb-2 text-xl font-semibold">{title}</h3>
-                    <p className="text-muted-foreground">{description}</p>
+                    <h3 className="mb-2 text-xl font-bold">{title}</h3>
+                    <p className="leading-relaxed text-muted-foreground">{description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -190,19 +284,31 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden bg-ink-900 py-20 px-4 text-white">
-          <div className="pointer-events-none absolute inset-0 orange-grid opacity-[0.12]" />
-          <div className="mx-auto max-w-4xl text-center">
-            <h2 className="mb-6 text-4xl font-bold">
-              ¿Listo para comprar o vender tu MVP?
+        {/* ══════════════════════════════════════
+            CTA FINAL
+        ══════════════════════════════════════ */}
+        <section className="relative overflow-hidden bg-ink-900 py-16 px-4 text-white">
+          <div className="pointer-events-none absolute inset-0 orange-grid opacity-[0.10]" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-500/12 blur-[120px]" />
+
+          <div className="relative mx-auto max-w-3xl text-center">
+            <Badge className="mb-6 border-brand-400/30 bg-brand-500/15 px-4 py-1 text-brand-300">
+              Empieza hoy · Es gratis
+            </Badge>
+
+            <h2 className="mb-6 text-4xl font-bold leading-tight md:text-5xl">
+              ¿Listo para dar el{" "}
+              <span className="text-brand-400">siguiente paso?</span>
             </h2>
-            <p className="mb-8 text-lg text-white/80">
-              Únete a cientos de creadores e inversionistas que confían en
-              MVPMarket.
+
+            <p className="mb-10 mx-auto max-w-xl text-lg leading-relaxed text-white/70">
+              Únete a la comunidad de creadores e inversores que están
+              transformando el ecosistema de startups en LATAM.
             </p>
+
             <div className="flex flex-wrap justify-center gap-4">
               <Link href={isAuthenticated ? "/marketplace" : "/login"}>
-                <Button size="lg" className="gap-2">
+                <Button size="lg" className="gap-2 shadow-lg shadow-brand-500/30">
                   Explorar proyectos <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -210,9 +316,9 @@ export default async function Home() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white/30 bg-transparent text-white hover:bg-white hover:text-foreground"
+                  className="border-white/25 bg-white/5 text-white hover:bg-white hover:text-foreground"
                 >
-                  Comenzar ahora
+                  Publicar mi MVP
                 </Button>
               </Link>
             </div>

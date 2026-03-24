@@ -193,14 +193,14 @@ export default async function AdminPage({
         </header>
 
         {/* Tab navigation */}
-        <div className="flex gap-2 p-1 bg-background rounded-xl border border-border/50 w-fit">
+        <div className="flex justify-center"><div className="flex gap-2 p-1 bg-background rounded-xl border border-border/50 w-fit">
           <Link href="/admin?tab=mvps" className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'mvps' ? 'bg-brand-50 text-brand-700 border border-brand-200 shadow-sm' : 'bg-background text-muted-foreground hover:text-foreground'}`}>
             <Package className="w-4 h-4" /> MVPs
           </Link>
           <Link href="/admin?tab=users" className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'users' ? 'bg-brand-50 text-brand-700 border border-brand-200 shadow-sm' : 'bg-background text-muted-foreground hover:text-foreground'}`}>
             <Users className="w-4 h-4" /> Usuarios
           </Link>
-        </div>
+        </div></div>
 
         {activeTab === 'users' ? (
           <UsersTab view={usersView} />
