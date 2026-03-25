@@ -482,7 +482,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
       <Card key={mvp.id} className="rounded-2xl">
         <CardContent className="p-4 md:p-5">
           <div className={`grid gap-4 ${!isGridMode ? 'md:grid-cols-[360px_1fr] md:items-stretch' : ''}`}>
-            <div className={`relative overflow-hidden rounded-xl ${!isGridMode ? 'min-h-[220px] md:min-h-[270px] md:ml-3' : 'h-[200px]'}`}>
+            <div className={`relative overflow-hidden rounded-xl border border-border/60 ${!isGridMode ? 'min-h-[200px] md:min-h-[245px] md:ml-3' : 'h-[185px]'}`}>
               {currentMedia && !isCurrentVideo && (
                 <>
                   <img
