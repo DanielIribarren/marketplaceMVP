@@ -183,7 +183,7 @@ function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
       </svg>
 
       {/* Contenedor de las dos cajas */}
-      <div style={{
+      <div className="hiw-role-cards" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -193,6 +193,7 @@ function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
       }}>
         {/* Caja Emprendedor */}
         <motion.button
+          className="hiw-role-btn"
           onClick={() => setRole('entrepreneur')}
           onMouseEnter={() => setHoveredRole('entrepreneur')}
           onMouseLeave={() => setHoveredRole(null)}
@@ -240,6 +241,7 @@ function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
 
         {/* Caja Inversor */}
         <motion.button
+          className="hiw-role-btn"
           onClick={() => setRole('investor')}
           onMouseEnter={() => setHoveredRole('investor')}
           onMouseLeave={() => setHoveredRole(null)}
@@ -708,10 +710,10 @@ function HeroSteps() {
 
         return (
           <FadeIn key={step.num} delay={0}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '6px 0' }}>
+            <div className="hiw-step-row" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '6px 0' }}>
 
               {/* Ghost number */}
-              <span style={{
+              <span className="hiw-step-num" style={{
                 fontSize: 'clamp(70px, 12vw, 120px)', fontWeight: 900, lineHeight: 1,
                 color: isLit ? 'rgba(255,107,53,0.22)' : 'rgba(255,107,53,0.08)',
                 letterSpacing: '-4px', userSelect: 'none', minWidth: '100px', textAlign: 'right',
@@ -719,7 +721,7 @@ function HeroSteps() {
               }}>{step.num}</span>
 
               {/* Title + blinking cursor */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '200px' }}>
+              <div className="hiw-step-title" style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '200px' }}>
                 <span style={{
                   fontSize: 'clamp(2rem, 5vw, 3.6rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-1px',
                   ...(step.gradient
@@ -738,7 +740,7 @@ function HeroSteps() {
               </div>
 
               {/* Typewriter description */}
-              <div style={{
+              <div className="hiw-step-desc" style={{
                 flex: 1, fontSize: 'clamp(0.85rem, 1.6vw, 1rem)',
                 color: '#9ca3af', fontFamily: 'monospace',
                 minHeight: '1.5em', textAlign: 'left',
@@ -779,6 +781,19 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
 
   return (
     <main>
+      <style>{`
+        @media (max-width: 639px) {
+          .hiw-step-row { flex-wrap: wrap !important; gap: 6px !important; }
+          .hiw-step-num { min-width: 62px !important; font-size: clamp(52px, 14vw, 100px) !important; }
+          .hiw-step-title { min-width: auto !important; }
+          .hiw-step-desc { flex: 1 1 100% !important; padding-left: 70px; margin-top: -4px; min-height: 1.5em; }
+          .hiw-role-cards { justify-content: center !important; gap: 12px !important; }
+          .hiw-role-btn { width: auto !important; flex: 1 !important; max-width: 160px !important; padding: 20px 12px !important; }
+          .hiw-offer-grid { display: flex !important; flex-direction: column !important; }
+          .hiw-offer-section { padding: 28px 20px !important; }
+          .hiw-offer-center { display: none !important; }
+        }
+      `}</style>
       {/* ── HERO ── */}
       <section style={{
         background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0d00 50%, #0a0a0a 100%)',
@@ -916,10 +931,10 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
           </div>
         </FadeIn>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'stretch', borderTop: '1px solid #f3f4f6', borderBottom: '1px solid #f3f4f6' }}>
+        <div className="hiw-offer-grid" style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'stretch', borderTop: '1px solid #f3f4f6', borderBottom: '1px solid #f3f4f6' }}>
 
           {/* ── Oferta económica ── */}
-          <div style={{
+          <div className="hiw-offer-section" style={{
             display: 'flex', alignItems: 'flex-start', gap: '28px',
             padding: '52px 48px 52px 56px', boxSizing: 'border-box',
             background: econActive ? 'linear-gradient(135deg, #f8fafc, #f1f5f9)' : 'transparent',
@@ -959,7 +974,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
           </div>
 
           {/* ── Centro: Handshake interactivo ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', borderLeft: '1px solid #f3f4f6', borderRight: '1px solid #f3f4f6' }}>
+          <div className="hiw-offer-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', borderLeft: '1px solid #f3f4f6', borderRight: '1px solid #f3f4f6' }}>
             <div
               style={{ position: 'relative', width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'hidden' }}
             >
@@ -984,7 +999,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
           </div>
 
           {/* ── Aporte no económico ── */}
-          <div style={{
+          <div className="hiw-offer-section" style={{
             display: 'flex', alignItems: 'flex-start', gap: '28px',
             padding: '52px 56px 52px 48px', boxSizing: 'border-box',
             background: nonEconActive ? 'linear-gradient(135deg, #f8fafc, #f1f5f9)' : 'transparent',
