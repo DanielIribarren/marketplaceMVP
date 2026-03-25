@@ -783,7 +783,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
       <section style={{
         background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0d00 50%, #0a0a0a 100%)',
         position: 'relative', overflow: 'hidden',
-        padding: '100px 16px 110px',
+        padding: '100px 16px 130px',
       }}>
         {/* Orbs */}
         <div style={{ position: 'absolute', top: '-100px', left: '50%', transform: 'translateX(-50%)', width: '700px', height: '400px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(255,107,53,0.13) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -813,6 +813,13 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
 
         </div>
 
+        {/* Curva de transición oscuro → claro */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'hidden', lineHeight: 0, pointerEvents: 'none' }}>
+          <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style={{ width: '100%', height: '80px', display: 'block' }}>
+            <path d="M0,0 Q360,80 720,50 Q1080,20 1440,70 L1440,80 L0,80 Z" fill="#f9fafb" />
+          </svg>
+        </div>
+
         <style>{`
           @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.7; transform:scale(1.05); } }
           @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
@@ -820,7 +827,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
       </section>
 
       {/* ── FLUJO POR ROL ── */}
-      <section style={{ padding: '80px 16px', background: '#f9fafb' }}>
+      <section style={{ padding: '20px 16px 80px', background: '#f9fafb' }}>
         <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
 
           <FadeIn>
