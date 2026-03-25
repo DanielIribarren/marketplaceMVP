@@ -3,44 +3,21 @@ import { createServerClient } from '@supabase/ssr'
 
 const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
 
-function copyCookies(from: NextResponse, to: NextResponse) {
-  for (const cookie of from.cookies.getAll()) {
-    to.cookies.set(cookie)
-  }
-}
-
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  const response = NextResponse.next()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          request.cookies.set({ name, value, ...(options as object) })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value, ...(options as object) })
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          request.cookies.set({ name, value: '', ...(options as object) })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value: '', ...(options as object) })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
         },
       },
     }
@@ -58,9 +35,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/login' && isAdmin) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
-    const redirectRes = NextResponse.redirect(url)
-    copyCookies(response, redirectRes)
-    return redirectRes
+    return NextResponse.redirect(url)
   }
 
   // Proteger /admin para solo el correo admin
@@ -69,9 +44,7 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       url.searchParams.set('error', 'unauthorized')
-      const redirectRes = NextResponse.redirect(url)
-      copyCookies(response, redirectRes)
-      return redirectRes
+      return NextResponse.redirect(url)
     }
   }
 
@@ -82,7 +55,5 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/login',
-    // evita assets internos
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
