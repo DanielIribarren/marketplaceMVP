@@ -670,199 +670,142 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
   return (
     <main>
       {/* ── HERO ── */}
-      <section
-        style={{
-          background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-          position: 'relative',
-          overflow: 'hidden',
-          padding: '80px 16px 100px',
-        }}
-      >
-        {/* Decorative grid */}
-        <div style={{
-          position: 'absolute', inset: 0, opacity: 0.03,
-          backgroundImage: 'linear-gradient(rgba(255,107,53,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,107,53,0.4) 1px, transparent 1px)',
-          backgroundSize: '50px 50px',
-        }} />
-
+      <section style={{
+        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0d00 50%, #0a0a0a 100%)',
+        position: 'relative', overflow: 'hidden',
+        padding: '100px 16px 110px',
+      }}>
         {/* Orbs */}
-        <div style={{
-          position: 'absolute', top: '-80px', right: '-80px', width: '400px', height: '400px',
-          borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,53,0.12) 0%, transparent 70%)',
-          animation: 'pulse 4s ease-in-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-60px', left: '-60px', width: '300px', height: '300px',
-          borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,53,0.08) 0%, transparent 70%)',
-          animation: 'pulse 6s ease-in-out infinite reverse',
-        }} />
+        <div style={{ position: 'absolute', top: '-100px', left: '50%', transform: 'translateX(-50%)', width: '700px', height: '400px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(255,107,53,0.13) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-80px', left: '10%', width: '320px', height: '320px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,53,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-60px', right: '8%', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,107,53,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-        <div style={{ maxWidth: '1280px', margin: '0 auto', position: 'relative' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '64px', alignItems: 'center' }}>
+        {/* Grid lines */}
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.025, backgroundImage: 'linear-gradient(rgba(255,107,53,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,107,53,0.6) 1px, transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none' }} />
 
-            {/* Left */}
-            <div>
-              <FadeIn>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '8px',
-                  background: 'rgba(255,107,53,0.12)', border: '1px solid rgba(255,107,53,0.3)',
-                  borderRadius: '999px', padding: '6px 16px', color: '#FF6B35',
-                  fontSize: '13px', fontWeight: 600, marginBottom: '24px',
-                }}>
-                  <Rocket size={14} /> Cómo funciona
-                </span>
-              </FadeIn>
+        <div style={{ maxWidth: '900px', margin: '0 auto', position: 'relative', textAlign: 'center' }}>
 
-              <FadeIn delay={0.1}>
-                <h1 style={{
-                  fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', fontWeight: 800, lineHeight: 1.1,
-                  color: '#ffffff', marginBottom: '24px',
-                }}>
-                  El marketplace que conecta{' '}
-                  <span style={{
-                    background: 'linear-gradient(135deg, #FF6B35, #ff8c5a)',
+          {/* Badge */}
+          <FadeIn>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              background: 'rgba(255,107,53,0.1)', border: '1px solid rgba(255,107,53,0.28)',
+              borderRadius: '999px', padding: '6px 18px', color: '#FF6B35',
+              fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em',
+              textTransform: 'uppercase', marginBottom: '48px',
+            }}>
+              <Zap size={12} fill="#FF6B35" /> Tres pasos. Sin vueltas.
+            </span>
+          </FadeIn>
+
+          {/* Steps typographic layout */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
+
+            {/* Step 1 */}
+            <FadeIn delay={0.1}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 'clamp(80px, 14vw, 140px)', fontWeight: 900, lineHeight: 1, color: 'rgba(255,107,53,0.12)', letterSpacing: '-4px', userSelect: 'none' }}>01</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 'clamp(2rem, 5vw, 3.8rem)', fontWeight: 900, color: '#ffffff', lineHeight: 1, letterSpacing: '-1px' }}>
+                    PUBLICÁ
+                  </div>
+                  <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
+                    tu MVP con métricas reales y precio definido
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* Connector */}
+            <FadeIn delay={0.2}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+                <div style={{ width: '2px', height: '40px', background: 'linear-gradient(to bottom, rgba(255,107,53,0.4), rgba(255,107,53,0.1))', borderRadius: '999px' }} />
+              </div>
+            </FadeIn>
+
+            {/* Step 2 */}
+            <FadeIn delay={0.3}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 'clamp(80px, 14vw, 140px)', fontWeight: 900, lineHeight: 1, color: 'rgba(255,107,53,0.12)', letterSpacing: '-4px', userSelect: 'none' }}>02</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{
+                    fontSize: 'clamp(2rem, 5vw, 3.8rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-1px',
+                    background: 'linear-gradient(135deg, #FF6B35, #ffad80)',
                     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   }}>
-                    MVPs validados
-                  </span>
-                  {' '}con capital real
-                </h1>
-              </FadeIn>
-
-              <FadeIn delay={0.2}>
-                <p style={{ color: '#9ca3af', fontSize: '1.1rem', lineHeight: 1.7, marginBottom: '32px', maxWidth: '520px' }}>
-                  Emprendedores publican proyectos con métricas verificadas. Inversores los descubren, analizan y agendan reuniones directamente. Sin intermediarios, sin pérdida de tiempo.
-                </p>
-              </FadeIn>
-
-              <FadeIn delay={0.3}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '40px' }}>
-                  {[
-                    { icon: Shield, text: 'Revisión manual 100%' },
-                    { icon: Clock, text: 'Respuesta en 24h' },
-                    { icon: Users, text: 'Comunidad verificada' },
-                    { icon: Globe, text: 'Sin fronteras' },
-                  ].map(({ icon: Icon, text }) => (
-                    <span key={text} style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px', padding: '8px 14px', color: '#d1d5db', fontSize: '13px',
-                    }}>
-                      <Icon size={13} style={{ color: '#FF6B35' }} /> {text}
-                    </span>
-                  ))}
-                </div>
-              </FadeIn>
-
-              <FadeIn delay={0.4}>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link href={isAuthenticated ? '/publish' : '/register'} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '8px',
-                    background: 'linear-gradient(135deg, #FF6B35, #e85a22)',
-                    color: '#fff', borderRadius: '10px', padding: '14px 28px',
-                    fontWeight: 700, fontSize: '15px', textDecoration: 'none',
-                    boxShadow: '0 8px 32px rgba(255,107,53,0.35)',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                  }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(255,107,53,0.45)' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(255,107,53,0.35)' }}
-                  >
-                    Publicar mi MVP <ArrowRight size={16} />
-                  </Link>
-                  <Link href="/marketplace" style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '8px',
-                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#ffffff', borderRadius: '10px', padding: '14px 28px',
-                    fontWeight: 600, fontSize: '15px', textDecoration: 'none',
-                    transition: 'background 0.2s',
-                  }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)' }}
-                  >
-                    Explorar marketplace
-                  </Link>
-                </div>
-              </FadeIn>
-            </div>
-
-            {/* Right — Dashboard card mock */}
-            <FadeIn delay={0.3} direction="left">
-              <div style={{
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '20px', padding: '28px',
-                backdropFilter: 'blur(12px)',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
-              }}>
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                  <div>
-                    <div style={{ color: '#9ca3af', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Dashboard</div>
-                    <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: 700 }}>
-                      MVP<span style={{ color: '#FF6B35' }}>Market</span>
-                    </div>
+                    CONECTÁ
                   </div>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)',
-                    borderRadius: '999px', padding: '5px 12px',
-                    color: '#16a34a', fontSize: '12px', fontWeight: 600,
-                  }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', animation: 'pulse 2s infinite', display: 'inline-block' }} />
-                    En vivo
+                  <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
+                    con inversores que ya están buscando tu solución
                   </div>
                 </div>
+              </div>
+            </FadeIn>
 
-                {/* Stats grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-                  {[
-                    { label: 'MVPs activos', value: 150, suffix: '+', color: '#f97316' },
-                    { label: 'En transacciones', value: 2, suffix: '.5M+', color: '#22c55e', prefix: '$' },
-                    { label: 'Inversores', value: 340, suffix: '+', color: '#f05252' },
-                    { label: 'Tasa de cierre', value: 89, suffix: '%', color: '#fcd34d' },
-                  ].map(({ label, value, suffix, color, prefix }) => (
-                    <div key={label} style={{
-                      background: 'rgba(255,255,255,0.04)', borderRadius: '12px', padding: '16px',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}>
-                      <div style={{ color: '#6b7280', fontSize: '11px', marginBottom: '6px' }}>{label}</div>
-                      <div style={{ color, fontSize: '22px', fontWeight: 800 }}>
-                        {prefix}<Counter target={value} />{suffix}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* Connector */}
+            <FadeIn delay={0.4}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+                <div style={{ width: '2px', height: '40px', background: 'linear-gradient(to bottom, rgba(255,107,53,0.4), rgba(255,107,53,0.1))', borderRadius: '999px' }} />
+              </div>
+            </FadeIn>
 
-                {/* Recent activity */}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
-                  <div style={{ color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
-                    Actividad reciente
+            {/* Step 3 */}
+            <FadeIn delay={0.5}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 'clamp(80px, 14vw, 140px)', fontWeight: 900, lineHeight: 1, color: 'rgba(255,107,53,0.12)', letterSpacing: '-4px', userSelect: 'none' }}>03</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 'clamp(2rem, 5vw, 3.8rem)', fontWeight: 900, color: '#ffffff', lineHeight: 1, letterSpacing: '-1px' }}>
+                    CERRÁ
                   </div>
-                  {[
-                    { dot: '#16a34a', text: 'AutoConcilia Pro — Reunión confirmada', time: '2m' },
-                    { dot: '#FF6B35', text: 'DataSync API — Nuevo inversor interesado', time: '15m' },
-                    { dot: '#ef4444', text: 'ShipFast Tool — Deal cerrado', time: '1h' },
-                  ].map(({ dot, text, time }) => (
-                    <div key={text} style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      marginBottom: '10px', color: '#9ca3af', fontSize: '12px',
-                    }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0 }} />
-                      <span style={{ flex: 1 }}>{text}</span>
-                      <span style={{ color: '#4b5563' }}>{time}</span>
-                    </div>
-                  ))}
+                  <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
+                    el trato en un ecosistema seguro y verificado
+                  </div>
                 </div>
               </div>
             </FadeIn>
 
           </div>
+
+          {/* Bottom tagline */}
+          <FadeIn delay={0.65}>
+            <div style={{ marginTop: '56px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '28px' }}>
+              <p style={{ color: '#4b5563', fontSize: '0.95rem', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600 }}>
+                sin intermediarios · sin pérdida de tiempo · sin fronteras
+              </p>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Link href={isAuthenticated ? '/publish' : '/register'} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  background: 'linear-gradient(135deg, #FF6B35, #e85a22)',
+                  color: '#fff', borderRadius: '10px', padding: '14px 28px',
+                  fontWeight: 700, fontSize: '15px', textDecoration: 'none',
+                  boxShadow: '0 8px 32px rgba(255,107,53,0.35)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(255,107,53,0.45)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(255,107,53,0.35)' }}
+                >
+                  Publicar mi MVP <ArrowRight size={16} />
+                </Link>
+                <Link href="/marketplace" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.13)',
+                  color: '#ffffff', borderRadius: '10px', padding: '14px 28px',
+                  fontWeight: 600, fontSize: '15px', textDecoration: 'none',
+                  transition: 'background 0.2s',
+                }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.11)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)' }}
+                >
+                  Explorar marketplace
+                </Link>
+              </div>
+            </div>
+          </FadeIn>
+
         </div>
 
-        {/* CSS animations */}
         <style>{`
           @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.7; transform:scale(1.05); } }
-          @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
-          @keyframes shimmer { 0% { background-position:-200% center; } 100% { background-position:200% center; } }
         `}</style>
       </section>
 
