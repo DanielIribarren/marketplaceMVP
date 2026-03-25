@@ -295,10 +295,25 @@ export async function deleteAvailabilitySlot(slotId: string) {
 /**
  * Book an availability slot (investor scheduling meeting)
  */
+export type MeetingOfferInput =
+  | {
+      offer_type: 'economic'
+      offer_amount: number
+      offer_equity_percent: number
+      offer_note?: string
+    }
+  | {
+      offer_type: 'non_economic'
+      offer_note: string
+      offer_amount?: never
+      offer_equity_percent?: never
+    }
+
 export async function bookAvailabilitySlot(
   slotId: string,
   notes?: string,
-  meetingType?: 'video_call' | 'phone_call' | 'in_person'
+  meetingType?: 'video_call' | 'phone_call' | 'in_person',
+  offer?: MeetingOfferInput
 ) {
   try {
     const token = await getAuthToken()
@@ -311,6 +326,14 @@ export async function bookAvailabilitySlot(
       }
     }
 
+    if (!offer) {
+      return {
+        success: false,
+        error: 'Oferta requerida',
+        message: 'Debes incluir una oferta inicial para solicitar la reunión'
+      }
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/availability/${slotId}/book`, {
       method: 'POST',
       headers: {
@@ -319,7 +342,8 @@ export async function bookAvailabilitySlot(
       },
       body: JSON.stringify({
         notes,
-        meeting_type: meetingType || 'video_call'
+        meeting_type: meetingType || 'video_call',
+        ...(offer || {})
       })
     })
 

@@ -83,12 +83,44 @@ export default function ForgotPasswordPage() {
 
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden')
+      // Solo borrar confirmPassword si no coinciden
+      setConfirmPassword('')
       setIsLoading(false)
       return
     }
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
+      // Borrar ambas contraseñas si hay error de validación
+      setPassword('')
+      setConfirmPassword('')
+      setIsLoading(false)
+      return
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError('La contraseña debe contener al menos una mayúscula')
+      // Borrar ambas contraseñas si hay error de validación
+      setPassword('')
+      setConfirmPassword('')
+      setIsLoading(false)
+      return
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError('La contraseña debe contener letras minúsculas')
+      // Borrar ambas contraseñas si hay error de validación
+      setPassword('')
+      setConfirmPassword('')
+      setIsLoading(false)
+      return
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError('La contraseña debe contener números')
+      // Borrar ambas contraseñas si hay error de validación
+      setPassword('')
+      setConfirmPassword('')
       setIsLoading(false)
       return
     }
@@ -180,8 +212,8 @@ export default function ForgotPasswordPage() {
                 <div key={s} className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
                     step === s ? 'bg-primary text-white' :
-                    (['email', 'code', 'password'].indexOf(step) > i) ? 'bg-green-500 text-white' :
-                    'bg-gray-200 text-gray-500'
+                    (['email', 'code', 'password'].indexOf(step) > i) ? 'bg-green-600 text-white' :
+                    'bg-brand-100 text-muted-foreground'
                   }`}>
                     {(['email', 'code', 'password'].indexOf(step) > i) ? (
                       <CheckCircle2 className="w-4 h-4" />
@@ -189,7 +221,7 @@ export default function ForgotPasswordPage() {
                       i + 1
                     )}
                   </div>
-                  {i < 2 && <div className={`w-8 h-0.5 ${(['email', 'code', 'password'].indexOf(step) > i) ? 'bg-green-500' : 'bg-gray-200'}`} />}
+                  {i < 2 && <div className={`w-8 h-0.5 ${(['email', 'code', 'password'].indexOf(step) > i) ? 'bg-green-600' : 'bg-brand-100'}`} />}
                 </div>
               ))}
             </div>
@@ -197,9 +229,9 @@ export default function ForgotPasswordPage() {
 
           <CardContent>
             {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-md text-sm mb-4">
+                {error}
+              </div>
             )}
 
             {success && step === 'code' && (
@@ -292,7 +324,7 @@ export default function ForgotPasswordPage() {
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Mínimo 8 caracteres"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pr-20"
@@ -305,6 +337,9 @@ export default function ForgotPasswordPage() {
                       {showPassword ? 'Ocultar' : 'Mostrar'}
                     </button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Mínimo 8 caracteres, con letras, números y al menos una mayúscula
+                  </p>
                 </div>
 
                 <div>
@@ -321,7 +356,9 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 {password && confirmPassword && password !== confirmPassword && (
-                  <p className="text-sm text-red-500">Las contraseñas no coinciden</p>
+                  <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-md text-xs">
+                    Las contraseñas no coinciden
+                  </div>
                 )}
 
                 <Button

@@ -37,6 +37,54 @@ export const DealModalityLabels: Record<DealModality, string> = {
   [DealModality.REV_SHARE]: 'Rev-Share'
 }
 
+export enum MvpSector {
+  TECNOLOGIA = 'tecnologia',
+  EDUCACION = 'educacion',
+  SALUD = 'salud',
+  ALIMENTACION = 'alimentacion',
+  FINANZAS = 'finanzas',
+  ECOMMERCE = 'ecommerce',
+  ENTRETENIMIENTO = 'entretenimiento',
+  VIAJES = 'viajes',
+  BIENES_RAICES = 'bienes_raices',
+  LOGISTICA = 'logistica',
+  MARKETING = 'marketing',
+  RRHH = 'rrhh',
+  LEGAL = 'legal',
+  AGRICULTURA = 'agricultura',
+  ENERGIA = 'energia',
+  DEPORTES = 'deportes',
+  MODA = 'moda',
+  HIGIENE = 'higiene',
+  CONSTRUCCION = 'construccion',
+  MANUFACTURA = 'manufactura',
+  OTROS = 'otros',
+}
+
+export const MvpSectorLabels: Record<MvpSector, string> = {
+  [MvpSector.TECNOLOGIA]: 'Tecnología',
+  [MvpSector.EDUCACION]: 'Educación',
+  [MvpSector.SALUD]: 'Salud y Medicina',
+  [MvpSector.ALIMENTACION]: 'Alimentación y Bebidas',
+  [MvpSector.FINANZAS]: 'Finanzas y Fintech',
+  [MvpSector.ECOMMERCE]: 'E-commerce y Retail',
+  [MvpSector.ENTRETENIMIENTO]: 'Entretenimiento y Media',
+  [MvpSector.VIAJES]: 'Viajes y Turismo',
+  [MvpSector.BIENES_RAICES]: 'Bienes Raíces',
+  [MvpSector.LOGISTICA]: 'Logística y Transporte',
+  [MvpSector.MARKETING]: 'Marketing y Publicidad',
+  [MvpSector.RRHH]: 'Recursos Humanos',
+  [MvpSector.LEGAL]: 'Legal y Compliance',
+  [MvpSector.AGRICULTURA]: 'Agricultura',
+  [MvpSector.ENERGIA]: 'Energía y Sostenibilidad',
+  [MvpSector.DEPORTES]: 'Deportes y Fitness',
+  [MvpSector.MODA]: 'Moda y Belleza',
+  [MvpSector.HIGIENE]: 'Higiene y Limpieza',
+  [MvpSector.CONSTRUCCION]: 'Construcción',
+  [MvpSector.MANUFACTURA]: 'Manufactura',
+  [MvpSector.OTROS]: 'Otros',
+}
+
 // ============================================================================
 // TIPOS PRINCIPALES
 // ============================================================================
@@ -48,11 +96,17 @@ export interface MVPPublication {
   // Campo 2: One-liner de valor (≤120 caracteres)
   oneLiner: string
 
+  // Campo 2b: Sector al que pertenece el MVP
+  sector?: MvpSector
+
   // Campo 3: Descripción breve (≤500 palabras)
   description: string
 
   // Campo 4: Link a demo o repositorio/landing
   demoUrl: string
+
+  // Portada autogenerada desde metadata del enlace
+  coverImageUrl?: string
 
   // Campo 5: Capturas clave (hasta 3 URLs)
   screenshots: string[] // Max 3
@@ -68,7 +122,8 @@ export interface MVPPublication {
 
   // Campo 9: Modalidad de deal y rango de precio
   dealModality: DealModality
-  priceRange: string // Texto libre: "USD 2k-5k"
+  minPrice: number // Precio mínimo en USD
+  maxPrice: number // Precio máximo en USD
 
   // Campo 10: Checklist de transferencia
   transferChecklist: {
@@ -234,4 +289,5 @@ export interface QualitySignals {
   hasDemoOrScreenshot: boolean
   hasMinimalEvidence: boolean
   hasDealModality: boolean
+  hasTransferChecklist: boolean
 }

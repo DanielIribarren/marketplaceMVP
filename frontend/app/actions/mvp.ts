@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import type { MVPPublication, QualitySignals } from '@/lib/types/mvp-publication'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
@@ -92,6 +92,14 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
       }
     }
 
+    // Construir price_range desde minPrice y maxPrice
+    let priceRange = undefined
+    if (mvpData.minPrice && mvpData.maxPrice) {
+      const minFormatted = mvpData.minPrice.toLocaleString('es-ES')
+      const maxFormatted = mvpData.maxPrice.toLocaleString('es-ES')
+      priceRange = `USD ${minFormatted}-${maxFormatted}`
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/mvps/draft`, {
       method: 'POST',
       headers: {
@@ -99,17 +107,19 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        id: mvpData.id,
+        id: (mvpData.id && !mvpData.id.startsWith('draft-')) ? mvpData.id : undefined,
         title: mvpData.name,
         one_liner: mvpData.oneLiner,
+        category: mvpData.sector,
         description: mvpData.description,
         demo_url: mvpData.demoUrl,
+        cover_image_url: mvpData.coverImageUrl,
         images_urls: mvpData.screenshots,
         monetization_model: mvpData.monetizationModel,
         minimal_evidence: mvpData.minimalEvidence,
         competitive_differentials: mvpData.competitiveDifferentials,
         deal_modality: mvpData.dealModality,
-        price_range: mvpData.priceRange,
+        price_range: priceRange,
         transfer_checklist: mvpData.transferChecklist,
         video_url: mvpData.videoUrl,
         testimonials: mvpData.testimonials,
@@ -141,6 +151,61 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
       success: false,
       error: 'Error de conexión',
       message: 'No se pudo conectar con el servidor'
+    }
+  }
+}
+
+/**
+ * Obtiene preview de portada a partir de una URL del MVP
+ */
+export async function getUrlPreview(url: string): Promise<{
+  success: boolean
+  previewUrl?: string | null
+  source?: string | null
+  title?: string | null
+  error?: string
+}> {
+  try {
+    const token = await getAuthToken()
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'No autenticado'
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/preview-from-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ url })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.message || data.error || 'No se pudo generar preview'
+      }
+    }
+
+    const previewUrl = data?.data?.preview_url || data?.data?.favicon_url || null
+
+    return {
+      success: true,
+      previewUrl,
+      source: data?.data?.source || null,
+      title: data?.data?.title || null
+    }
+  } catch (error) {
+    console.error('Error al obtener preview de URL:', error)
+    return {
+      success: false,
+      error: 'Error de conexión al obtener preview'
     }
   }
 }
@@ -188,6 +253,53 @@ export async function publishMVP(mvpId: string) {
 
   } catch (error) {
     console.error('Error al publicar MVP:', error)
+    return {
+      success: false,
+      error: 'Error de conexión',
+      message: 'No se pudo conectar con el servidor'
+    }
+  }
+}
+
+/**
+ * Elimina un borrador de MVP
+ */
+export async function deleteDraft(mvpId: string) {
+  try {
+    const token = await getAuthToken()
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'No autenticado',
+        message: 'Debes iniciar sesión'
+      }
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/mvps/${mvpId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'Error al eliminar',
+        message: data.message || 'No se pudo eliminar el borrador'
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Borrador eliminado correctamente'
+    }
+
+  } catch (error) {
+    console.error('Error al eliminar borrador:', error)
     return {
       success: false,
       error: 'Error de conexión',
@@ -245,29 +357,36 @@ export async function getMVP(mvpId: string) {
 export async function getMyDrafts() {
   try {
     const token = await getAuthToken()
-    
+    console.log('🔍 [Server Action getMyDrafts] Token obtenido:', token ? 'Sí ✓' : 'No ✗')
+
     if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado' 
+      console.log('❌ [Server Action getMyDrafts] No hay token')
+      return {
+        success: false,
+        error: 'No autenticado'
       }
     }
 
+    console.log('🔍 [Server Action getMyDrafts] Haciendo fetch a:', `${BACKEND_URL}/api/mvps/my-drafts`)
     const response = await fetch(`${BACKEND_URL}/api/mvps/my-drafts`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
 
+    console.log('🔍 [Server Action getMyDrafts] Status de respuesta:', response.status)
     const data = await response.json()
+    console.log('🔍 [Server Action getMyDrafts] Datos recibidos:', JSON.stringify(data, null, 2))
 
     if (!response.ok) {
+      console.log('❌ [Server Action getMyDrafts] Respuesta no OK:', data)
       return {
         success: false,
         error: data.error || 'Error al obtener borradores'
       }
     }
 
+    console.log('✅ [Server Action getMyDrafts] Retornando:', data.data?.length || 0, 'MVPs')
     return {
       success: true,
       data: data.data,
@@ -337,6 +456,88 @@ export async function getPublicMvps(params: {
       success: false,
       error: 'Error de conexión'
     }
+  }
+}
+
+/**
+ * Obtiene el perfil público del creador de un MVP y sus otros MVPs publicados
+ */
+export async function getCreatorPublicData(ownerId: string, currentMvpId: string) {
+  try {
+    const supabase = await createClient()
+    const adminClient = createAdminClient()
+
+    // display_name, email y fecha de registro vienen de auth.users (admin API)
+    let displayName: string | null = null
+    let avatarFromAuth: string | null = null
+    let email: string | null = null
+    let joinedAt: string | null = null
+    try {
+      const { data: authUser } = await adminClient.auth.admin.getUserById(ownerId)
+      displayName = authUser?.user?.user_metadata?.display_name
+        || authUser?.user?.user_metadata?.name
+        || null
+      avatarFromAuth = authUser?.user?.user_metadata?.avatar_url || null
+      email = authUser?.user?.email || null
+      joinedAt = authUser?.user?.created_at || null
+    } catch (_) { /* ignorar si no hay permisos */ }
+
+    // Perfil extendido: intentar con 'id' primero, luego 'user_id'
+    let profileData: Record<string, unknown> = {}
+    const { data: p1, error: e1 } = await supabase
+      .from('user_profiles')
+      .select('avatar_url, bio, company, linkedin_url, location, website')
+      .eq('id', ownerId)
+      .single()
+
+    if (!e1 && p1) {
+      profileData = p1
+    } else {
+      const { data: p2 } = await supabase
+        .from('user_profiles')
+        .select('avatar_url, bio, company, linkedin_url, location, website')
+        .eq('user_id', ownerId)
+        .single()
+      profileData = p2 || {}
+    }
+
+    const [otherMvpsRes, meetingsRes, totalMvpsRes] = await Promise.all([
+      supabase
+        .from('mvps')
+        .select('id, title, cover_image_url, views_count, favorites_count, deal_modality, one_liner, slug')
+        .eq('owner_id', ownerId)
+        .eq('status', 'approved')
+        .neq('id', currentMvpId)
+        .order('published_at', { ascending: false }),
+      supabase
+        .from('meetings')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', ownerId),
+      supabase
+        .from('mvps')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', ownerId)
+        .eq('status', 'approved'),
+    ])
+
+    return {
+      success: true,
+      data: {
+        profile: {
+          display_name: displayName,
+          avatar_url: (profileData.avatar_url as string | null) || avatarFromAuth,
+          ...profileData,
+        },
+        email,
+        joinedAt,
+        otherMvps: otherMvpsRes.data || [],
+        meetingsCount: meetingsRes.count || 0,
+        totalMvps: totalMvpsRes.count || 0,
+      },
+    }
+  } catch (error) {
+    console.error('Error fetching creator data:', error)
+    return { success: false, error: 'Error al obtener datos del creador' }
   }
 }
 

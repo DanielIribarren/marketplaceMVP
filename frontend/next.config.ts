@@ -12,7 +12,16 @@ const nextConfig: NextConfig = {
     'localhost:3000',
     '127.0.0.1:3000',
     '127.0.0.1:62840'
-  ]
+  ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

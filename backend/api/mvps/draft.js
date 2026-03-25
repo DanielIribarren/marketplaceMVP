@@ -28,11 +28,13 @@ export async function saveDraft(req, res) {
     // Preparar datos para insertar/actualizar
     const draftData = {
       owner_id: userId,
-      title: mvpData.title || null,
+      title: mvpData.title || '',
       one_liner: mvpData.one_liner || null,
       slug: mvpData.slug || buildSlug(mvpData.title),
-      description: mvpData.description || null,
+      category: mvpData.category || null,
+      description: mvpData.description || '',
       demo_url: mvpData.demo_url || null,
+      cover_image_url: mvpData.cover_image_url || null,
       images_urls: mvpData.images_urls || [],
       monetization_model: mvpData.monetization_model || null,
       minimal_evidence: mvpData.minimal_evidence || null,
@@ -49,6 +51,8 @@ export async function saveDraft(req, res) {
       testimonials: mvpData.testimonials || [],
       roadmap_60_days: mvpData.roadmap_60_days || [],
       risks_and_mitigations: mvpData.risks_and_mitigations || [],
+      views_count: 0,
+      favorites_count: 0,
       status: 'draft',
       updated_at: new Date().toISOString()
     }

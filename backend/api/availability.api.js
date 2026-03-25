@@ -1,4 +1,22 @@
 import { supabase } from '../utils/supabase-client.js'
+import { createNotification } from './notifications.js'
+
+const TERMINAL_MEETING_STATUSES = ['rejected', 'cancelled', 'completed']
+
+function parseNumericInput(value) {
+  if (value === null || value === undefined || value === '') return null
+  const normalized = String(value).trim().replace(',', '.')
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+async function safeCreateNotification(payload) {
+  try {
+    await createNotification(payload)
+  } catch (error) {
+    console.error('Error al crear notificación:', error)
+  }
+}
 
 /**
  * POST /api/availability
@@ -85,34 +103,42 @@ export async function getAvailabilityByMVP(req, res) {
     const { mvpId } = req.params
     const { from_date, to_date, available_only } = req.query
 
-    let query = supabase
-      .from('availability_slots')
-      .select('*')
-      .eq('mvp_id', mvpId)
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true })
+    const { data: mvp, error: mvpError } = await supabase
+      .from('mvps')
+      .select('id, owner_id')
+      .eq('id', mvpId)
+      .single()
 
-    // Filter by date range
-    if (from_date) {
-      query = query.gte('date', from_date)
-    }
-    if (to_date) {
-      query = query.lte('date', to_date)
+    if (mvpError || !mvp) {
+      return res.status(404).json({
+        error: 'No encontrado',
+        message: 'MVP no encontrado'
+      })
     }
 
-    // Only show available slots
-    if (available_only === 'true') {
-      query = query.eq('is_booked', false)
+    const buildQuery = () => {
+      let query = supabase
+        .from('availability_slots')
+        .select('*')
+        .eq('mvp_id', mvpId)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true })
+
+      if (from_date) query = query.gte('date', from_date)
+      if (to_date) query = query.lte('date', to_date)
+      if (available_only === 'true') query = query.eq('is_booked', false)
+
+      return query
     }
 
-    const { data: slots, error } = await query
-
+    let { data: slots, error } = await buildQuery()
     if (error) throw error
 
+    // Retornar los slots tal como están (sin auto-generación)
     res.status(200).json({
       success: true,
-      data: slots,
-      count: slots.length
+      data: slots || [],
+      count: slots ? slots.length : 0
     })
 
   } catch (error) {
@@ -253,7 +279,65 @@ export async function bookAvailabilitySlot(req, res) {
   try {
     const userId = req.user.id
     const { slotId } = req.params
-    const { notes, meeting_type = 'video_call' } = req.body
+    const {
+      notes,
+      meeting_type = 'video_call',
+      offer_type,
+      offer_amount,
+      offer_equity_percent,
+      offer_note
+    } = req.body || {}
+
+    if (!offer_type || !['economic', 'non_economic'].includes(offer_type)) {
+      return res.status(400).json({
+        error: 'Oferta inválida',
+        message: 'Debes seleccionar un tipo de oferta válido'
+      })
+    }
+
+    const parsedAmount = parseNumericInput(offer_amount)
+    const parsedEquityPercent = parseNumericInput(offer_equity_percent)
+    const trimmedOfferNote = typeof offer_note === 'string' ? offer_note.trim() : ''
+
+    if (offer_type === 'economic') {
+      // Validar monto
+      if (parsedAmount === null || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({
+          error: 'Oferta inválida',
+          message: 'El monto de la oferta debe ser un número válido mayor a 0'
+        })
+      }
+
+      // Prevenir montos excesivamente grandes (máximo 1 billón)
+      if (parsedAmount > 1000000000000) {
+        return res.status(400).json({
+          error: 'Oferta inválida',
+          message: 'El monto de la oferta excede el límite permitido'
+        })
+      }
+
+      // Validar porcentaje
+      if (parsedEquityPercent === null || !Number.isFinite(parsedEquityPercent)) {
+        return res.status(400).json({
+          error: 'Oferta inválida',
+          message: 'El porcentaje debe ser un número válido'
+        })
+      }
+
+      if (parsedEquityPercent <= 0 || parsedEquityPercent > 100) {
+        return res.status(400).json({
+          error: 'Oferta inválida',
+          message: 'El porcentaje solicitado debe ser mayor a 0 y menor o igual a 100'
+        })
+      }
+    }
+
+    if (offer_type === 'non_economic' && trimmedOfferNote.length < 20) {
+      return res.status(400).json({
+        error: 'Oferta inválida',
+        message: 'Describe tu aporte no económico con al menos 20 caracteres'
+      })
+    }
 
     // Get the slot
     const { data: slot, error: slotError } = await supabase
@@ -292,6 +376,24 @@ export async function bookAvailabilitySlot(req, res) {
       })
     }
 
+    // Prevent duplicated active requests for the same investor and MVP
+    const { data: existingMeetings, error: existingMeetingsError } = await supabase
+      .from('meetings')
+      .select('id, status')
+      .eq('mvp_id', slot.mvp_id)
+      .eq('requester_id', userId)
+      .not('status', 'in', `(${TERMINAL_MEETING_STATUSES.join(',')})`)
+      .limit(1)
+
+    if (existingMeetingsError) throw existingMeetingsError
+
+    if (existingMeetings && existingMeetings.length > 0) {
+      return res.status(409).json({
+        error: 'Solicitud activa existente',
+        message: 'Ya tienes una solicitud de reunión activa para este MVP'
+      })
+    }
+
     // Create meeting
     const scheduledAt = new Date(`${slot.date}T${slot.start_time}`)
     const endTime = new Date(`${slot.date}T${slot.end_time}`)
@@ -309,7 +411,12 @@ export async function bookAvailabilitySlot(req, res) {
         meeting_type,
         timezone: slot.timezone,
         requester_notes: notes,
-        availability_slot_id: slotId
+        availability_slot_id: slotId,
+        offer_type,
+        offer_amount: offer_type === 'economic' ? parsedAmount : null,
+        offer_equity_percent: offer_type === 'economic' ? parsedEquityPercent : null,
+        offer_note: offer_type === 'non_economic' ? trimmedOfferNote : null,
+        offer_status: 'pending_discussion'
       })
       .select()
       .single()
@@ -328,12 +435,56 @@ export async function bookAvailabilitySlot(req, res) {
 
     if (updateError) throw updateError
 
-    // TODO: Send notification to MVP owner
+    // Obtener información del inversor (requester)
+    const { data: requesterProfile } = await supabase
+      .from('user_profiles')
+      .select('display_name')
+      .eq('id', userId)
+      .single()
+
+    const requesterName = requesterProfile?.display_name || 'Un inversor'
+
+    await safeCreateNotification({
+      user_id: slot.owner_id,
+      type: 'meeting_requested',
+      title: 'Nueva solicitud de reunión',
+      message: `${requesterName} agendó una reunión para "${slot.mvp?.title || 'tu MVP'}".`,
+      data: {
+        meeting_id: meeting.id,
+        mvp_id: slot.mvp_id,
+        mvp_title: slot.mvp?.title || 'Tu MVP',
+        requester_name: requesterName,
+        scheduled_at: scheduledAt.toISOString(),
+        offer_type,
+        offer_amount: offer_type === 'economic' ? parsedAmount : null,
+        offer_equity_percent: offer_type === 'economic' ? parsedEquityPercent : null,
+        href: '/calendar'
+      },
+      read: false
+    })
+
+    const offerMessage = offer_type === 'economic'
+      ? `Tienes una oferta económica pendiente (${parsedAmount} USD por ${parsedEquityPercent}% de equity) para "${slot.mvp?.title || 'tu MVP'}".`
+      : `Tienes una oferta no económica pendiente para "${slot.mvp?.title || 'tu MVP'}".`
+
+    await safeCreateNotification({
+      user_id: slot.owner_id,
+      type: 'offer_pending_review',
+      title: 'Oferta pendiente de revisión',
+      message: offerMessage,
+      data: {
+        meeting_id: meeting.id,
+        mvp_id: slot.mvp_id,
+        offer_type,
+        href: '/calendar'
+      },
+      read: false
+    })
 
     res.status(201).json({
       success: true,
       data: meeting,
-      message: 'Reunión solicitada exitosamente. El emprendedor debe confirmarla.'
+      message: 'Reunión solicitada con oferta inicial. El emprendedor debe confirmarla.'
     })
 
   } catch (error) {

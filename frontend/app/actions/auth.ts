@@ -3,6 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -15,6 +18,17 @@ export async function login(formData: FormData) {
   console.log('[LOGIN] Attempting login for:', data.email)
   console.log('[LOGIN] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
+  const emailLower = (formData.get('email') as string)?.toLowerCase()
+  try {
+    const adminClient = createAdminClient()
+    const { data: banData } = await adminClient
+      .from('banned_users')
+      .select('email')
+      .eq('email', emailLower)
+      .maybeSingle()
+    if (banData) return { error: 'ACCOUNT_BANNED' }
+  } catch { /* table might not exist yet */ }
+
   const { data: authData, error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
@@ -22,10 +36,18 @@ export async function login(formData: FormData) {
     return { error: error.message }
   }
 
+  const loggedEmail = authData.user?.email?.toLowerCase()
+
+  revalidatePath('/', 'layout')
+
+  if (loggedEmail === ADMIN_EMAIL) {
+    redirect('/admin/welcome')
+  }
+
   console.log('[LOGIN] Success! User:', authData.user?.email)
 
   revalidatePath('/', 'layout')
-  redirect('/marketplace')
+  redirect('/welcome')
 }
 
 export async function signup(formData: FormData) {
@@ -36,6 +58,17 @@ export async function signup(formData: FormData) {
 
   const email = formData.get('email') as string
   const displayName = formData.get('display_name') as string
+
+  const emailLower = email?.toLowerCase()
+  try {
+    const adminClient = createAdminClient()
+    const { data: banData } = await adminClient
+      .from('banned_users')
+      .select('email')
+      .eq('email', emailLower)
+      .maybeSingle()
+    if (banData) return { error: 'ACCOUNT_BANNED' }
+  } catch { /* table might not exist yet */ }
 
   const data = {
     email,
@@ -53,6 +86,11 @@ export async function signup(formData: FormData) {
     return { error: error.message }
   }
 
+  // Check if email already exists (Supabase returns empty identities array for duplicates)
+  if (authData?.user && (!authData.user.identities || authData.user.identities.length === 0)) {
+    return { error: 'Este correo ya está registrado. Por favor inicia sesión o usa otro correo.' }
+  }
+
   // Auto-create user_profiles record so the profile is ready immediately
   if (authData?.user) {
     await supabase
@@ -61,7 +99,7 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/marketplace')
+  return { success: true }
 }
 
 export async function logout() {
@@ -171,6 +209,12 @@ export async function getUserRole() {
     .single()
 
   return profile?.role || 'user'
+}
+
+export async function isAdmin() {
+  const user = await getUser()
+  if (!user || !user.email) return false
+  return user.email.toLowerCase() === ADMIN_EMAIL
 }
 
 

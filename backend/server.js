@@ -3,9 +3,10 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { verifyAuth } from './middleware/auth.js'
 import { saveDraft } from './api/mvps/draft.js'
-import { publishMVP, getMVP, getMyDrafts } from './api/mvps/publish.js'
+import { publishMVP, getMVP, getMyDrafts, deleteMVP } from './api/mvps/publish.js'
 import { getPublicMvps } from './api/mvps/public.js'
 import { getMvpDetails } from './api/mvps/details.js'
+import { getUrlPreview } from './api/mvps/preview.js'
 import { recordMvpView } from './api/mvps/views.js'
 import availabilityRoutes from './api/availability.routes.js'
 import { validateField, getQualitySignals } from './api/mvps/validate.js'
@@ -15,9 +16,20 @@ import {
   confirmMeeting,
   rejectMeeting,
   counterproposeMeeting,
-  cancelMeeting
+  cancelMeeting,
+  initializeOldOffers
 } from './api/meetings.js'
 import { getProfile, updateProfile } from './api/profile.js'
+import { getMyFavorites, toggleFavorite } from './api/favorites.js'
+import {
+  getMyNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  notifyMvpDecision,
+  notifyMvpDeleted,
+  notifyAccountBanned,
+  notifyAccountRestored
+} from './api/notifications.js'
 
 dotenv.config()
 
@@ -25,8 +37,22 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 // Middleware
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL_2,
+].filter(Boolean)
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Permitir requests sin origin (Postman, server-to-server, etc.)
+    if (!origin) return callback(null, true)
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
+    // Permitir cualquier subdominio de vercel.app en preview deployments
+    if (origin.endsWith('.vercel.app')) return callback(null, true)
+    callback(new Error(`CORS: origen no permitido → ${origin}`))
+  },
   credentials: true
 }))
 app.use(express.json())
@@ -57,6 +83,20 @@ app.post('/api/meetings/:id/confirm', verifyAuth, confirmMeeting)
 app.post('/api/meetings/:id/reject', verifyAuth, rejectMeeting)
 app.post('/api/meetings/:id/counterproposal', verifyAuth, counterproposeMeeting)
 app.post('/api/meetings/:id/cancel', verifyAuth, cancelMeeting)
+app.post('/api/meetings/initialize-old-offers', verifyAuth, initializeOldOffers)
+
+// Favoritos
+app.get('/api/favorites/my', verifyAuth, getMyFavorites)
+app.post('/api/favorites/:mvpId/toggle', verifyAuth, toggleFavorite)
+
+// Notificaciones
+app.get('/api/notifications', verifyAuth, getMyNotifications)
+app.post('/api/notifications/:id/read', verifyAuth, markNotificationAsRead)
+app.post('/api/notifications/read-all', verifyAuth, markAllNotificationsAsRead)
+app.post('/api/admin/mvp/:id/notify-decision', verifyAuth, notifyMvpDecision)
+app.post('/api/admin/notify-mvp-deleted', verifyAuth, notifyMvpDeleted)
+app.post('/api/admin/notify-account-banned', verifyAuth, notifyAccountBanned)
+app.post('/api/admin/notify-account-restored', verifyAuth, notifyAccountRestored)
 
 // Profile
 app.get('/api/profile', verifyAuth, getProfile)
@@ -81,14 +121,20 @@ app.use('/api', availabilityRoutes)
 // Guardar borrador
 app.post('/api/mvps/draft', verifyAuth, saveDraft)
 
+// Obtener preview de una URL
+app.post('/api/mvps/preview-from-url', verifyAuth, getUrlPreview)
+
+// Obtener mis borradores (debe ir ANTES de /api/mvps/:id)
+app.get('/api/mvps/my-drafts', verifyAuth, getMyDrafts)
+
 // Publicar MVP
 app.post('/api/mvps/:id/publish', verifyAuth, publishMVP)
 
 // Obtener MVP por ID
 app.get('/api/mvps/:id', verifyAuth, getMVP)
 
-// Obtener mis borradores
-app.get('/api/mvps/my-drafts', verifyAuth, getMyDrafts)
+// Eliminar borrador de MVP
+app.delete('/api/mvps/:id', verifyAuth, deleteMVP)
 
 // Validación en tiempo real de un campo
 app.post('/api/mvps/validate', verifyAuth, validateField)

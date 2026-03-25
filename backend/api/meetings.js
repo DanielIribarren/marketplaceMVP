@@ -1,4 +1,23 @@
 import { supabase } from '../utils/supabase-client.js'
+import { createNotification } from './notifications.js'
+
+async function getMvpTitle(mvpId) {
+  const { data } = await supabase
+    .from('mvps')
+    .select('title')
+    .eq('id', mvpId)
+    .single()
+
+  return data?.title || 'tu MVP'
+}
+
+async function safeCreateNotification(payload) {
+  try {
+    await createNotification(payload)
+  } catch (error) {
+    console.error('Error al crear notificación:', error)
+  }
+}
 
 /**
  * GET /api/meetings/my-meetings
@@ -132,6 +151,24 @@ export async function confirmMeeting(req, res) {
 
     if (updateError) throw updateError
 
+    const recipientId = isOwner ? meeting.requester_id : meeting.owner_id
+    const mvpTitle = await getMvpTitle(meeting.mvp_id)
+
+    if (recipientId && recipientId !== userId) {
+      await safeCreateNotification({
+        user_id: recipientId,
+        type: 'meeting_confirmed',
+        title: 'Reunión confirmada',
+        message: `${isOwner ? 'El emprendedor' : 'El inversor'} confirmó la reunión de "${mvpTitle}".`,
+        data: {
+          meeting_id: meeting.id,
+          mvp_id: meeting.mvp_id,
+          href: '/calendar'
+        },
+        read: false
+      })
+    }
+
     res.status(200).json({ success: true, data: updated, message: 'Reunión confirmada exitosamente' })
   } catch (error) {
     console.error('Error al confirmar reunión:', error)
@@ -193,6 +230,24 @@ export async function rejectMeeting(req, res) {
         .eq('id', meeting.availability_slot_id)
     }
 
+    const recipientId = isOwner ? meeting.requester_id : meeting.owner_id
+    const mvpTitle = await getMvpTitle(meeting.mvp_id)
+
+    if (recipientId && recipientId !== userId) {
+      await safeCreateNotification({
+        user_id: recipientId,
+        type: 'meeting_rejected',
+        title: 'Reunión rechazada',
+        message: `${isOwner ? 'El emprendedor' : 'El inversor'} rechazó la reunión de "${mvpTitle}".`,
+        data: {
+          meeting_id: meeting.id,
+          mvp_id: meeting.mvp_id,
+          href: '/calendar'
+        },
+        read: false
+      })
+    }
+
     res.status(200).json({ success: true, data: updated, message: 'Reunión rechazada' })
   } catch (error) {
     console.error('Error al rechazar reunión:', error)
@@ -242,6 +297,23 @@ export async function counterproposeMeeting(req, res) {
     const endTime = new Date(`${proposed_date}T${proposed_end_time}`)
     const durationMinutes = Math.round((endTime - newScheduledAt) / (1000 * 60))
 
+    // Validar que la fecha propuesta sea futura
+    const now = new Date()
+    if (newScheduledAt <= now) {
+      return res.status(400).json({
+        error: 'Fecha inválida',
+        message: 'La fecha propuesta debe ser futura. No puedes agendar reuniones en el pasado.'
+      })
+    }
+
+    // Validar que la hora de fin sea posterior a la hora de inicio
+    if (endTime <= newScheduledAt) {
+      return res.status(400).json({
+        error: 'Horario inválido',
+        message: 'La hora de fin debe ser posterior a la hora de inicio'
+      })
+    }
+
     // El estado indica quién hizo la contrapropuesta (para saber a quién le toca responder)
     const newStatus = isOwner ? 'counterproposal_entrepreneur' : 'counterproposal_investor'
 
@@ -267,6 +339,24 @@ export async function counterproposeMeeting(req, res) {
         .from('availability_slots')
         .update({ is_booked: false, booked_by: null, meeting_id: null })
         .eq('id', meeting.availability_slot_id)
+    }
+
+    const recipientId = isOwner ? meeting.requester_id : meeting.owner_id
+    const mvpTitle = await getMvpTitle(meeting.mvp_id)
+
+    if (recipientId && recipientId !== userId) {
+      await safeCreateNotification({
+        user_id: recipientId,
+        type: 'meeting_counterproposal',
+        title: 'Nueva contrapropuesta de horario',
+        message: `${isOwner ? 'El emprendedor' : 'El inversor'} propuso un nuevo horario para la reunión de "${mvpTitle}".`,
+        data: {
+          meeting_id: meeting.id,
+          mvp_id: meeting.mvp_id,
+          href: '/calendar'
+        },
+        read: false
+      })
     }
 
     res.status(200).json({
@@ -329,9 +419,58 @@ export async function cancelMeeting(req, res) {
         .eq('id', meeting.availability_slot_id)
     }
 
+    const mvpTitle = await getMvpTitle(meeting.mvp_id)
+
+    await safeCreateNotification({
+      user_id: meeting.owner_id,
+      type: 'meeting_cancelled',
+      title: 'Reunión cancelada',
+      message: `El inversor canceló la reunión pendiente de "${mvpTitle}".`,
+      data: {
+        meeting_id: meeting.id,
+        mvp_id: meeting.mvp_id,
+        href: '/calendar'
+      },
+      read: false
+    })
+
     res.status(200).json({ success: true, data: updated, message: 'Reunión cancelada' })
   } catch (error) {
     console.error('Error al cancelar reunión:', error)
     res.status(500).json({ error: 'Error del servidor', message: 'No se pudo cancelar la reunión', details: error.message })
+  }
+}
+
+/**
+ * POST /api/meetings/initialize-old-offers
+ * Inicializa ofertas antiguas con valores por defecto (0)
+ */
+export async function initializeOldOffers(_req, res) {
+  try {
+    // Actualizar reuniones económicas sin oferta
+    const { data: updated, error } = await supabase
+      .from('meetings')
+      .update({
+        offer_amount: 0,
+        offer_equity_percent: 0
+      })
+      .eq('offer_type', 'economic')
+      .is('offer_amount', null)
+      .select()
+
+    if (error) throw error
+
+    res.status(200).json({
+      success: true,
+      message: `${updated?.length || 0} reuniones inicializadas con ofertas en 0`,
+      data: updated
+    })
+  } catch (error) {
+    console.error('Error al inicializar ofertas:', error)
+    res.status(500).json({
+      error: 'Error del servidor',
+      message: 'No se pudieron inicializar las ofertas',
+      details: error.message
+    })
   }
 }

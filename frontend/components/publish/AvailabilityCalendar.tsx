@@ -16,7 +16,7 @@ import { es } from 'date-fns/locale'
 interface AvailabilityCalendarProps {
   mvpId: string
   timezone?: string
-  onHasAvailabilityChange?: (hasAvailability: boolean) => void
+  onAvailabilityCountChange?: (count: number) => void
 }
 
 interface TimeSlot {
@@ -67,7 +67,7 @@ const TIMEZONES = [
   { value: 'UTC', label: 'UTC' },
 ]
 
-export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'America/Caracas', onHasAvailabilityChange }: AvailabilityCalendarProps) {
+export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'America/Caracas', onAvailabilityCountChange }: AvailabilityCalendarProps) {
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([])
   const [timezone, setTimezone] = useState(initialTimezone)
@@ -78,7 +78,7 @@ export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'Ameri
 
   const updateExistingSlots = (slots: ExistingSlot[]) => {
     setExistingSlots(slots)
-    onHasAvailabilityChange?.(slots.length > 0)
+    onAvailabilityCountChange?.(slots.length)
   }
 
   // Load existing availability
@@ -297,16 +297,16 @@ export function AvailabilityCalendar({ mvpId, timezone: initialTimezone = 'Ameri
           {message && (
             <div className={`p-4 rounded-lg flex items-start gap-3 ${
               message.type === 'success' 
-                ? 'bg-green-50 border border-green-200' 
-                : 'bg-red-50 border border-red-200'
+                ? 'bg-brand-50 border border-brand-200' 
+                : 'bg-destructive/10 border border-destructive/40'
             }`}>
               {message.type === 'success' ? (
-                <Check className="h-5 w-5 text-green-600 mt-0.5" />
+                <Check className="h-5 w-5 text-brand-700 mt-0.5" />
               ) : (
-                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
               )}
               <p className={`text-sm ${
-                message.type === 'success' ? 'text-green-800' : 'text-red-800'
+                message.type === 'success' ? 'text-brand-800' : 'text-destructive'
               }`}>
                 {message.text}
               </p>

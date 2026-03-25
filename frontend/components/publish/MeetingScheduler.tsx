@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { bookAvailabilitySlot } from '@/app/actions/availability.actions'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, Clock, Video, Phone, MapPin, AlertCircle, Check } from 'lucide-react'
+import { Calendar, Clock, Video, Phone, MapPin, AlertCircle, Check, CalendarCheck, Handshake, TrendingUp } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -18,6 +19,7 @@ interface MeetingSchedulerProps {
   mvpId: string
   mvpTitle: string
   ownerName?: string
+  onBooked?: () => void
 }
 
 interface AvailabilitySlot {
@@ -30,6 +32,7 @@ interface AvailabilitySlot {
 }
 
 type MeetingType = 'video_call' | 'phone_call' | 'in_person'
+type OfferType = 'economic' | 'non_economic'
 
 interface MeetingTypeOption {
   value: MeetingType
@@ -45,17 +48,29 @@ const MEETING_TYPES: MeetingTypeOption[] = [
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
 
-export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedulerProps) {
+export function MeetingScheduler({ mvpId, mvpTitle, ownerName, onBooked }: MeetingSchedulerProps) {
   const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null)
   const [meetingType, setMeetingType] = useState<MeetingType>('video_call')
   const [notes, setNotes] = useState('')
+  const [offerType, setOfferType] = useState<OfferType>('economic')
+  const [offerAmount, setOfferAmount] = useState('')
+  const [offerEquityPercent, setOfferEquityPercent] = useState('')
+  const [offerNote, setOfferNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [booking, setBooking] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [bookedMeeting, setBookedMeeting] = useState<{
+    slot: AvailabilitySlot; meetingType: MeetingType
+    offerType: OfferType; offerAmount: string; offerEquityPercent: string; offerNote: string
+  } | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadInfo, setLoadInfo] = useState<string | null>(null)
 
-  const loadAvailability = async () => {
+  const loadAvailability = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
+    setLoadInfo(null)
 
     try {
       const supabase = createClient()
@@ -64,6 +79,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
 
       if (!token) {
         setAvailableSlots([])
+        setLoadError('Debes iniciar sesión para ver horarios disponibles y poder agendar.')
         setLoading(false)
         return
       }
@@ -75,39 +91,94 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
         `${BACKEND_URL}/api/availability/mvp/${mvpId}?${params.toString()}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       )
-      const data = await response.json()
-      setAvailableSlots(data.data || [])
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setAvailableSlots([])
+        setLoadError(data.message || 'No se pudo cargar la disponibilidad de este MVP.')
+        return
+      }
+
+      const slots = Array.isArray(data.data) ? data.data : []
+      setAvailableSlots(slots)
+
+      if (data.defaults_generated) {
+        setLoadInfo('Se generaron horarios por defecto automáticamente para este MVP.')
+      }
+
+      if (slots.length === 0) {
+        setLoadInfo((prev) =>
+          prev || 'Este MVP no tiene horarios activos en este momento. Intenta nuevamente en unos minutos.'
+        )
+      }
     } catch {
       setAvailableSlots([])
+      setLoadError('No se pudo conectar al servidor para cargar la disponibilidad.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [mvpId])
 
   useEffect(() => {
     loadAvailability()
-  }, [mvpId])
+  }, [loadAvailability])
 
   const handleBookSlot = async () => {
-    if (!selectedSlot) return
+    if (!selectedSlot || booking) return // Prevenir doble-clic
     setBooking(true)
     setMessage(null)
 
-    const result = await bookAvailabilitySlot(selectedSlot.id, notes, meetingType)
+    if (offerType === 'economic') {
+      const amount = Number(offerAmount)
+      const equityPercent = Number(offerEquityPercent.replace(',', '.'))
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        setMessage({ type: 'error', text: 'Ingresa un monto válido mayor a 0.' })
+        setBooking(false)
+        return
+      }
+
+      if (!Number.isFinite(equityPercent) || equityPercent <= 0 || equityPercent > 100) {
+        setMessage({ type: 'error', text: 'El porcentaje debe ser mayor a 0 y menor o igual a 100.' })
+        setBooking(false)
+        return
+      }
+
+      const result = await bookAvailabilitySlot(selectedSlot.id, notes, meetingType, {
+        offer_type: 'economic',
+        offer_amount: amount,
+        offer_equity_percent: equityPercent
+      })
+
+      if (result.success) {
+        setBookedMeeting({ slot: selectedSlot, meetingType, offerType, offerAmount, offerEquityPercent, offerNote })
+        setSelectedSlot(null); setNotes(''); setOfferAmount(''); setOfferEquityPercent(''); setOfferNote('')
+        onBooked?.()
+      } else {
+        setMessage({ type: 'error', text: result.message || 'No se pudo agendar la reunión' })
+      }
+      setBooking(false)
+      return
+    }
+
+    const trimmedOfferNote = offerNote.trim()
+    if (trimmedOfferNote.length < 20) {
+      setMessage({ type: 'error', text: 'Describe tu aporte no económico con al menos 20 caracteres.' })
+      setBooking(false)
+      return
+    }
+
+    const result = await bookAvailabilitySlot(selectedSlot.id, notes, meetingType, {
+      offer_type: 'non_economic',
+      offer_note: trimmedOfferNote
+    })
 
     if (result.success) {
-      setMessage({
-        type: 'success',
-        text: '¡Reunión solicitada con éxito! El emprendedor recibirá una notificación y deberá confirmarla.'
-      })
-      setSelectedSlot(null)
-      setNotes('')
-      loadAvailability()
+      setBookedMeeting({ slot: selectedSlot, meetingType, offerType, offerAmount, offerEquityPercent, offerNote: trimmedOfferNote })
+      setSelectedSlot(null); setNotes(''); setOfferAmount(''); setOfferEquityPercent(''); setOfferNote('')
+      onBooked?.()
     } else {
-      setMessage({
-        type: 'error',
-        text: result.message || 'No se pudo agendar la reunión'
-      })
+      setMessage({ type: 'error', text: result.message || 'No se pudo agendar la reunión' })
     }
     setBooking(false)
   }
@@ -131,6 +202,14 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
     return new Date(year, month - 1, day)
   }
 
+  const normalizeAmountInput = (value: string) => value.replace(/\D/g, '')
+
+  const formatAmountWithThousands = (rawValue: string) => {
+    const digits = normalizeAmountInput(rawValue)
+    if (!digits) return ''
+    return Number(digits).toLocaleString('es-ES')
+  }
+
   if (loading) {
     return (
       <Card>
@@ -151,17 +230,96 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-2">
-              No hay disponibilidad configurada en este momento
-            </p>
-            <p className="text-sm text-muted-foreground">
-              El emprendedor aún no ha configurado sus horarios disponibles
-            </p>
+          <div className="py-6 space-y-3">
+            {loadError ? (
+              <div className="p-4 bg-destructive/10 border border-destructive/40 rounded-lg">
+                <p className="text-sm text-destructive font-medium">No se pudo mostrar la agenda</p>
+                <p className="text-sm text-destructive mt-1">{loadError}</p>
+              </div>
+            ) : (
+              <div className="p-4 bg-brand-50 border border-brand-200 rounded-lg">
+                <p className="text-sm text-brand-800 font-medium">Aún no hay horarios visibles</p>
+                <p className="text-sm text-brand-700 mt-1">
+                  {loadInfo || 'Este MVP no tiene disponibilidad activa para reuniones.'}
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={loadAvailability} disabled={loading}>
+                {loading ? 'Actualizando...' : 'Reintentar carga de horarios'}
+              </Button>
+            </div>
+
+            {loadInfo && !loadError && (
+              <p className="text-xs text-muted-foreground text-center">
+                {loadInfo}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
+    )
+  }
+
+  if (bookedMeeting) {
+    const { slot, meetingType: mt, offerType: ot, offerAmount: oa, offerEquityPercent: oep, offerNote: on } = bookedMeeting
+    const MtIcon = MEETING_TYPES.find(m => m.value === mt)?.icon ?? Video
+    const dateLabel = format(parseLocalDate(slot.date), "EEEE, d 'de' MMMM yyyy", { locale: es })
+    const timeLabel = `${slot.start_time.slice(0, 5)} – ${slot.end_time.slice(0, 5)}`
+    const meetingLabel = MEETING_TYPES.find(m => m.value === mt)?.label ?? mt
+    return (
+      <div className="space-y-4">
+        <Card className="border-green-200 bg-green-50/40">
+          <CardContent className="pt-6 space-y-5">
+            {/* Encabezado éxito */}
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white border border-green-300">
+                <CalendarCheck className="h-6 w-6 text-green-700" />
+              </div>
+              <div>
+                <p className="font-semibold text-green-800">¡Reunión solicitada con éxito!</p>
+                <p className="text-xs text-green-700">{ownerName || 'El emprendedor'} verá tu oferta y podrá confirmar la reunión.</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-green-200 bg-white divide-y divide-green-100">
+              {/* Fecha y hora */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Calendar className="h-4 w-4 text-green-600 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground tracking-wide">Fecha y hora</p>
+                  <p className="text-sm font-semibold capitalize">{dateLabel} · {timeLabel}</p>
+                </div>
+              </div>
+              {/* Tipo de reunión */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <MtIcon className="h-4 w-4 text-green-600 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground tracking-wide">Modalidad</p>
+                  <p className="text-sm font-semibold">{meetingLabel}</p>
+                </div>
+              </div>
+              {/* Oferta */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                {ot === 'economic' ? <TrendingUp className="h-4 w-4 text-green-600 shrink-0" /> : <Handshake className="h-4 w-4 text-green-600 shrink-0" />}
+                <div>
+                  <p className="text-[11px] font-medium uppercase text-muted-foreground tracking-wide">
+                    {ot === 'economic' ? 'Oferta económica' : 'Aporte no económico'}
+                  </p>
+                  <p className="text-sm font-semibold">
+                    {ot === 'economic'
+                      ? `USD ${Number(oa).toLocaleString('es-VE')} · ${oep}% equity`
+                      : on}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">Puedes ver el estado de esta reunión en <span className="font-medium text-brand-600">Calendario y Ofertas</span>.</p>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
@@ -175,6 +333,12 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {loadInfo && (
+            <div className="p-3 bg-brand-50 border border-brand-200 rounded-lg">
+              <p className="text-sm text-brand-800">{loadInfo}</p>
+            </div>
+          )}
+
           <div className="space-y-4">
             <Label>Horarios Disponibles</Label>
             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
@@ -204,7 +368,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                                 <span className="font-medium">
                                   {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                                 </span>
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs bg-white">
                                   {slot.timezone}
                                 </Badge>
                               </div>
@@ -251,6 +415,92 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                 />
               </div>
 
+              <div className="space-y-3">
+                <Label>Oferta inicial (obligatoria)</Label>
+                <Select value={offerType} onValueChange={(value) => setOfferType(value as OfferType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="economic">Aporte económico</SelectItem>
+                    <SelectItem value="non_economic">Aporte no económico</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {offerType === 'economic' ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="offerAmount">Monto ofertado (USD)</Label>
+                      <Input
+                        id="offerAmount"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Ej: 20.000"
+                        value={formatAmountWithThousands(offerAmount)}
+                        onChange={(e) => setOfferAmount(normalizeAmountInput(e.target.value))}
+                        className={
+                          offerAmount && (Number(offerAmount) <= 0 || !Number.isFinite(Number(offerAmount)))
+                            ? 'border-destructive focus-visible:ring-destructive'
+                            : ''
+                        }
+                      />
+                      {offerAmount && Number(offerAmount) <= 0 && (
+                        <p className="text-xs text-destructive">El monto debe ser mayor a 0</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="offerEquityPercent">Porcentaje del MVP (%)</Label>
+                      <Input
+                        id="offerEquityPercent"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Ej: 20"
+                        value={offerEquityPercent}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(',', '.')
+                          // Solo permitir números, punto decimal, y máximo 2 decimales
+                          if (value === '' || /^\d{0,3}(\.\d{0,2})?$/.test(value)) {
+                            const numValue = Number(value)
+                            // Limitar a 100 máximo
+                            if (value === '' || (numValue >= 0 && numValue <= 100)) {
+                              setOfferEquityPercent(value)
+                            }
+                          }
+                        }}
+                        className={
+                          offerEquityPercent &&
+                          (Number(offerEquityPercent.replace(',', '.')) <= 0 ||
+                            Number(offerEquityPercent.replace(',', '.')) > 100)
+                            ? 'border-destructive focus-visible:ring-destructive'
+                            : ''
+                        }
+                      />
+                      {offerEquityPercent && Number(offerEquityPercent.replace(',', '.')) <= 0 && (
+                        <p className="text-xs text-destructive">El porcentaje debe ser mayor a 0</p>
+                      )}
+                      {offerEquityPercent && Number(offerEquityPercent.replace(',', '.')) > 100 && (
+                        <p className="text-xs text-destructive">El porcentaje no puede ser mayor a 100</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">Rango: 0.1% - 100%</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="offerNote">Describe tu aporte</Label>
+                    <Textarea
+                      id="offerNote"
+                      placeholder="Ej: Te ayudo a conseguir clientes B2B y lidero estrategia de marketing durante 3 meses..."
+                      value={offerNote}
+                      onChange={(e) => setOfferNote(e.target.value)}
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Mínimo 20 caracteres para que el emprendedor entienda tu propuesta.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
                 <h4 className="font-semibold mb-2">Resumen de tu reunión</h4>
                 <div className="space-y-2 text-sm">
@@ -261,7 +511,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>{formatTime(selectedSlot.start_time)} - {formatTime(selectedSlot.end_time)}</span>
-                    <Badge variant="outline" className="text-xs">{selectedSlot.timezone}</Badge>
+                    <Badge variant="outline" className="text-xs bg-white">{selectedSlot.timezone}</Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     {React.createElement(
@@ -270,6 +520,18 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
                     )}
                     <span>{MEETING_TYPES.find(t => t.value === meetingType)?.label}</span>
                   </div>
+                  <div className="border-t border-primary/20 pt-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                      Oferta inicial
+                    </p>
+                    {offerType === 'economic' ? (
+                      <p>
+                        {formatAmountWithThousands(offerAmount) || '0'} USD por {offerEquityPercent || '0'}% del MVP
+                      </p>
+                    ) : (
+                      <p>{offerNote.trim() || 'Sin detalle aún'}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </>
@@ -277,13 +539,13 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
 
           {message && (
             <div className={`p-4 rounded-lg flex items-start gap-3 ${
-              message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+              message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-destructive/10 border border-destructive/40'
             }`}>
               {message.type === 'success'
-                ? <Check className="h-5 w-5 text-green-600 mt-0.5" />
-                : <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                ? <Check className="h-5 w-5 text-green-700 mt-0.5" />
+                : <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
               }
-              <p className={`text-sm ${message.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+              <p className={`text-sm ${message.type === 'success' ? 'text-green-800' : 'text-destructive'}`}>
                 {message.text}
               </p>
             </div>
@@ -291,7 +553,7 @@ export function MeetingScheduler({ mvpId, mvpTitle, ownerName }: MeetingSchedule
 
           <div className="flex gap-3">
             <Button onClick={handleBookSlot} disabled={!selectedSlot || booking} className="flex-1">
-              {booking ? 'Agendando...' : 'Solicitar Reunión'}
+              {booking ? 'Agendando...' : 'Solicitar Reunión con Oferta'}
             </Button>
             {selectedSlot && (
               <Button variant="outline" onClick={() => setSelectedSlot(null)} disabled={booking}>

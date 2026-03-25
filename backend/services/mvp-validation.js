@@ -15,20 +15,17 @@ export function validateOneLiner(oneLiner) {
   }
 
   if (oneLiner.length > FIELD_LIMITS.ONE_LINER_MAX_LENGTH) {
-    return { 
-      isValid: false, 
-      message: `Máximo ${FIELD_LIMITS.ONE_LINER_MAX_LENGTH} caracteres (tienes ${oneLiner.length})` 
+    return {
+      isValid: false,
+      message: `Máximo ${FIELD_LIMITS.ONE_LINER_MAX_LENGTH} caracteres (tienes ${oneLiner.length})`
     }
   }
 
-  const hasWho = /\b(usuarios|clientes|empresas|freelance|contadores|desarrolladores|emprendedores)\b/i.test(oneLiner)
-  const hasWhat = /\b(automatizan|reducen|aumentan|mejoran|optimizan|simplifican|aceleran)\b/i.test(oneLiner)
-  const hasResult = /\d+[×x%]|\d+\s*(veces|más|menos|minutos|horas)/i.test(oneLiner)
-
-  if (!hasWho || !hasWhat || !hasResult) {
-    return { 
-      isValid: false, 
-      message: 'Incluye: quién + qué resuelve + resultado medible (ej: "3× más rápido")' 
+  // Más flexible: solo requiere longitud mínima razonable
+  if (oneLiner.trim().length < 20) {
+    return {
+      isValid: false,
+      message: 'El one-liner debe tener al menos 20 caracteres descriptivos'
     }
   }
 
@@ -43,18 +40,17 @@ export function validateDescription(description) {
   const wordCount = description.trim().split(/\s+/).length
 
   if (wordCount > FIELD_LIMITS.DESCRIPTION_MAX_WORDS) {
-    return { 
-      isValid: false, 
-      message: `Máximo ${FIELD_LIMITS.DESCRIPTION_MAX_WORDS} palabras (tienes ${wordCount})` 
+    return {
+      isValid: false,
+      message: `Máximo ${FIELD_LIMITS.DESCRIPTION_MAX_WORDS} palabras (tienes ${wordCount})`
     }
   }
 
-  const hasConcreteCase = /\b(ejemplo|caso|cliente|usuario|piloto|prueba)\b/i.test(description)
-  
-  if (!hasConcreteCase) {
-    return { 
-      isValid: false, 
-      message: 'Incluye un caso de uso concreto, no solo features genéricas' 
+  // Más flexible: solo requiere longitud mínima de 15 palabras
+  if (wordCount < 15) {
+    return {
+      isValid: false,
+      message: 'La descripción debe tener al menos 15 palabras'
     }
   }
 
@@ -66,8 +62,33 @@ export function validateUrl(url) {
     return { isValid: false, message: 'La URL es requerida' }
   }
 
+  const trimmedUrl = url.trim()
+
+  // Prevenir URLs excesivamente largas (máximo 2048 caracteres, estándar navegadores)
+  if (trimmedUrl.length > 2048) {
+    return { isValid: false, message: 'La URL excede la longitud máxima permitida (2048 caracteres)' }
+  }
+
+  // Prevenir inyección de JavaScript
+  const lowerUrl = trimmedUrl.toLowerCase()
+  const dangerousPatterns = [
+    'javascript:',
+    'data:',
+    'vbscript:',
+    'file:',
+    'about:',
+    '<script',
+    'onerror=',
+    'onload=',
+    'onclick='
+  ]
+
+  if (dangerousPatterns.some(pattern => lowerUrl.includes(pattern))) {
+    return { isValid: false, message: 'La URL contiene contenido no permitido' }
+  }
+
   try {
-    const urlObj = new URL(url)
+    const urlObj = new URL(trimmedUrl)
     if (!['http:', 'https:'].includes(urlObj.protocol)) {
       return { isValid: false, message: 'La URL debe usar http:// o https://' }
     }
@@ -85,18 +106,17 @@ export function validateMinimalEvidence(evidence) {
   const wordCount = evidence.trim().split(/\s+/).length
 
   if (wordCount > FIELD_LIMITS.EVIDENCE_MAX_WORDS) {
-    return { 
-      isValid: false, 
-      message: `Máximo ${FIELD_LIMITS.EVIDENCE_MAX_WORDS} palabras (tienes ${wordCount})` 
+    return {
+      isValid: false,
+      message: `Máximo ${FIELD_LIMITS.EVIDENCE_MAX_WORDS} palabras (tienes ${wordCount})`
     }
   }
 
-  const hasMetrics = /\d+\s*(usuarios|clientes|%|horas|minutos|días|USD|pagos|entrevistas)/i.test(evidence)
-  
-  if (!hasMetrics) {
-    return { 
-      isValid: false, 
-      message: 'Incluye datos concretos: usuarios, tiempo ahorrado, costo evitado, etc.' 
+  // Más flexible: solo requiere longitud mínima de 10 palabras
+  if (wordCount < 10) {
+    return {
+      isValid: false,
+      message: 'La evidencia debe tener al menos 10 palabras'
     }
   }
 

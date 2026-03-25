@@ -29,6 +29,8 @@ category,
 deal_modality,
 price_range,
 price,
+monetization_model,
+transfer_checklist,
 competitive_differentials,
 cover_image_url,
 images_urls,
@@ -62,18 +64,43 @@ message: 'MVP no encontrado o no está aprobado'
 // Obtener información del creador
 let creator = null
 if (data.owner_id) {
-const { data: creatorData } = await supabase
-.from('user_profiles')
-.select('display_name, avatar_url, company, bio')
-.eq('user_id', data.owner_id)
-.single()
+  // display_name viene de auth.users via admin API
+  let displayName = null
+  try {
+    const { data: authUser } = await supabase.auth.admin.getUserById(data.owner_id)
+    displayName = authUser?.user?.user_metadata?.display_name
+      || authUser?.user?.user_metadata?.name
+      || null
+  } catch (_) { /* ignorar si falla */ }
 
-creator = creatorData || null
+  // Campos del perfil: intentar con 'id' primero, luego 'user_id'
+  let profileData = null
+  const { data: p1, error: e1 } = await supabase
+    .from('user_profiles')
+    .select('avatar_url, company, bio, linkedin_url, location, website')
+    .eq('id', data.owner_id)
+    .single()
+
+  if (!e1 && p1) {
+    profileData = p1
+  } else {
+    const { data: p2 } = await supabase
+      .from('user_profiles')
+      .select('avatar_url, company, bio, linkedin_url, location, website')
+      .eq('user_id', data.owner_id)
+      .single()
+    profileData = p2 || null
+  }
+
+  creator = { display_name: displayName, ...(profileData || {}) }
 }
 
 const responseData = {
 ...data,
-user_profiles: creator
+user_profiles: creator,
+// Asegurar que los contadores nunca sean negativos
+views_count: Math.max(0, data.views_count || 0),
+favorites_count: Math.max(0, data.favorites_count || 0)
 }
 
 res.status(200).json({
