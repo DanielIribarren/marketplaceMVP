@@ -43,7 +43,7 @@ function NotifIcon({ type }: { type: string }) {
     case 'mvp_favorited': return <Heart className={`${cls} text-red-500`} />
     case 'mvp_approved': return <CheckCircle2 className={`${cls} text-green-500`} />
     case 'mvp_rejected': return <XCircle className={`${cls} text-red-500`} />
-    case 'meeting_requested': return <CalendarClock className={`${cls} text-blue-500`} />
+    case 'meeting_requested': return <CalendarClock className={`${cls} text-orange-500`} />
     case 'meeting_confirmed': return <CircleCheckBig className={`${cls} text-green-500`} />
     case 'meeting_rejected': return <CircleX className={`${cls} text-red-500`} />
     case 'meeting_counterproposal': return <Repeat className={`${cls} text-orange-500`} />
@@ -239,7 +239,7 @@ export function NotificationCenter({
                   </div>
 
                   {/* Icon */}
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 border border-border/60 shadow-sm">
                     <NotifIcon type={notif.type} />
                   </div>
 

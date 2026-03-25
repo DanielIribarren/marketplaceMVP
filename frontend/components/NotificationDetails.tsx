@@ -51,7 +51,7 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
       case 'mvp_rejected':
         return <XCircle className={`${iconClass} text-red-500`} />
       case 'meeting_requested':
-        return <CalendarClock className={`${iconClass} text-blue-500`} />
+        return <CalendarClock className={`${iconClass} text-orange-500`} />
       case 'meeting_confirmed':
         return <CircleCheckBig className={`${iconClass} text-green-500`} />
       case 'meeting_rejected':
@@ -206,8 +206,8 @@ export function NotificationDetails({ notification }: NotificationDetailsProps) 
 
         return (
           <div className="space-y-4">
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-              <p className="text-sm text-blue-800 font-medium">
+            <div className="rounded-lg bg-orange-50 border border-orange-200 p-4">
+              <p className="text-sm text-orange-800 font-medium">
                 ¡Tienes una nueva solicitud de reunión!
               </p>
             </div>
