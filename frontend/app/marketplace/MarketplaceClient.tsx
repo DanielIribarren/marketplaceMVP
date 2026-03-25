@@ -479,7 +479,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
     const isCurrentVideo = currentMedia ? isVideoUrl(currentMedia) : false
 
     return (
-      <Card key={mvp.id} className="rounded-2xl">
+      <Card key={mvp.id} className="rounded-2xl border border-brand-100/90 hover:shadow-lg transition-shadow">
         <CardContent className="p-4 md:p-5">
           <div className={`grid gap-4 ${!isGridMode ? 'md:grid-cols-[360px_1fr] md:items-stretch' : ''}`}>
             <div className={`relative overflow-hidden rounded-xl border border-border/60 ${!isGridMode ? 'min-h-[200px] md:min-h-[245px] md:ml-3' : 'h-[185px]'}`}>
