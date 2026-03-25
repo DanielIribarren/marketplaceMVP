@@ -982,7 +982,7 @@ export function HowItWorksClient() {
             </motion.div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 800, fontSize: '20px', color: '#111827', letterSpacing: '-0.01em' }}>Oferta económica</div>
                 {econActive && (
                   <motion.div
@@ -1050,7 +1050,7 @@ export function HowItWorksClient() {
             </motion.div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 800, fontSize: '20px', color: '#111827', letterSpacing: '-0.01em' }}>Aporte no económico</div>
                 {nonEconActive && (
                   <motion.div
