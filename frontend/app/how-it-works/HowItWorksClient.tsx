@@ -783,7 +783,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
       <section style={{
         background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0d00 50%, #0a0a0a 100%)',
         position: 'relative', overflow: 'hidden',
-        padding: '100px 16px 130px',
+        padding: '56px 16px 80px',
       }}>
         {/* Orbs */}
         <div style={{ position: 'absolute', top: '-100px', left: '50%', transform: 'translateX(-50%)', width: '700px', height: '400px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(255,107,53,0.13) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -802,7 +802,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
               background: 'rgba(255,107,53,0.1)', border: '1px solid rgba(255,107,53,0.28)',
               borderRadius: '999px', padding: '6px 18px', color: '#FF6B35',
               fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em',
-              textTransform: 'uppercase', marginBottom: '48px',
+              textTransform: 'uppercase', marginBottom: '28px',
             }}>
               <Zap size={12} fill="#FF6B35" /> Tres pasos. Sin vueltas.
             </span>
