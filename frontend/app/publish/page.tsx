@@ -569,12 +569,12 @@ function PublishPageInner() {
                     >
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span className={`mt-1 text-xs ${isCurrent ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                    <span className={`mt-1 hidden sm:block text-xs ${isCurrent ? "font-semibold text-primary" : "text-muted-foreground"}`}>
                       {step.label}
                     </span>
                   </div>
                   {index < STEPS.length - 1 && (
-                    <div className={`h-0.5 w-16 ${isCompleted ? "bg-green-600" : "bg-brand-200"}`} />
+                    <div className={`h-0.5 w-6 sm:w-16 ${isCompleted ? "bg-green-600" : "bg-brand-200"}`} />
                   )}
                 </React.Fragment>
               )
@@ -631,7 +631,7 @@ function PublishPageInner() {
                   </Card>
                 </div>
 
-                <div className="sticky top-24 lg:col-span-1">
+                <div className="hidden lg:block sticky top-24 lg:col-span-1">
                   <QualitySignalsIndicator signals={signals} />
                   {!Object.values(signals).every(Boolean) && (
                     <div className="mt-4 rounded-lg border border-brand-200 bg-brand-50 p-4">

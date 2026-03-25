@@ -287,14 +287,14 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
               return (
                 <Card key={mvp.id} className="rounded-2xl hover:shadow-lg transition-shadow">
                   <CardContent className="p-4 pl-5 md:p-5 md:pl-6">
-                    <div className="flex gap-5 md:gap-6 items-stretch">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 md:gap-6 sm:items-stretch">
 
                       {/* ── Media panel — gradient border wrapper ── */}
                       <div
                         className="shrink-0 rounded-[14px]"
                         style={{ padding: '2.5px', background: 'conic-gradient(from 0deg at 50% 50%, #ea580c, #f97316, #fb923c, #fdba74, #fb923c, #f97316, #ea580c)' }}
                       >
-                      <div className="relative w-[220px] md:w-[240px] h-[172px] overflow-hidden rounded-[12px] bg-muted">
+                      <div className="relative w-full sm:w-[220px] md:w-[240px] h-[200px] sm:h-[172px] overflow-hidden rounded-[12px] bg-muted">
                         {allImages.length === 0 ? (
                           /* Empty state */
                           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3" style={{ background: 'linear-gradient(135deg, #fffaf7 0%, #fff5ec 50%, #ffeedd 100%)' }}>
@@ -385,7 +385,7 @@ export function MyMvpsClient({ initialMvps, isAdmin = false }: { initialMvps: Mv
                         </div>
 
                         {/* Row 3: Info boxes — label + value on same line */}
-                        <div className="flex gap-2 mt-auto mb-6">
+                        <div className="flex flex-wrap gap-2 mt-auto mb-4 sm:mb-6">
                           {[
                             { label: 'Precio', value: mvp.price_range },
                             { label: 'Monetización', value: mvp.monetization_model ? (MONETIZATION_LABELS[mvp.monetization_model] ?? mvp.monetization_model) : null },

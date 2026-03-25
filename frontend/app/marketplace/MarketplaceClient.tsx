@@ -481,7 +481,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
     return (
       <Card key={mvp.id} className="rounded-2xl border border-brand-100/90 hover:shadow-lg transition-shadow">
         <CardContent className="p-4 md:p-5">
-          <div className={`grid gap-4 ${!isGridMode ? 'md:grid-cols-[360px_1fr] md:items-stretch' : ''}`}>
+          <div className={`grid gap-4 ${!isGridMode ? 'sm:grid-cols-[280px_1fr] md:grid-cols-[360px_1fr] sm:items-stretch' : ''}`}>
             <div className={`relative overflow-hidden rounded-xl border-[3px] border-orange-400 shadow-[0_0_14px_rgba(255,107,53,0.35)] ${!isGridMode ? 'min-h-[200px] md:min-h-[245px] md:ml-3' : 'h-[185px]'}`}>
               {currentMedia && !isCurrentVideo && (
                 <>
@@ -652,7 +652,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                         {copiedMvpId === mvp.id && <span className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg fade-in-up">¡Link Copiado!</span>}
                       </button>
                       <Link href={`/mvps/${mvp.id}`}>
-                        <Button size="lg" className="w-[220px] text-base font-semibold shadow-md">{meetingMeta?.isActive ? 'Ver estado de mi reunión' : 'Ver detalles'}</Button>
+                        <Button size="lg" className="w-full sm:w-[220px] text-base font-semibold shadow-md">{meetingMeta?.isActive ? 'Ver estado de mi reunión' : 'Ver detalles'}</Button>
                       </Link>
                     </div>
                   </div>

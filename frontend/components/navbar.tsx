@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import {
   MessageSquare,
   User,
-  Calendar,
   Heart,
   CalendarClock,
   CircleCheckBig,
@@ -19,7 +18,6 @@ import {
   HandCoins,
   CheckCircle2,
   XCircle,
-  Rocket,
   LogOut,
   Shield,
   Settings,
@@ -29,6 +27,8 @@ import {
   AlertTriangle,
   Trash2,
   ShieldOff,
+  Menu,
+  X,
 } from 'lucide-react'
 import {
   Dialog,
@@ -138,6 +138,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
   const [supportDialogOpen, setSupportDialogOpen] = useState(false)
   const [faqDialogOpen, setFaqDialogOpen] = useState(false)
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement | null>(null)
   const settingsRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
@@ -370,24 +371,6 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <Link href="/calendar" className="md:hidden">
-                  <Button
-                    variant={isActive('/calendar') ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="hover:bg-brand-100"
-                  >
-                    <Calendar className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="/my-mvps" className="md:hidden">
-                  <Button
-                    variant={isActive('/my-mvps') ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="hover:bg-brand-100"
-                  >
-                    <Rocket className="h-5 w-5" />
-                  </Button>
-                </Link>
 {isAdmin ? (
                   // UI para administrador
                   <>
@@ -554,8 +537,8 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                       </DialogContent>
                     </Dialog>
 
-                    {/* Tuerquita de ajustes */}
-                    <div className="relative" ref={settingsRef}>
+                    {/* Tuerquita de ajustes — desktop only */}
+                    <div className="relative hidden md:block" ref={settingsRef}>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -766,17 +749,74 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                   </DialogContent>
                 </Dialog>
 
-                <Link href="/marketplace" className="md:hidden">
-                  <Button>Marketplace</Button>
-                </Link>
               </>
             ) : (
               <Link href="/login">
                 <Button>Iniciar sesión</Button>
               </Link>
             )}
+
+            {/* Hamburger — mobile only */}
+            <button
+              type="button"
+              className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              aria-label="Menú"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
+
+        {/* ── Mobile navigation menu ── */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur-sm px-2 py-3 space-y-0.5">
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive('/admin') ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted'}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Panel Administración
+              </Link>
+            ) : (
+              <>
+                <Link href="/" className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive('/') ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted'}`} onClick={() => setMobileMenuOpen(false)}>
+                  Inicio
+                </Link>
+                <Link href="/how-it-works" className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive('/how-it-works') ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted'}`} onClick={() => setMobileMenuOpen(false)}>
+                  Cómo funciona
+                </Link>
+                <Link href={isAuthenticated ? '/marketplace' : '/login'} className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive('/marketplace') ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted'}`} onClick={() => setMobileMenuOpen(false)}>
+                  Marketplace
+                </Link>
+                {isAuthenticated && (
+                  <>
+                    <Link href="/calendar" className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive('/calendar') ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted'}`} onClick={() => setMobileMenuOpen(false)}>
+                      Calendario y Ofertas
+                    </Link>
+                    <Link href="/my-mvps" className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive('/my-mvps') ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted'}`} onClick={() => setMobileMenuOpen(false)}>
+                      Tus MVPs
+                    </Link>
+                  </>
+                )}
+              </>
+            )}
+            {isAuthenticated && (
+              <>
+                <div className="my-1.5 border-t border-border/60 mx-4" />
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-rose-600 hover:bg-muted transition-colors text-left"
+                  onClick={() => { setMobileMenuOpen(false); setLogoutDialogOpen(true) }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Cerrar sesión
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </nav>
   )
