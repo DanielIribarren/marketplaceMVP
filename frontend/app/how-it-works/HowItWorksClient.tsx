@@ -815,42 +815,6 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
           {/* Steps typographic layout */}
           <HeroSteps />
 
-          {/* Bottom tagline */}
-          <FadeIn delay={0.65}>
-            <div style={{ marginTop: '56px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '28px' }}>
-              <p style={{ color: '#4b5563', fontSize: '0.95rem', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600 }}>
-                sin intermediarios · sin pérdida de tiempo · sin fronteras
-              </p>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <Link href={isAuthenticated ? '/publish' : '/register'} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '8px',
-                  background: 'linear-gradient(135deg, #FF6B35, #e85a22)',
-                  color: '#fff', borderRadius: '10px', padding: '14px 28px',
-                  fontWeight: 700, fontSize: '15px', textDecoration: 'none',
-                  boxShadow: '0 8px 32px rgba(255,107,53,0.35)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(255,107,53,0.45)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(255,107,53,0.35)' }}
-                >
-                  Publicar mi MVP <ArrowRight size={16} />
-                </Link>
-                <Link href="/marketplace" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '8px',
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.13)',
-                  color: '#ffffff', borderRadius: '10px', padding: '14px 28px',
-                  fontWeight: 600, fontSize: '15px', textDecoration: 'none',
-                  transition: 'background 0.2s',
-                }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.11)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)' }}
-                >
-                  Explorar marketplace
-                </Link>
-              </div>
-            </div>
-          </FadeIn>
-
         </div>
 
         <style>{`
