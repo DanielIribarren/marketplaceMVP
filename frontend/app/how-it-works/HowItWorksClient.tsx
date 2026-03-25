@@ -790,8 +790,10 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
           .hiw-role-cards { justify-content: center !important; gap: 12px !important; }
           .hiw-role-btn { width: auto !important; flex: 1 !important; max-width: 160px !important; padding: 20px 12px !important; }
           .hiw-offer-grid { display: flex !important; flex-direction: column !important; }
-          .hiw-offer-section { padding: 28px 20px !important; }
+          .hiw-offer-section { padding: 28px 20px !important; overflow: hidden !important; }
           .hiw-offer-center { display: none !important; }
+          .hiw-offer-header { flex-wrap: wrap !important; }
+          .hiw-offer-header > div { white-space: normal !important; }
         }
       `}</style>
       {/* ── HERO ── */}
@@ -957,7 +959,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
             </motion.div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', marginBottom: '10px' }}>
+              <div className="hiw-offer-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 800, fontSize: '17px', color: '#111827', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Oferta económica</div>
                 <motion.div
                   animate={{ opacity: econActive ? 1 : 0, x: econActive ? 0 : -10, scale: econActive ? 1 : 0.9 }}
@@ -1022,7 +1024,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
             </motion.div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', marginBottom: '10px' }}>
+              <div className="hiw-offer-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 800, fontSize: '17px', color: '#111827', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Aporte no económico</div>
                 <motion.div
                   animate={{ opacity: nonEconActive ? 1 : 0, x: nonEconActive ? 0 : -10, scale: nonEconActive ? 1 : 0.9 }}

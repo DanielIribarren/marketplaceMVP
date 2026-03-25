@@ -288,7 +288,7 @@ export function CalendarClient({ userId }: { userId: string }) {
       </div>
 
       {/* ── Navegación y filtros de rango ── */}
-      <div className="bg-background rounded-2xl border shadow-sm overflow-hidden hidden sm:block">
+      <div className="bg-background rounded-2xl border shadow-sm overflow-hidden">
         {/* Controles */}
         <div className="flex flex-col gap-3 px-5 py-3 border-b bg-gray-50">
           <div className="flex flex-wrap items-center gap-2">
@@ -319,7 +319,7 @@ export function CalendarClient({ userId }: { userId: string }) {
             </Button>
           </div>
           <span className="text-sm font-semibold text-foreground">{headerMes}</span>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400 inline-block"/>Pendiente</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block"/>Contrapropuesta</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-700 inline-block"/>Confirmada</span>
@@ -329,7 +329,8 @@ export function CalendarClient({ userId }: { userId: string }) {
         </div>
 
         {/* Cabecera de días de semana */}
-        <div className="grid grid-cols-7 divide-x border-b">
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-7 divide-x border-b" style={{ minWidth: '480px' }}>
           {DIAS.map((dia, i) => {
             return (
               <div key={i} className="text-center py-2 bg-gray-50">
@@ -339,7 +340,7 @@ export function CalendarClient({ userId }: { userId: string }) {
           })}
         </div>
 
-        <div className="grid grid-cols-7 auto-rows-[150px] min-h-[220px]">
+        <div className="grid grid-cols-7 auto-rows-[150px] min-h-[220px]" style={{ minWidth: '480px' }}>
           {dias.map((dia, i) => {
             const key = `${dia.getFullYear()}-${String(dia.getMonth()+1).padStart(2,'0')}-${String(dia.getDate()).padStart(2,'0')}`
             const reuniones = porDia.get(key) || []
@@ -398,6 +399,7 @@ export function CalendarClient({ userId }: { userId: string }) {
             )
           })}
         </div>
+        </div>{/* end overflow-x-auto */}
       </div>
 
       {/* ── Mobile: lista de reuniones ── */}
