@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendNotificationEmail } from '@/lib/email'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
 
@@ -10,6 +11,11 @@ async function notify(
   notification: { user_id: string; type: string; title: string; message: string; data: Record<string, unknown> }
 ) {
   try { await admin.from('notifications').insert({ ...notification, read: false }) } catch { /* silent */ }
+  try {
+    const { data } = await admin.auth.admin.getUserById(notification.user_id)
+    const email = data?.user?.email
+    if (email) sendNotificationEmail(email, notification).catch(() => {})
+  } catch { /* silent */ }
 }
 
 /**
