@@ -7,7 +7,7 @@ import {
   Users, Shield, Zap, TrendingUp, FileText, Clock,
   MessageSquare, Eye, DollarSign,
   Handshake, RefreshCw, BadgeCheck, BarChart3,
-  Lock, Globe
+  Lock, Globe, Briefcase
 } from 'lucide-react'
 import useEmblaCarousel from 'embla-carousel-react'
 import AutoScroll from 'embla-carousel-auto-scroll'
@@ -220,7 +220,7 @@ function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
             position: 'relative',
           }}
         >
-          <span style={{ fontSize: '48px', lineHeight: 1 }}>🚀</span>
+          <Rocket size={48} style={{ color: role === 'entrepreneur' ? '#ffffff' : '#FF6B35' }} />
           <span style={{
             fontSize: '22px',
             fontWeight: 800,
@@ -267,7 +267,7 @@ function RoleSelectorWithPath({ role, setRole }: RoleSelectorProps) {
             position: 'relative',
           }}
         >
-          <span style={{ fontSize: '48px', lineHeight: 1 }}>💼</span>
+          <Briefcase size={48} style={{ color: role === 'investor' ? '#ffffff' : '#374151' }} />
           <span style={{
             fontSize: '22px',
             fontWeight: 800,
