@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendNotificationEmail } from '@/lib/email'
 
 const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
 
@@ -24,17 +25,22 @@ export async function POST(request: NextRequest) {
   const { error } = await adminClient.from('mvps').delete().eq('id', mvpId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Notify MVP owner
+  // Notify MVP owner directly (no Railway)
   if (mvp) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.access_token) {
-      const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
-      await fetch(`${BACKEND_URL}/api/admin/notify-mvp-deleted`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ mvpId, mvpTitle: mvp.title, ownerId: mvp.owner_id })
-      }).catch(() => {})
+    const notification = {
+      type: 'mvp_deleted',
+      title: 'MVP eliminado por administración',
+      message: `Tu MVP "${mvp.title}" fue eliminado por el equipo de administración.`,
+      data: { mvp_id: mvpId, href: '/publish' },
     }
+    try {
+      await adminClient.from('notifications').insert({ ...notification, user_id: mvp.owner_id, read: false })
+    } catch { /* silent */ }
+    try {
+      const { data } = await adminClient.auth.admin.getUserById(mvp.owner_id)
+      const email = data?.user?.email
+      if (email) sendNotificationEmail(email, notification).catch(() => {})
+    } catch { /* silent */ }
   }
 
   return NextResponse.json({ success: true })

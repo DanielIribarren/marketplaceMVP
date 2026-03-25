@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { sendNotificationEmail } from "@/lib/email"
 
 const ADMIN_EMAIL = "admin123@correo.unimet.edu.ve"
 
@@ -13,7 +14,6 @@ export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> | { id: string } }
 ) {
-  // Use anon client only for auth check, admin client for the actual update (bypasses RLS)
   const supabase = await createClient()
   const adminSupabase = createAdminClient()
   const { id } = await Promise.resolve(context.params)
@@ -41,27 +41,29 @@ export async function POST(
     return NextResponse.json({ error: "Body inválido." }, { status: 400 })
   }
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token
-
-  async function notifyOwner(decision: "approved" | "rejected", reason?: string) {
-    if (!token) return
-    try {
-      await fetch(`${backendUrl}/api/admin/mvp/${id}/notify-decision`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ decision, reason }),
-      })
-    } catch {
-      // notificación no bloquea la decisión
+  async function notifyOwner(ownerId: string, mvpTitle: string, decision: "approved" | "rejected", reason?: string) {
+    const isApproved = decision === "approved"
+    const notification = {
+      type: isApproved ? "mvp_approved" : "mvp_rejected",
+      title: isApproved ? "MVP aprobado" : "MVP rechazado",
+      message: isApproved
+        ? `Tu MVP "${mvpTitle}" fue aprobado y ya está visible en el marketplace.`
+        : `Tu MVP "${mvpTitle}" fue rechazado. Motivo: ${reason || "Sin motivo especificado"}.`,
+      data: { mvp_id: id, href: "/publish" },
     }
+    try {
+      await adminSupabase.from("notifications").insert({ ...notification, user_id: ownerId, read: false })
+    } catch { /* silent */ }
+    try {
+      const { data } = await adminSupabase.auth.admin.getUserById(ownerId)
+      const email = data?.user?.email
+      if (email) sendNotificationEmail(email, notification).catch(() => {})
+    } catch { /* silent */ }
   }
 
   if (body.decision === "approve") {
+    const { data: mvp } = await adminSupabase.from("mvps").select("owner_id, title").eq("id", id).single()
+
     const { error } = await adminSupabase
       .from("mvps")
       .update({
@@ -77,7 +79,7 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    await notifyOwner("approved")
+    if (mvp) await notifyOwner(mvp.owner_id, mvp.title, "approved")
     return NextResponse.json({ ok: true, status: "approved" })
   }
 
@@ -86,6 +88,8 @@ export async function POST(
     if (!reason) {
       return NextResponse.json({ error: "Debes indicar el motivo del rechazo." }, { status: 400 })
     }
+
+    const { data: mvp } = await adminSupabase.from("mvps").select("owner_id, title").eq("id", id).single()
 
     const { error } = await adminSupabase
       .from("mvps")
@@ -102,7 +106,7 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    await notifyOwner("rejected", reason)
+    if (mvp) await notifyOwner(mvp.owner_id, mvp.title, "rejected", reason)
     return NextResponse.json({ ok: true, status: "rejected" })
   }
 

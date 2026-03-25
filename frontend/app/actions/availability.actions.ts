@@ -4,8 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNotificationEmail } from '@/lib/email'
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
-
 async function notify(
   admin: ReturnType<typeof createAdminClient>,
   notification: { user_id: string; type: string; title: string; message: string; data: Record<string, unknown> }
@@ -19,15 +17,6 @@ async function notify(
 }
 
 /**
- * Get auth token helper
- */
-async function getAuthToken(): Promise<string | null> {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.access_token || null
-}
-
-/**
  * Create availability slots for an MVP
  */
 export async function createAvailability(mvpId: string, slots: Array<{
@@ -38,51 +27,29 @@ export async function createAvailability(mvpId: string, slots: Array<{
   notes?: string
 }>) {
   try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado',
-        message: 'Debes iniciar sesión' 
-      }
-    }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado', message: 'Debes iniciar sesión' }
 
-    const response = await fetch(`${BACKEND_URL}/api/availability`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        mvp_id: mvpId,
-        slots
-      })
-    })
+    const admin = createAdminClient()
+    const rows = slots.map(slot => ({
+      mvp_id: mvpId,
+      owner_id: user.id,
+      date: slot.date,
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      timezone: slot.timezone || 'UTC',
+      notes: slot.notes || null,
+      is_booked: false,
+    }))
 
-    const data = await response.json()
+    const { data, error } = await admin.from('availability_slots').insert(rows).select()
+    if (error) return { success: false, error: error.message, message: 'Error al crear disponibilidad' }
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || 'Error al crear disponibilidad',
-        message: data.message
-      }
-    }
-
-    return {
-      success: true,
-      data: data.data,
-      message: data.message
-    }
-
+    return { success: true, data, message: 'Disponibilidad creada exitosamente' }
   } catch (error) {
     console.error('Error al crear disponibilidad:', error)
-    return {
-      success: false,
-      error: 'Error de conexión',
-      message: 'No se pudo conectar con el servidor'
-    }
+    return { success: false, error: 'Error de conexión', message: 'No se pudo conectar con el servidor' }
   }
 }
 
@@ -97,52 +64,34 @@ export async function createBulkAvailability(
   notes?: string
 ) {
   try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado' 
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const admin = createAdminClient()
+    const rows = []
+    for (const date of dates) {
+      for (const slot of timeSlots) {
+        rows.push({
+          mvp_id: mvpId,
+          owner_id: user.id,
+          date,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          timezone: timezone || 'UTC',
+          notes: notes || null,
+          is_booked: false,
+        })
       }
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/availability/bulk`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        mvp_id: mvpId,
-        dates,
-        time_slots: timeSlots,
-        timezone: timezone || 'UTC',
-        notes
-      })
-    })
+    const { data, error } = await admin.from('availability_slots').insert(rows).select()
+    if (error) return { success: false, error: error.message, message: 'Error al crear disponibilidad' }
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error,
-        message: data.message
-      }
-    }
-
-    return {
-      success: true,
-      data: data.data,
-      message: data.message
-    }
-
+    return { success: true, data, message: 'Disponibilidad creada exitosamente' }
   } catch (error) {
     console.error('Error al crear disponibilidad bulk:', error)
-    return {
-      success: false,
-      error: 'Error de conexión'
-    }
+    return { success: false, error: 'Error de conexión' }
   }
 }
 
@@ -158,50 +107,29 @@ export async function getAvailabilityByMVP(
   }
 ) {
   try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado' 
-      }
-    }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
 
-    const params = new URLSearchParams()
-    if (options?.fromDate) params.append('from_date', options.fromDate)
-    if (options?.toDate) params.append('to_date', options.toDate)
-    if (options?.availableOnly) params.append('available_only', 'true')
+    const admin = createAdminClient()
+    let query = admin
+      .from('availability_slots')
+      .select('*')
+      .eq('mvp_id', mvpId)
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true })
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/availability/mvp/${mvpId}?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
-    )
+    if (options?.fromDate) query = query.gte('date', options.fromDate)
+    if (options?.toDate) query = query.lte('date', options.toDate)
+    if (options?.availableOnly) query = query.eq('is_booked', false)
 
-    const data = await response.json()
+    const { data, error } = await query
+    if (error) return { success: false, error: error.message }
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error
-      }
-    }
-
-    return {
-      success: true,
-      data: data.data,
-      count: data.count
-    }
-
+    return { success: true, data: data || [], count: data?.length || 0 }
   } catch (error) {
     console.error('Error al obtener disponibilidad:', error)
-    return {
-      success: false,
-      error: 'Error de conexión'
-    }
+    return { success: false, error: 'Error de conexión' }
   }
 }
 
@@ -214,50 +142,29 @@ export async function getMyAvailability(options?: {
   toDate?: string
 }) {
   try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado' 
-      }
-    }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
 
-    const params = new URLSearchParams()
-    if (options?.mvpId) params.append('mvp_id', options.mvpId)
-    if (options?.fromDate) params.append('from_date', options.fromDate)
-    if (options?.toDate) params.append('to_date', options.toDate)
+    const admin = createAdminClient()
+    let query = admin
+      .from('availability_slots')
+      .select('*')
+      .eq('owner_id', user.id)
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true })
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/availability/my-slots?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
-    )
+    if (options?.mvpId) query = query.eq('mvp_id', options.mvpId)
+    if (options?.fromDate) query = query.gte('date', options.fromDate)
+    if (options?.toDate) query = query.lte('date', options.toDate)
 
-    const data = await response.json()
+    const { data, error } = await query
+    if (error) return { success: false, error: error.message }
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error
-      }
-    }
-
-    return {
-      success: true,
-      data: data.data,
-      count: data.count
-    }
-
+    return { success: true, data: data || [], count: data?.length || 0 }
   } catch (error) {
     console.error('Error al obtener mis slots:', error)
-    return {
-      success: false,
-      error: 'Error de conexión'
-    }
+    return { success: false, error: 'Error de conexión' }
   }
 }
 
@@ -266,43 +173,28 @@ export async function getMyAvailability(options?: {
  */
 export async function deleteAvailabilitySlot(slotId: string) {
   try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado' 
-      }
-    }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
 
-    const response = await fetch(`${BACKEND_URL}/api/availability/${slotId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    const admin = createAdminClient()
+    const { data: slot } = await admin
+      .from('availability_slots')
+      .select('owner_id, is_booked')
+      .eq('id', slotId)
+      .single()
 
-    const data = await response.json()
+    if (!slot) return { success: false, error: 'Slot no encontrado' }
+    if (slot.owner_id !== user.id) return { success: false, error: 'Sin permiso para eliminar este slot' }
+    if (slot.is_booked) return { success: false, error: 'No se puede eliminar un slot reservado', message: 'Este slot ya está reservado' }
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error,
-        message: data.message
-      }
-    }
+    const { error } = await admin.from('availability_slots').delete().eq('id', slotId)
+    if (error) return { success: false, error: error.message }
 
-    return {
-      success: true,
-      message: data.message
-    }
-
+    return { success: true, message: 'Slot eliminado correctamente' }
   } catch (error) {
     console.error('Error al eliminar slot:', error)
-    return {
-      success: false,
-      error: 'Error de conexión'
-    }
+    return { success: false, error: 'Error de conexión' }
   }
 }
 

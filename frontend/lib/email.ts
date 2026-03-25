@@ -12,6 +12,7 @@ const TYPE_CONFIG: Record<string, { icon: string; color: string; bgColor: string
   mvp_rejected:           { icon: '⚠️', color: '#dc2626', bgColor: '#fef2f2', borderColor: '#fecaca', label: 'MVP rechazado' },
   mvp_deleted:            { icon: '🗑️', color: '#dc2626', bgColor: '#fef2f2', borderColor: '#fecaca', label: 'MVP eliminado por administración' },
   account_banned:         { icon: '🚫', color: '#6b7280', bgColor: '#f9fafb', borderColor: '#e5e7eb', label: 'Cuenta suspendida' },
+  account_restored:       { icon: '✅', color: '#16a34a', bgColor: '#f0fdf4', borderColor: '#bbf7d0', label: 'Cuenta restaurada' },
 }
 
 function buildEmailHtml(notification: { type: string; title: string; message: string; data?: Record<string, unknown> }) {

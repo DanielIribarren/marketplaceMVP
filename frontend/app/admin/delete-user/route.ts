@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendNotificationEmail } from '@/lib/email'
 
 const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
 
@@ -19,15 +20,12 @@ export async function POST(request: NextRequest) {
   const userName = profile?.display_name || null
 
   // Send ban email before deleting (after deletion the user won't receive notifications)
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session?.access_token) {
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
-    await fetch(`${BACKEND_URL}/api/admin/notify-account-banned`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ email, userName })
-    }).catch(() => {})
-  }
+  sendNotificationEmail(email, {
+    type: 'account_banned',
+    title: 'Cuenta suspendida',
+    message: `${userName ? `Hola ${userName}, tu` : 'Tu'} cuenta ha sido suspendida por el equipo de administración. Motivo: ${reason || 'Actividad sospechosa'}.`,
+    data: { href: '/' },
+  }).catch(() => {})
 
   // Delete all meetings where this user is requester or owner
   await adminClient.from('meetings').delete().eq('requester_id', userId)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendNotificationEmail } from '@/lib/email'
 
 const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
 
@@ -16,16 +17,13 @@ export async function POST(request: NextRequest) {
   const { error } = await adminClient.from('banned_users').delete().eq('email', email.toLowerCase())
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Send restoration email
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session?.access_token) {
-    const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
-    await fetch(`${BACKEND_URL}/api/admin/notify-account-restored`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ email })
-    }).catch(() => {})
-  }
+  // Send restoration email directly (no Railway)
+  sendNotificationEmail(email, {
+    type: 'account_restored',
+    title: 'Cuenta restaurada',
+    message: 'Tu cuenta ha sido restaurada. Ya puedes volver a acceder a MVP Marketplace.',
+    data: { href: '/' },
+  }).catch(() => {})
 
   return NextResponse.json({ success: true })
 }

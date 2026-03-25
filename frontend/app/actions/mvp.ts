@@ -5,10 +5,58 @@ import type { MVPPublication, QualitySignals } from '@/lib/types/mvp-publication
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
 
+// ─── Quality validation helpers (ported from backend/services/mvp-validation.js) ──
 
+function validateOneLiner(oneLiner: string): boolean {
+  if (!oneLiner || oneLiner.trim().length === 0) return false
+  if (oneLiner.length > 120) return false
+  if (oneLiner.trim().length < 20) return false
+  return true
+}
+
+function validateDescription(description: string): boolean {
+  if (!description || description.trim().length === 0) return false
+  const wordCount = description.trim().split(/\s+/).length
+  if (wordCount > 500 || wordCount < 15) return false
+  return true
+}
+
+function validateUrl(url: string): boolean {
+  if (!url || url.trim().length === 0) return false
+  const trimmedUrl = url.trim()
+  if (trimmedUrl.length > 2048) return false
+  const lowerUrl = trimmedUrl.toLowerCase()
+  const dangerous = ['javascript:', 'data:', 'vbscript:', 'file:', 'about:', '<script', 'onerror=', 'onload=', 'onclick=']
+  if (dangerous.some(p => lowerUrl.includes(p))) return false
+  try {
+    const urlObj = new URL(trimmedUrl)
+    return ['http:', 'https:'].includes(urlObj.protocol)
+  } catch { return false }
+}
+
+function validateMinimalEvidence(evidence: string): boolean {
+  if (!evidence || evidence.trim().length === 0) return false
+  const wordCount = evidence.trim().split(/\s+/).length
+  if (wordCount > 300 || wordCount < 10) return false
+  return true
+}
+
+function slugify(value: string): string {
+  return (value || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+}
+
+function buildSlug(title: string): string {
+  const base = slugify(title) || 'mvp'
+  const suffix = Math.random().toString(36).slice(2, 10)
+  return `${base}-${suffix}`
+}
 
 /**
- * Calcula las señales de calidad para un MVP
+ * Calcula las señales de calidad para un MVP (sin llamada a Railway)
  */
 export async function calculateQualitySignals(mvpData: Partial<MVPPublication>): Promise<{
   success: boolean
@@ -17,55 +65,17 @@ export async function calculateQualitySignals(mvpData: Partial<MVPPublication>):
   canPublish?: boolean
   error?: string
 }> {
-  try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado' 
-      }
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/mvps/quality-signals`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        one_liner: mvpData.oneLiner,
-        description: mvpData.description,
-        demo_url: mvpData.demoUrl,
-        images_urls: mvpData.screenshots,
-        minimal_evidence: mvpData.minimalEvidence,
-        deal_modality: mvpData.dealModality
-      })
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: 'Error al calcular señales'
-      }
-    }
-
-    return {
-      success: true,
-      signals: data.signals,
-      count: data.count,
-      canPublish: data.canPublish
-    }
-
-  } catch (error) {
-    console.error('Error al calcular señales:', error)
-    return {
-      success: false,
-      error: 'Error de conexión'
-    }
+  const signals: QualitySignals = {
+    hasValidOneLiner: validateOneLiner(mvpData.oneLiner || ''),
+    hasConcreteUseCase: validateDescription(mvpData.description || ''),
+    hasDemoOrScreenshot:
+      validateUrl(mvpData.demoUrl || '') ||
+      (Array.isArray(mvpData.screenshots) && mvpData.screenshots.length > 0),
+    hasMinimalEvidence: validateMinimalEvidence(mvpData.minimalEvidence || ''),
+    hasDealModality: !!mvpData.dealModality,
   }
+  const count = Object.values(signals).filter(Boolean).length
+  return { success: true, signals, count, canPublish: count === 5 }
 }
 
 /**
@@ -82,76 +92,68 @@ async function getAuthToken(): Promise<string | null> {
  */
 export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string }) {
   try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado',
-        message: 'Debes iniciar sesión para guardar borradores' 
-      }
-    }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado', message: 'Debes iniciar sesión para guardar borradores' }
 
-    // Construir price_range desde minPrice y maxPrice
-    let priceRange = undefined
+    const admin = createAdminClient()
+
+    let priceRange: string | undefined
     if (mvpData.minPrice && mvpData.maxPrice) {
-      const minFormatted = mvpData.minPrice.toLocaleString('es-ES')
-      const maxFormatted = mvpData.maxPrice.toLocaleString('es-ES')
-      priceRange = `USD ${minFormatted}-${maxFormatted}`
+      priceRange = `USD ${mvpData.minPrice.toLocaleString('es-ES')}-${mvpData.maxPrice.toLocaleString('es-ES')}`
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/mvps/draft`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        id: (mvpData.id && !mvpData.id.startsWith('draft-')) ? mvpData.id : undefined,
-        title: mvpData.name,
-        one_liner: mvpData.oneLiner,
-        category: mvpData.sector,
-        description: mvpData.description,
-        demo_url: mvpData.demoUrl,
-        cover_image_url: mvpData.coverImageUrl,
-        images_urls: mvpData.screenshots,
-        monetization_model: mvpData.monetizationModel,
-        minimal_evidence: mvpData.minimalEvidence,
-        competitive_differentials: mvpData.competitiveDifferentials,
-        deal_modality: mvpData.dealModality,
-        price_range: priceRange,
-        transfer_checklist: mvpData.transferChecklist,
-        video_url: mvpData.videoUrl,
-        testimonials: mvpData.testimonials,
-        roadmap_60_days: mvpData.roadmap60Days,
-        risks_and_mitigations: mvpData.risksAndMitigations
-      })
-    })
+    const id = (mvpData.id && !mvpData.id.startsWith('draft-')) ? mvpData.id : undefined
 
-    const data = await response.json()
+    const draftData = {
+      owner_id: user.id,
+      title: mvpData.name || '',
+      one_liner: mvpData.oneLiner || null,
+      category: mvpData.sector || null,
+      description: mvpData.description || '',
+      demo_url: mvpData.demoUrl || null,
+      cover_image_url: mvpData.coverImageUrl || null,
+      images_urls: mvpData.screenshots || [],
+      monetization_model: mvpData.monetizationModel || null,
+      minimal_evidence: mvpData.minimalEvidence || null,
+      competitive_differentials: mvpData.competitiveDifferentials || [],
+      deal_modality: mvpData.dealModality || null,
+      price_range: priceRange || null,
+      transfer_checklist: mvpData.transferChecklist || { codeAndDocs: false, domainOrLanding: false, integrationAccounts: false, ownIp: false },
+      video_url: mvpData.videoUrl || null,
+      testimonials: mvpData.testimonials || [],
+      roadmap_60_days: mvpData.roadmap60Days || [],
+      risks_and_mitigations: mvpData.risksAndMitigations || [],
+      status: 'draft',
+      updated_at: new Date().toISOString(),
+    }
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || 'Error al guardar',
-        message: data.message || 'No se pudo guardar el borrador'
+    let result
+    if (id) {
+      const { data: existing } = await admin.from('mvps').select('owner_id').eq('id', id).single()
+      if (!existing || existing.owner_id !== user.id) {
+        return { success: false, error: 'Acceso denegado', message: 'No tienes permiso para editar este MVP' }
       }
+      const { data, error } = await admin.from('mvps').update(draftData).eq('id', id).select().single()
+      if (error) throw error
+      result = data
+    } else {
+      const slug = buildSlug(mvpData.name || '')
+      const { data, error } = await admin
+        .from('mvps')
+        .insert([{ ...draftData, slug, views_count: 0, favorites_count: 0 }])
+        .select()
+        .single()
+      if (error) throw error
+      result = data
     }
 
-    return {
-      success: true,
-      data: data.data,
-      validation: data.validation,
-      message: data.message
-    }
+    const signals = await calculateQualitySignals(mvpData)
+    return { success: true, data: result, validation: signals, message: 'Borrador guardado exitosamente' }
 
   } catch (error) {
     console.error('Error al guardar borrador:', error)
-    return {
-      success: false,
-      error: 'Error de conexión',
-      message: 'No se pudo conectar con el servidor'
-    }
+    return { success: false, error: 'Error de conexión', message: 'No se pudo guardar el borrador' }
   }
 }
 
@@ -167,46 +169,22 @@ export async function getUrlPreview(url: string): Promise<{
 }> {
   try {
     const token = await getAuthToken()
-
-    if (!token) {
-      return {
-        success: false,
-        error: 'No autenticado'
-      }
-    }
+    if (!token) return { success: false, error: 'No autenticado' }
 
     const response = await fetch(`${BACKEND_URL}/api/mvps/preview-from-url`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ url })
     })
 
     const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.message || data.error || 'No se pudo generar preview'
-      }
-    }
+    if (!response.ok) return { success: false, error: data.message || data.error || 'No se pudo generar preview' }
 
     const previewUrl = data?.data?.preview_url || data?.data?.favicon_url || null
-
-    return {
-      success: true,
-      previewUrl,
-      source: data?.data?.source || null,
-      title: data?.data?.title || null
-    }
+    return { success: true, previewUrl, source: data?.data?.source || null, title: data?.data?.title || null }
   } catch (error) {
     console.error('Error al obtener preview de URL:', error)
-    return {
-      success: false,
-      error: 'Error de conexión al obtener preview'
-    }
+    return { success: false, error: 'Error de conexión al obtener preview' }
   }
 }
 
@@ -215,49 +193,50 @@ export async function getUrlPreview(url: string): Promise<{
  */
 export async function publishMVP(mvpId: string) {
   try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado',
-        message: 'Debes iniciar sesión para publicar' 
-      }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado', message: 'Debes iniciar sesión para publicar' }
+
+    const admin = createAdminClient()
+    const { data: mvp, error: fetchError } = await admin.from('mvps').select('*').eq('id', mvpId).single()
+    if (fetchError || !mvp) return { success: false, error: 'MVP no encontrado' }
+    if (mvp.owner_id !== user.id) return { success: false, error: 'No tienes permiso para publicar este MVP' }
+    if (!['draft', 'rejected'].includes(mvp.status)) {
+      return { success: false, error: 'Solo puedes publicar borradores o MVPs rechazados' }
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/mvps/${mvpId}/publish`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    const signals: QualitySignals = {
+      hasValidOneLiner: validateOneLiner(mvp.one_liner || ''),
+      hasConcreteUseCase: validateDescription(mvp.description || ''),
+      hasDemoOrScreenshot: validateUrl(mvp.demo_url || '') || (Array.isArray(mvp.images_urls) && mvp.images_urls.length > 0),
+      hasMinimalEvidence: validateMinimalEvidence(mvp.minimal_evidence || ''),
+      hasDealModality: !!mvp.deal_modality,
+    }
+    const canPublish = Object.values(signals).every(Boolean)
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || 'Error al publicar',
-        message: data.message || 'No se pudo publicar el MVP',
-        blockers: data.blockers,
-        signals: data.signals
-      }
+    if (!canPublish) {
+      const blockers: string[] = []
+      if (!signals.hasValidOneLiner) blockers.push('One-liner válido (tiene quién, dolor, resultado)')
+      if (!signals.hasConcreteUseCase) blockers.push('Descripción con caso de uso concreto (no genérica)')
+      if (!signals.hasDemoOrScreenshot) blockers.push('Demo URL válida o al menos 1 captura URL')
+      if (!signals.hasMinimalEvidence) blockers.push('Evidencia mínima completada (tracción o eficiencia)')
+      if (!signals.hasDealModality) blockers.push('Modalidad de deal seleccionada')
+      return { success: false, error: 'No cumple los requisitos', message: 'Completa los requisitos antes de publicar', blockers, signals }
     }
 
-    return {
-      success: true,
-      data: data.data,
-      message: data.message,
-      signals: data.signals
-    }
+    const { data, error } = await admin
+      .from('mvps')
+      .update({ status: 'pending_review', updated_at: new Date().toISOString() })
+      .eq('id', mvpId)
+      .select()
+      .single()
+
+    if (error) return { success: false, error: error.message, message: 'No se pudo publicar el MVP' }
+    return { success: true, data, message: 'MVP enviado a revisión exitosamente', signals }
 
   } catch (error) {
     console.error('Error al publicar MVP:', error)
-    return {
-      success: false,
-      error: 'Error de conexión',
-      message: 'No se pudo conectar con el servidor'
-    }
+    return { success: false, error: 'Error de conexión', message: 'No se pudo conectar con el servidor' }
   }
 }
 
@@ -266,45 +245,23 @@ export async function publishMVP(mvpId: string) {
  */
 export async function deleteDraft(mvpId: string) {
   try {
-    const token = await getAuthToken()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado', message: 'Debes iniciar sesión' }
 
-    if (!token) {
-      return {
-        success: false,
-        error: 'No autenticado',
-        message: 'Debes iniciar sesión'
-      }
-    }
+    const admin = createAdminClient()
+    const { data: mvp } = await admin.from('mvps').select('owner_id, status').eq('id', mvpId).single()
+    if (!mvp) return { success: false, error: 'MVP no encontrado' }
+    if (mvp.owner_id !== user.id) return { success: false, error: 'No tienes permiso para eliminar este MVP' }
+    if (mvp.status !== 'draft') return { success: false, error: 'Solo puedes eliminar borradores' }
 
-    const response = await fetch(`${BACKEND_URL}/api/mvps/${mvpId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || 'Error al eliminar',
-        message: data.message || 'No se pudo eliminar el borrador'
-      }
-    }
-
-    return {
-      success: true,
-      message: 'Borrador eliminado correctamente'
-    }
+    const { error } = await admin.from('mvps').delete().eq('id', mvpId)
+    if (error) return { success: false, error: error.message, message: 'No se pudo eliminar el borrador' }
+    return { success: true, message: 'Borrador eliminado correctamente' }
 
   } catch (error) {
     console.error('Error al eliminar borrador:', error)
-    return {
-      success: false,
-      error: 'Error de conexión',
-      message: 'No se pudo conectar con el servidor'
-    }
+    return { success: false, error: 'Error de conexión', message: 'No se pudo conectar con el servidor' }
   }
 }
 
@@ -313,92 +270,43 @@ export async function deleteDraft(mvpId: string) {
  */
 export async function getMVP(mvpId: string) {
   try {
-    const token = await getAuthToken()
-    
-    if (!token) {
-      return { 
-        success: false, 
-        error: 'No autenticado' 
-      }
-    }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
 
-    const response = await fetch(`${BACKEND_URL}/api/mvps/${mvpId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || 'Error al obtener MVP'
-      }
-    }
-
-    return {
-      success: true,
-      data: data.data
-    }
+    const admin = createAdminClient()
+    const { data, error } = await admin.from('mvps').select('*').eq('id', mvpId).eq('owner_id', user.id).single()
+    if (error || !data) return { success: false, error: 'MVP no encontrado' }
+    return { success: true, data }
 
   } catch (error) {
     console.error('Error al obtener MVP:', error)
-    return {
-      success: false,
-      error: 'Error de conexión'
-    }
+    return { success: false, error: 'Error de conexión' }
   }
 }
 
 /**
- * Obtiene los borradores del usuario
+ * Obtiene los MVPs del usuario (borradores, pendientes, aprobados, rechazados)
  */
 export async function getMyDrafts() {
   try {
-    const token = await getAuthToken()
-    console.log('🔍 [Server Action getMyDrafts] Token obtenido:', token ? 'Sí ✓' : 'No ✗')
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
 
-    if (!token) {
-      console.log('❌ [Server Action getMyDrafts] No hay token')
-      return {
-        success: false,
-        error: 'No autenticado'
-      }
-    }
+    const admin = createAdminClient()
+    const { data, error } = await admin
+      .from('mvps')
+      .select('*')
+      .eq('owner_id', user.id)
+      .order('updated_at', { ascending: false })
 
-    console.log('🔍 [Server Action getMyDrafts] Haciendo fetch a:', `${BACKEND_URL}/api/mvps/my-drafts`)
-    const response = await fetch(`${BACKEND_URL}/api/mvps/my-drafts`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    console.log('🔍 [Server Action getMyDrafts] Status de respuesta:', response.status)
-    const data = await response.json()
-    console.log('🔍 [Server Action getMyDrafts] Datos recibidos:', JSON.stringify(data, null, 2))
-
-    if (!response.ok) {
-      console.log('❌ [Server Action getMyDrafts] Respuesta no OK:', data)
-      return {
-        success: false,
-        error: data.error || 'Error al obtener borradores'
-      }
-    }
-
-    console.log('✅ [Server Action getMyDrafts] Retornando:', data.data?.length || 0, 'MVPs')
-    return {
-      success: true,
-      data: data.data,
-      count: data.count
-    }
+    if (error) return { success: false, error: error.message }
+    return { success: true, data: data || [], count: data?.length || 0 }
 
   } catch (error) {
     console.error('Error al obtener borradores:', error)
-    return {
-      success: false,
-      error: 'Error de conexión'
-    }
+    return { success: false, error: 'Error de conexión' }
   }
 }
 
@@ -438,24 +346,11 @@ export async function getPublicMvps(params: {
     })
     const data = await response.json()
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || 'Error al obtener MVPs'
-      }
-    }
-
-    return {
-      success: true,
-      data: data.data || [],
-      count: data.count || 0
-    }
+    if (!response.ok) return { success: false, error: data.error || 'Error al obtener MVPs' }
+    return { success: true, data: data.data || [], count: data.count || 0 }
   } catch (error) {
     console.error('Error al obtener MVPs públicos:', error)
-    return {
-      success: false,
-      error: 'Error de conexión'
-    }
+    return { success: false, error: 'Error de conexión' }
   }
 }
 
@@ -467,7 +362,6 @@ export async function getCreatorPublicData(ownerId: string, currentMvpId: string
     const supabase = await createClient()
     const adminClient = createAdminClient()
 
-    // display_name, email y fecha de registro vienen de auth.users (admin API)
     let displayName: string | null = null
     let avatarFromAuth: string | null = null
     let email: string | null = null
@@ -482,7 +376,6 @@ export async function getCreatorPublicData(ownerId: string, currentMvpId: string
       joinedAt = authUser?.user?.created_at || null
     } catch (_) { /* ignorar si no hay permisos */ }
 
-    // Perfil extendido: intentar con 'id' primero, luego 'user_id'
     let profileData: Record<string, unknown> = {}
     const { data: p1, error: e1 } = await supabase
       .from('user_profiles')
@@ -545,28 +438,13 @@ export async function getCreatorPublicData(ownerId: string, currentMvpId: string
 * Obtiene los detalles completos de un MVP específico (público)
 */
 export async function getMvpDetails(mvpId: string) {
-try {
-const response = await fetch(`${BACKEND_URL}/api/mvps/public/${mvpId}`, {
-cache: 'no-store'
-})
-const data = await response.json()
-
-if (!response.ok) {
-return {
-success: false,
-error: data.error || 'Error al obtener detalles del MVP'
-}
-}
-
-return {
-success: true,
-data: data.data
-}
-} catch (error) {
-console.error('Error al obtener detalles del MVP:', error)
-return {
-success: false,
-error: 'Error de conexión'
-}
-}
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/mvps/public/${mvpId}`, { cache: 'no-store' })
+    const data = await response.json()
+    if (!response.ok) return { success: false, error: data.error || 'Error al obtener detalles del MVP' }
+    return { success: true, data: data.data }
+  } catch (error) {
+    console.error('Error al obtener detalles del MVP:', error)
+    return { success: false, error: 'Error de conexión' }
+  }
 }
