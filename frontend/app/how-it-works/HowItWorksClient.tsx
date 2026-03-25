@@ -831,7 +831,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
         <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
 
           <FadeIn>
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
               <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 800, color: '#111827', marginBottom: '12px' }}>
                 El proceso paso a paso
               </h2>
@@ -847,7 +847,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
           </FadeIn>
 
           {/* Steps */}
-          <div style={{ display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gap: '16px', marginTop: '48px' }}>
             {steps.map((step, i) => {
               const Icon = step.icon
               return (
