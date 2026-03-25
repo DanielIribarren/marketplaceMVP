@@ -288,7 +288,7 @@ export function CalendarClient({ userId }: { userId: string }) {
       </div>
 
       {/* ── Navegación y filtros de rango ── */}
-      <div className="bg-background rounded-2xl border shadow-sm overflow-hidden">
+      <div className="bg-background rounded-2xl border shadow-sm overflow-hidden hidden sm:block">
         {/* Controles */}
         <div className="flex flex-col gap-3 px-5 py-3 border-b bg-gray-50">
           <div className="flex flex-wrap items-center gap-2">
@@ -400,8 +400,56 @@ export function CalendarClient({ userId }: { userId: string }) {
         </div>
       </div>
 
+      {/* ── Mobile: lista de reuniones ── */}
+      <div className="sm:hidden bg-background rounded-2xl border shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Reuniones</h3>
+          <span className="text-xs text-muted-foreground">{meetings.length} en total</span>
+        </div>
+        {meetings.length === 0 ? (
+          <div className="text-center py-10">
+            <CalendarDays className="w-10 h-10 mx-auto mb-2 text-brand-200" />
+            <p className="text-sm text-muted-foreground">Sin reuniones registradas</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {[...meetings]
+              .sort((a, b) => new Date(a.scheduled_at || 0).getTime() - new Date(b.scheduled_at || 0).getTime())
+              .map(m => {
+                const visualStatus = getVisualStatus(m, userId)
+                const cfg = STATUS[visualStatus] || STATUS.pending
+                const rol = rolLabel(m, userId)
+                const Icono = rol.Icono
+                const accion = esmiturno(m, userId)
+                return (
+                  <button key={m.id} onClick={() => abrirDetalle(m)}
+                    className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className={`mt-2 flex-shrink-0 w-2 h-2 rounded-full ${cfg.dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold truncate">{m.mvp?.title || 'Reunión'}</p>
+                        {accion && <span className="text-[10px] font-bold text-primary shrink-0">⚡ Tu turno</span>}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <Icono className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-xs text-muted-foreground">{rol.texto}</span>
+                        <span className="text-[11px] text-muted-foreground">·</span>
+                        <span className={`text-[11px] font-semibold ${cfg.text}`}>{cfg.label}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {m.scheduled_at ? fmtFechaLarga(m.scheduled_at) + ' · ' + fmtHora(m.scheduled_at) : 'Sin fecha'}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+          </div>
+        )}
+      </div>
+
       {/* ── Leyenda de roles ── */}
-      <div className="flex gap-6 text-xs text-muted-foreground">
+      <div className="hidden sm:flex gap-6 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-ink-300"/> Emprendedor = eres el creador del MVP</span>
         <span className="flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-ink-300"/> Inversor = estás evaluando el MVP</span>
       </div>
