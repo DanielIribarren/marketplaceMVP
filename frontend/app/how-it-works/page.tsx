@@ -19,7 +19,7 @@ export default async function HowItWorksPage() {
     <div className="min-h-screen bg-background">
       <Navbar isAuthenticated={isAuthenticated} isAdmin={userIsAdmin} />
       <div className="overflow-x-hidden">
-        <HowItWorksClient />
+        <HowItWorksClient isAuthenticated={isAuthenticated} />
         <div className="-mt-20">
           <Footer />
         </div>

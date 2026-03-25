@@ -660,7 +660,7 @@ function MagnifierWidget({ activeIndex, color }: { activeIndex: number | null; c
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
-export function HowItWorksClient() {
+export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const [role, setRole] = useState<Role>('entrepreneur')
   const [econActive, setEconActive] = useState(false)
   const [nonEconActive, setNonEconActive] = useState(false)
@@ -756,7 +756,7 @@ export function HowItWorksClient() {
 
               <FadeIn delay={0.4}>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link href="/register" style={{
+                  <Link href={isAuthenticated ? '/publish' : '/register'} style={{
                     display: 'inline-flex', alignItems: 'center', gap: '8px',
                     background: 'linear-gradient(135deg, #FF6B35, #e85a22)',
                     color: '#fff', borderRadius: '10px', padding: '14px 28px',
@@ -1349,7 +1349,7 @@ export function HowItWorksClient() {
 
           <FadeIn delay={0.3}>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '36px' }}>
-              <Link href="/register" style={{
+              <Link href={isAuthenticated ? '/publish' : '/register'} style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
                 background: 'linear-gradient(135deg, #FF6B35, #e85a22)',
                 color: '#fff', borderRadius: '12px', padding: '16px 32px',
