@@ -37,8 +37,22 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 // Middleware
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL_2,
+].filter(Boolean)
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Permitir requests sin origin (Postman, server-to-server, etc.)
+    if (!origin) return callback(null, true)
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
+    // Permitir cualquier subdominio de vercel.app en preview deployments
+    if (origin.endsWith('.vercel.app')) return callback(null, true)
+    callback(new Error(`CORS: origen no permitido → ${origin}`))
+  },
   credentials: true
 }))
 app.use(express.json())
