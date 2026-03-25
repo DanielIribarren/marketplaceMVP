@@ -65,6 +65,7 @@ export async function calculateQualitySignals(mvpData: Partial<MVPPublication>):
   canPublish?: boolean
   error?: string
 }> {
+  const tc = mvpData.transferChecklist
   const signals: QualitySignals = {
     hasValidOneLiner: validateOneLiner(mvpData.oneLiner || ''),
     hasConcreteUseCase: validateDescription(mvpData.description || ''),
@@ -73,9 +74,10 @@ export async function calculateQualitySignals(mvpData: Partial<MVPPublication>):
       (Array.isArray(mvpData.screenshots) && mvpData.screenshots.length > 0),
     hasMinimalEvidence: validateMinimalEvidence(mvpData.minimalEvidence || ''),
     hasDealModality: !!mvpData.dealModality,
+    hasTransferChecklist: !!(tc && tc.codeAndDocs && tc.domainOrLanding && tc.integrationAccounts && tc.ownIp),
   }
   const count = Object.values(signals).filter(Boolean).length
-  return { success: true, signals, count, canPublish: count === 5 }
+  return { success: true, signals, count, canPublish: count === 6 }
 }
 
 /**
@@ -205,12 +207,14 @@ export async function publishMVP(mvpId: string) {
       return { success: false, error: 'Solo puedes publicar borradores o MVPs rechazados' }
     }
 
+    const tc = mvp.transfer_checklist
     const signals: QualitySignals = {
       hasValidOneLiner: validateOneLiner(mvp.one_liner || ''),
       hasConcreteUseCase: validateDescription(mvp.description || ''),
       hasDemoOrScreenshot: validateUrl(mvp.demo_url || '') || (Array.isArray(mvp.images_urls) && mvp.images_urls.length > 0),
       hasMinimalEvidence: validateMinimalEvidence(mvp.minimal_evidence || ''),
       hasDealModality: !!mvp.deal_modality,
+      hasTransferChecklist: !!(tc && tc.codeAndDocs && tc.domainOrLanding && tc.integrationAccounts && tc.ownIp),
     }
     const canPublish = Object.values(signals).every(Boolean)
 
@@ -221,6 +225,7 @@ export async function publishMVP(mvpId: string) {
       if (!signals.hasDemoOrScreenshot) blockers.push('Demo URL válida o al menos 1 captura URL')
       if (!signals.hasMinimalEvidence) blockers.push('Evidencia mínima completada (tracción o eficiencia)')
       if (!signals.hasDealModality) blockers.push('Modalidad de deal seleccionada')
+      if (!signals.hasTransferChecklist) blockers.push('Checklist de transferencia completo')
       return { success: false, error: 'No cumple los requisitos', message: 'Completa los requisitos antes de publicar', blockers, signals }
     }
 
