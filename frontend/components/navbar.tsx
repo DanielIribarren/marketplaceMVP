@@ -463,7 +463,7 @@ export function Navbar({ unreadMessages = 0, isAuthenticated = false, isAdmin = 
                                 >
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-start gap-2 min-w-0">
-                                      <div className="mt-0.5 rounded-md bg-muted/60 p-1.5">
+                                      <div className="mt-0.5 rounded-md bg-muted/60 p-1.5 border border-brand-200/70 shadow-sm">
                                         <NotificationTypeIcon type={notification.type} />
                                       </div>
                                       <p className="text-sm font-medium leading-5">

@@ -239,7 +239,7 @@ export function NotificationCenter({
                   </div>
 
                   {/* Icon */}
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 border border-border/60 shadow-sm">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 border border-brand-200/70 shadow-sm">
                     <NotifIcon type={notif.type} />
                   </div>
 
