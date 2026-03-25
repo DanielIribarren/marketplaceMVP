@@ -482,7 +482,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
       <Card key={mvp.id} className="rounded-2xl border border-brand-100/90 hover:shadow-lg transition-shadow">
         <CardContent className="p-4 md:p-5">
           <div className={`grid gap-4 ${!isGridMode ? 'md:grid-cols-[360px_1fr] md:items-stretch' : ''}`}>
-            <div className={`relative overflow-hidden rounded-xl border border-brand-200 shadow-[0_0_12px_rgba(255,107,53,0.18)] ${!isGridMode ? 'min-h-[200px] md:min-h-[245px] md:ml-3' : 'h-[185px]'}`}>
+            <div className={`relative overflow-hidden rounded-xl border-[3px] border-orange-400 shadow-[0_0_14px_rgba(255,107,53,0.35)] ${!isGridMode ? 'min-h-[200px] md:min-h-[245px] md:ml-3' : 'h-[185px]'}`}>
               {currentMedia && !isCurrentVideo && (
                 <>
                   <img
