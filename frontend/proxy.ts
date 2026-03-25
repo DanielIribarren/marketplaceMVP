@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 
 const ADMIN_EMAIL = 'admin123@correo.unimet.edu.ve'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next()
 
   const supabase = createServerClient(
