@@ -659,23 +659,6 @@ function MagnifierWidget({ activeIndex, color }: { activeIndex: number | null; c
   )
 }
 
-// ─── Typewriter hook ─────────────────────────────────────────────────────────
-function useTypewriter(text: string, active: boolean, speed = 28) {
-  const [displayed, setDisplayed] = useState('')
-  useEffect(() => {
-    if (!active) { setDisplayed(''); return }
-    setDisplayed('')
-    let i = 0
-    const interval = setInterval(() => {
-      i++
-      setDisplayed(text.slice(0, i))
-      if (i >= text.length) clearInterval(interval)
-    }, speed)
-    return () => clearInterval(interval)
-  }, [active, text, speed])
-  return displayed
-}
-
 // ─── HeroSteps ───────────────────────────────────────────────────────────────
 const STEPS = [
   { num: '01', label: 'PUBLICA', desc: 'tu MVP con métricas reales y precio definido', gradient: false },
@@ -683,92 +666,105 @@ const STEPS = [
   { num: '03', label: 'CIERRA', desc: 'el trato en un ecosistema seguro y verificado', gradient: false },
 ]
 
-function StepRow({ step, index, hovered, onEnter, onLeave }: {
-  step: typeof STEPS[0]; index: number; hovered: number | null
-  onEnter: () => void; onLeave: () => void
-}) {
-  const isHovered = hovered === index
-  const typed = useTypewriter(step.desc, isHovered)
-
-  return (
-    <FadeIn delay={0.1 + index * 0.15}>
-      <div
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-        style={{
-          display: 'flex', alignItems: 'center', gap: '16px',
-          cursor: 'default', padding: '6px 0',
-        }}
-      >
-        {/* Ghost number */}
-        <span style={{
-          fontSize: 'clamp(70px, 12vw, 120px)', fontWeight: 900, lineHeight: 1,
-          color: isHovered ? 'rgba(255,107,53,0.22)' : 'rgba(255,107,53,0.1)',
-          letterSpacing: '-4px', userSelect: 'none', minWidth: '100px', textAlign: 'right',
-          transition: 'color 0.3s',
-        }}>{step.num}</span>
-
-        {/* Title + blinking cursor */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '200px' }}>
-          <span style={{
-            fontSize: 'clamp(2rem, 5vw, 3.6rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-1px',
-            ...(step.gradient
-              ? { background: 'linear-gradient(135deg, #FF6B35, #ffad80)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
-              : { color: '#ffffff' }
-            ),
-          }}>{step.label}</span>
-          {/* blinking cursor */}
-          <span style={{
-            display: 'inline-block', width: '3px',
-            height: 'clamp(28px, 4vw, 48px)',
-            background: '#FF6B35',
-            borderRadius: '2px',
-            animation: isHovered ? 'blink 0.8s step-end infinite' : 'none',
-            opacity: isHovered ? 1 : 0.25,
-            transition: 'opacity 0.3s',
-            flexShrink: 0,
-          }} />
-        </div>
-
-        {/* Typewriter description */}
-        <div style={{
-          flex: 1, fontSize: 'clamp(0.85rem, 1.6vw, 1rem)',
-          color: '#9ca3af', fontFamily: 'monospace',
-          minHeight: '1.5em',
-          textAlign: 'left',
-          overflow: 'hidden',
-        }}>
-          {typed}
-          {isHovered && typed.length < step.desc.length && (
-            <span style={{ animation: 'blink 0.6s step-end infinite', opacity: 1, color: '#FF6B35' }}>_</span>
-          )}
-        </div>
-      </div>
-
-      {/* Connector line between steps */}
-      {index < 2 && (
-        <div style={{ display: 'flex', paddingLeft: '116px', padding: '4px 0 4px 116px' }}>
-          <div style={{ width: '2px', height: '32px', background: 'linear-gradient(to bottom, rgba(255,107,53,0.35), rgba(255,107,53,0.08))', borderRadius: '999px' }} />
-        </div>
-      )}
-    </FadeIn>
-  )
-}
-
 function HeroSteps() {
-  const [hovered, setHovered] = useState<number | null>(null)
+  // activeStep: qué paso está siendo escrito (-1 = aún no arrancó)
+  const [activeStep, setActiveStep] = useState(-1)
+  // typed[i] = texto mostrado del paso i
+  const [typed, setTyped] = useState(['', '', ''])
+  const { ref, visible } = useInView(0.3)
+
+  // Arranca cuando el componente es visible
+  useEffect(() => {
+    if (visible && activeStep === -1) setActiveStep(0)
+  }, [visible, activeStep])
+
+  // Efecto máquina de escritura: cuando cambia el paso activo, escribe su desc
+  useEffect(() => {
+    if (activeStep < 0 || activeStep >= STEPS.length) return
+    const text = STEPS[activeStep].desc
+    let i = 0
+    const interval = setInterval(() => {
+      i++
+      setTyped(prev => {
+        const next = [...prev]
+        next[activeStep] = text.slice(0, i)
+        return next
+      })
+      if (i >= text.length) {
+        clearInterval(interval)
+        // Pausa breve antes del siguiente paso
+        setTimeout(() => setActiveStep(s => s + 1), 300)
+      }
+    }, 30)
+    return () => clearInterval(interval)
+  }, [activeStep])
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {STEPS.map((step, i) => (
-        <StepRow
-          key={step.num}
-          step={step}
-          index={i}
-          hovered={hovered}
-          onEnter={() => setHovered(i)}
-          onLeave={() => setHovered(null)}
-        />
-      ))}
+    <div ref={ref} style={{ display: 'flex', flexDirection: 'column' }}>
+      {STEPS.map((step, i) => {
+        const isActive = activeStep === i
+        const isDone = activeStep > i
+        const isLit = isActive || isDone
+
+        return (
+          <FadeIn key={step.num} delay={0}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '6px 0' }}>
+
+              {/* Ghost number */}
+              <span style={{
+                fontSize: 'clamp(70px, 12vw, 120px)', fontWeight: 900, lineHeight: 1,
+                color: isLit ? 'rgba(255,107,53,0.22)' : 'rgba(255,107,53,0.08)',
+                letterSpacing: '-4px', userSelect: 'none', minWidth: '100px', textAlign: 'right',
+                transition: 'color 0.4s',
+              }}>{step.num}</span>
+
+              {/* Title + blinking cursor */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '200px' }}>
+                <span style={{
+                  fontSize: 'clamp(2rem, 5vw, 3.6rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-1px',
+                  ...(step.gradient
+                    ? { background: 'linear-gradient(135deg, #FF6B35, #ffad80)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
+                    : { color: '#ffffff' }
+                  ),
+                }}>{step.label}</span>
+                <span style={{
+                  display: 'inline-block', width: '3px',
+                  height: 'clamp(28px, 4vw, 48px)',
+                  background: '#FF6B35', borderRadius: '2px', flexShrink: 0,
+                  animation: isActive ? 'blink 0.8s step-end infinite' : 'none',
+                  opacity: isActive ? 1 : 0,
+                  transition: 'opacity 0.3s',
+                }} />
+              </div>
+
+              {/* Typewriter description */}
+              <div style={{
+                flex: 1, fontSize: 'clamp(0.85rem, 1.6vw, 1rem)',
+                color: '#9ca3af', fontFamily: 'monospace',
+                minHeight: '1.5em', textAlign: 'left',
+              }}>
+                {typed[i]}
+                {isActive && typed[i].length < step.desc.length && (
+                  <span style={{ animation: 'blink 0.6s step-end infinite', color: '#FF6B35' }}>_</span>
+                )}
+              </div>
+            </div>
+
+            {i < 2 && (
+              <div style={{ paddingLeft: '116px', padding: '4px 0 4px 116px' }}>
+                <div style={{ width: '2px', height: '32px', background: 'linear-gradient(to bottom, rgba(255,107,53,0.35), rgba(255,107,53,0.08))', borderRadius: '999px' }} />
+              </div>
+            )}
+          </FadeIn>
+        )
+      })}
+
+      {/* Tagline */}
+      <div style={{ marginTop: '40px', textAlign: 'center' }}>
+        <p style={{ color: '#4b5563', fontSize: '0.9rem', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+          sin intermediarios · sin pérdida de tiempo · sin fronteras
+        </p>
+      </div>
     </div>
   )
 }
