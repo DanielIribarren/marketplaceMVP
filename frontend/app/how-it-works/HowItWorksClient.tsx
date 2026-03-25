@@ -659,6 +659,120 @@ function MagnifierWidget({ activeIndex, color }: { activeIndex: number | null; c
   )
 }
 
+// ─── Typewriter hook ─────────────────────────────────────────────────────────
+function useTypewriter(text: string, active: boolean, speed = 28) {
+  const [displayed, setDisplayed] = useState('')
+  useEffect(() => {
+    if (!active) { setDisplayed(''); return }
+    setDisplayed('')
+    let i = 0
+    const interval = setInterval(() => {
+      i++
+      setDisplayed(text.slice(0, i))
+      if (i >= text.length) clearInterval(interval)
+    }, speed)
+    return () => clearInterval(interval)
+  }, [active, text, speed])
+  return displayed
+}
+
+// ─── HeroSteps ───────────────────────────────────────────────────────────────
+const STEPS = [
+  { num: '01', label: 'PUBLICA', desc: 'tu MVP con métricas reales y precio definido', gradient: false },
+  { num: '02', label: 'CONECTA', desc: 'con inversores que ya están buscando tu solución', gradient: true },
+  { num: '03', label: 'CIERRA', desc: 'el trato en un ecosistema seguro y verificado', gradient: false },
+]
+
+function StepRow({ step, index, hovered, onEnter, onLeave }: {
+  step: typeof STEPS[0]; index: number; hovered: number | null
+  onEnter: () => void; onLeave: () => void
+}) {
+  const isHovered = hovered === index
+  const typed = useTypewriter(step.desc, isHovered)
+
+  return (
+    <FadeIn delay={0.1 + index * 0.15}>
+      <div
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '16px',
+          cursor: 'default', padding: '6px 0',
+        }}
+      >
+        {/* Ghost number */}
+        <span style={{
+          fontSize: 'clamp(70px, 12vw, 120px)', fontWeight: 900, lineHeight: 1,
+          color: isHovered ? 'rgba(255,107,53,0.22)' : 'rgba(255,107,53,0.1)',
+          letterSpacing: '-4px', userSelect: 'none', minWidth: '100px', textAlign: 'right',
+          transition: 'color 0.3s',
+        }}>{step.num}</span>
+
+        {/* Title + blinking cursor */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '200px' }}>
+          <span style={{
+            fontSize: 'clamp(2rem, 5vw, 3.6rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-1px',
+            ...(step.gradient
+              ? { background: 'linear-gradient(135deg, #FF6B35, #ffad80)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
+              : { color: '#ffffff' }
+            ),
+          }}>{step.label}</span>
+          {/* blinking cursor */}
+          <span style={{
+            display: 'inline-block', width: '3px',
+            height: 'clamp(28px, 4vw, 48px)',
+            background: '#FF6B35',
+            borderRadius: '2px',
+            animation: isHovered ? 'blink 0.8s step-end infinite' : 'none',
+            opacity: isHovered ? 1 : 0.25,
+            transition: 'opacity 0.3s',
+            flexShrink: 0,
+          }} />
+        </div>
+
+        {/* Typewriter description */}
+        <div style={{
+          flex: 1, fontSize: 'clamp(0.85rem, 1.6vw, 1rem)',
+          color: '#9ca3af', fontFamily: 'monospace',
+          minHeight: '1.5em',
+          textAlign: 'left',
+          overflow: 'hidden',
+        }}>
+          {typed}
+          {isHovered && typed.length < step.desc.length && (
+            <span style={{ animation: 'blink 0.6s step-end infinite', opacity: 1, color: '#FF6B35' }}>_</span>
+          )}
+        </div>
+      </div>
+
+      {/* Connector line between steps */}
+      {index < 2 && (
+        <div style={{ display: 'flex', paddingLeft: '116px', padding: '4px 0 4px 116px' }}>
+          <div style={{ width: '2px', height: '32px', background: 'linear-gradient(to bottom, rgba(255,107,53,0.35), rgba(255,107,53,0.08))', borderRadius: '999px' }} />
+        </div>
+      )}
+    </FadeIn>
+  )
+}
+
+function HeroSteps() {
+  const [hovered, setHovered] = useState<number | null>(null)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {STEPS.map((step, i) => (
+        <StepRow
+          key={step.num}
+          step={step}
+          index={i}
+          hovered={hovered}
+          onEnter={() => setHovered(i)}
+          onLeave={() => setHovered(null)}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ─── Componente principal ────────────────────────────────────────────────────
 export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const [role, setRole] = useState<Role>('entrepreneur')
@@ -699,72 +813,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
           </FadeIn>
 
           {/* Steps typographic layout */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
-
-            {/* Step 1 */}
-            <FadeIn delay={0.1}>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 'clamp(80px, 14vw, 140px)', fontWeight: 900, lineHeight: 1, color: 'rgba(255,107,53,0.12)', letterSpacing: '-4px', userSelect: 'none' }}>01</span>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 'clamp(2rem, 5vw, 3.8rem)', fontWeight: 900, color: '#ffffff', lineHeight: 1, letterSpacing: '-1px' }}>
-                    PUBLICA
-                  </div>
-                  <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
-                    tu MVP con métricas reales y precio definido
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Connector */}
-            <FadeIn delay={0.2}>
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
-                <div style={{ width: '2px', height: '40px', background: 'linear-gradient(to bottom, rgba(255,107,53,0.4), rgba(255,107,53,0.1))', borderRadius: '999px' }} />
-              </div>
-            </FadeIn>
-
-            {/* Step 2 */}
-            <FadeIn delay={0.3}>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 'clamp(80px, 14vw, 140px)', fontWeight: 900, lineHeight: 1, color: 'rgba(255,107,53,0.12)', letterSpacing: '-4px', userSelect: 'none' }}>02</span>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{
-                    fontSize: 'clamp(2rem, 5vw, 3.8rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-1px',
-                    background: 'linear-gradient(135deg, #FF6B35, #ffad80)',
-                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                  }}>
-                    CONECTA
-                  </div>
-                  <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
-                    con inversores que ya están buscando tu solución
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Connector */}
-            <FadeIn delay={0.4}>
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
-                <div style={{ width: '2px', height: '40px', background: 'linear-gradient(to bottom, rgba(255,107,53,0.4), rgba(255,107,53,0.1))', borderRadius: '999px' }} />
-              </div>
-            </FadeIn>
-
-            {/* Step 3 */}
-            <FadeIn delay={0.5}>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 'clamp(80px, 14vw, 140px)', fontWeight: 900, lineHeight: 1, color: 'rgba(255,107,53,0.12)', letterSpacing: '-4px', userSelect: 'none' }}>03</span>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 'clamp(2rem, 5vw, 3.8rem)', fontWeight: 900, color: '#ffffff', lineHeight: 1, letterSpacing: '-1px' }}>
-                    CIERRA
-                  </div>
-                  <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
-                    el trato en un ecosistema seguro y verificado
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-          </div>
+          <HeroSteps />
 
           {/* Bottom tagline */}
           <FadeIn delay={0.65}>
@@ -806,6 +855,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
 
         <style>{`
           @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.7; transform:scale(1.05); } }
+          @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
         `}</style>
       </section>
 
