@@ -707,7 +707,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
                 <span style={{ fontSize: 'clamp(80px, 14vw, 140px)', fontWeight: 900, lineHeight: 1, color: 'rgba(255,107,53,0.12)', letterSpacing: '-4px', userSelect: 'none' }}>01</span>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: 'clamp(2rem, 5vw, 3.8rem)', fontWeight: 900, color: '#ffffff', lineHeight: 1, letterSpacing: '-1px' }}>
-                    PUBLICÁ
+                    PUBLICA
                   </div>
                   <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
                     tu MVP con métricas reales y precio definido
@@ -733,7 +733,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
                     background: 'linear-gradient(135deg, #FF6B35, #ffad80)',
                     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   }}>
-                    CONECTÁ
+                    CONECTA
                   </div>
                   <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
                     con inversores que ya están buscando tu solución
@@ -755,7 +755,7 @@ export function HowItWorksClient({ isAuthenticated = false }: { isAuthenticated?
                 <span style={{ fontSize: 'clamp(80px, 14vw, 140px)', fontWeight: 900, lineHeight: 1, color: 'rgba(255,107,53,0.12)', letterSpacing: '-4px', userSelect: 'none' }}>03</span>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: 'clamp(2rem, 5vw, 3.8rem)', fontWeight: 900, color: '#ffffff', lineHeight: 1, letterSpacing: '-1px' }}>
-                    CERRÁ
+                    CIERRA
                   </div>
                   <div style={{ fontSize: 'clamp(0.85rem, 2vw, 1rem)', color: '#6b7280', marginTop: '6px', maxWidth: '280px' }}>
                     el trato en un ecosistema seguro y verificado
