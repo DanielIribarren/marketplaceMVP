@@ -983,13 +983,13 @@ export function HowItWorksClient() {
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', marginBottom: '10px' }}>
-                <div style={{ fontWeight: 800, fontSize: '20px', color: '#111827', letterSpacing: '-0.01em' }}>Oferta económica</div>
+                <div style={{ fontWeight: 800, fontSize: '17px', color: '#111827', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Oferta económica</div>
                 {econActive && (
                   <motion.div
                     initial={{ opacity: 0, x: -10, scale: 0.9 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     transition={{ duration: 0.25 }}
-                    style={{ background: '#fff7ed', borderRadius: '8px', padding: '5px 12px', color: '#c2410c', fontSize: '12px', fontWeight: 700, border: '1px solid #fed7aa', whiteSpace: 'nowrap' }}
+                    style={{ background: '#fff7ed', borderRadius: '8px', padding: '4px 10px', color: '#c2410c', fontSize: '11px', fontWeight: 700, border: '1px solid #fed7aa', whiteSpace: 'nowrap' }}
                   >
                     Monto + % Equity del MVP
                   </motion.div>
@@ -1051,13 +1051,13 @@ export function HowItWorksClient() {
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', marginBottom: '10px' }}>
-                <div style={{ fontWeight: 800, fontSize: '20px', color: '#111827', letterSpacing: '-0.01em' }}>Aporte no económico</div>
+                <div style={{ fontWeight: 800, fontSize: '17px', color: '#111827', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Aporte no económico</div>
                 {nonEconActive && (
                   <motion.div
                     initial={{ opacity: 0, x: -10, scale: 0.9 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     transition={{ duration: 0.25 }}
-                    style={{ background: '#f0fdf4', borderRadius: '8px', padding: '5px 12px', color: '#15803d', fontSize: '12px', fontWeight: 700, border: '1px solid #bbf7d0', whiteSpace: 'nowrap' }}
+                    style={{ background: '#f0fdf4', borderRadius: '8px', padding: '4px 10px', color: '#15803d', fontSize: '11px', fontWeight: 700, border: '1px solid #bbf7d0', whiteSpace: 'nowrap' }}
                   >
                     Valor estratégico sin dinero
                   </motion.div>
