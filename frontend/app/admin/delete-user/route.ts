@@ -29,8 +29,13 @@ export async function POST(request: NextRequest) {
     }).catch(() => {})
   }
 
-  // Delete all MVPs owned by this user first
+  // Delete all meetings where this user is requester or owner
+  await adminClient.from('meetings').delete().eq('requester_id', userId)
+  await adminClient.from('meetings').delete().eq('owner_id', userId)
+
+  // Delete all MVPs owned by this user (also cascades their meetings)
   await adminClient.from('mvps').delete().eq('owner_id', userId)
+
   const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId)
   if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
   await adminClient.from('banned_users').upsert({ email: email.toLowerCase(), reason: reason || 'Actividad sospechosa', banned_at: new Date().toISOString() }, { onConflict: 'email' })

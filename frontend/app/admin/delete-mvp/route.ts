@@ -18,6 +18,9 @@ export async function POST(request: NextRequest) {
   // Get MVP owner before deleting for notification
   const { data: mvp } = await adminClient.from('mvps').select('owner_id, title').eq('id', mvpId).single()
 
+  // Explicitly delete all meetings for this MVP (in case CASCADE is not active in DB)
+  await adminClient.from('meetings').delete().eq('mvp_id', mvpId)
+
   const { error } = await adminClient.from('mvps').delete().eq('id', mvpId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
