@@ -216,7 +216,9 @@ export async function publishMVP(mvpId: string) {
       hasDealModality: !!mvp.deal_modality,
       hasTransferChecklist: !!(tc && tc.codeAndDocs && tc.domainOrLanding && tc.integrationAccounts && tc.ownIp),
     }
-    const canPublish = Object.values(signals).every(Boolean)
+    // Only the 5 core signals block publishing (transfer checklist is optional)
+    const coreSignals = [signals.hasValidOneLiner, signals.hasConcreteUseCase, signals.hasDemoOrScreenshot, signals.hasMinimalEvidence, signals.hasDealModality]
+    const canPublish = coreSignals.every(Boolean)
 
     if (!canPublish) {
       const blockers: string[] = []
@@ -225,7 +227,6 @@ export async function publishMVP(mvpId: string) {
       if (!signals.hasDemoOrScreenshot) blockers.push('Demo URL válida o al menos 1 captura URL')
       if (!signals.hasMinimalEvidence) blockers.push('Evidencia mínima completada (tracción o eficiencia)')
       if (!signals.hasDealModality) blockers.push('Modalidad de deal seleccionada')
-      if (!signals.hasTransferChecklist) blockers.push('Checklist de transferencia completo')
       return { success: false, error: 'No cumple los requisitos', message: 'Completa los requisitos antes de publicar', blockers, signals }
     }
 

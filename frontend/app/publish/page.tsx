@@ -99,6 +99,7 @@ function PublishPageInner() {
   const [mvpStatus, setMvpStatus] = useState<string | null>(null)
   const originalRejectedDataRef = React.useRef<string>('')
   const [isPublishing, setIsPublishing] = useState(false)
+  const [publishSuccess, setPublishSuccess] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -419,7 +420,7 @@ function PublishPageInner() {
           localStorage.removeItem('mvp-draft-availability')
           if (mvpId) localStorage.removeItem(DRAFT_STEP_KEY(mvpId))
         }
-        router.push("/my-mvps")
+        setPublishSuccess(true)
       } else {
         setError(result.message || "Error al publicar")
       }
@@ -456,6 +457,32 @@ function PublishPageInner() {
     }
     setShowCancelDialog(false)
     router.push(backHref)
+  }
+
+  if (publishSuccess) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 24 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.18, 0.95, 0.3, 1] }}
+          className="flex flex-col items-center gap-6 text-center max-w-md"
+        >
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+            <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">¡MVP enviado a revisión!</h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Tu proyecto fue enviado exitosamente. El equipo lo revisará y te notificaremos por correo cuando sea aprobado y visible en el marketplace.
+            </p>
+          </div>
+          <Button className="w-full sm:w-auto" onClick={() => router.push("/my-mvps")}>
+            Ver mis MVPs
+          </Button>
+        </motion.div>
+      </div>
+    )
   }
 
   return (
