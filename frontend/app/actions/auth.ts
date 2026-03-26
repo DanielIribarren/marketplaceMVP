@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -70,10 +71,16 @@ export async function signup(formData: FormData) {
     if (banData) return { error: 'ACCOUNT_BANNED' }
   } catch { /* table might not exist yet */ }
 
+  const headersList = await headers()
+  const host = headersList.get('host') || 'localhost:3000'
+  const protocol = host.includes('localhost') ? 'http' : 'https'
+  const siteUrl = `${protocol}://${host}`
+
   const data = {
     email,
     password: formData.get('password') as string,
     options: {
+      emailRedirectTo: `${siteUrl}/auth/callback`,
       data: {
         display_name: displayName,
       },
