@@ -109,69 +109,150 @@ export async function logout() {
   redirect('/login')
 }
 
+const OTP_EXPIRY_MINUTES = 10
+const MAX_ATTEMPTS = 5
+
 export async function forgotPassword(formData: FormData) {
-  const email = formData.get('email') as string
-  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+  const email = (formData.get('email') as string)?.trim().toLowerCase()
+  if (!email) return { error: 'Email requerido' }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    })
+    const admin = createAdminClient()
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      return { error: data.message || 'Error al enviar el código' }
+    // Check user exists (avoid email enumeration by always returning success)
+    const { data: { users } } = await admin.auth.admin.listUsers()
+    const userExists = users.some(u => u.email?.toLowerCase() === email)
+    if (!userExists) {
+      return { success: true, message: 'Si el correo existe, recibirás un código de verificación' }
     }
 
-    return { success: true, message: data.message }
+    // Generate 4-digit OTP
+    const code = String(Math.floor(1000 + Math.random() * 9000))
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000).toISOString()
+
+    // Persist in Supabase table (survives cold starts)
+    await admin.from('password_reset_codes').upsert({
+      email,
+      code,
+      expires_at: expiresAt,
+      attempts: 0,
+      verified: false,
+      reset_token: null,
+      reset_token_expires_at: null,
+    }, { onConflict: 'email' })
+
+    // Send OTP email
+    const nodemailer = (await import('nodemailer')).default
+    if (process.env.MAIL_USERNAME && process.env.MAIL_PASSWORD) {
+      const transporter = nodemailer.createTransport({
+        host: process.env.MAIL_SERVER || 'smtp.gmail.com',
+        port: Number(process.env.MAIL_PORT) || 587,
+        secure: false,
+        auth: { user: process.env.MAIL_USERNAME, pass: process.env.MAIL_PASSWORD },
+      })
+      await transporter.sendMail({
+        from: `"MVP Marketplace" <${process.env.MAIL_USERNAME}>`,
+        to: email,
+        subject: 'Código de recuperación de contraseña - MVP Marketplace',
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <div style="width:56px;height:56px;background:#2563eb;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;">
+                <span style="color:white;font-weight:bold;font-size:24px;">M</span>
+              </div>
+            </div>
+            <h2 style="text-align:center;color:#111827;margin-bottom:8px;">Recuperación de contraseña</h2>
+            <p style="text-align:center;color:#6b7280;margin-bottom:24px;">Usa el siguiente código para restablecer tu contraseña</p>
+            <div style="background:#f3f4f6;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+              <span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#111827;">${code}</span>
+            </div>
+            <p style="text-align:center;color:#6b7280;font-size:14px;">Este código expira en ${OTP_EXPIRY_MINUTES} minutos.</p>
+            <p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:24px;">Si no solicitaste este código, ignora este correo.</p>
+          </div>
+        `,
+      })
+    }
+
+    return { success: true, message: 'Si el correo existe, recibirás un código de verificación' }
   } catch (error) {
-    return { error: 'Error de conexión con el servidor' }
+    console.error('Error in forgotPassword:', error)
+    return { error: 'No se pudo enviar el código de recuperación' }
   }
 }
 
 export async function verifyResetCode(email: string, code: string) {
-  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
-
+  const normalizedEmail = email.trim().toLowerCase()
   try {
-    const response = await fetch(`${BACKEND_URL}/api/auth/verify-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code })
-    })
+    const admin = createAdminClient()
+    const { data: row, error } = await admin
+      .from('password_reset_codes')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .single()
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      return { error: data.message || 'Código incorrecto' }
+    if (error || !row) return { error: 'No hay un código de recuperación activo para este correo' }
+    if (new Date() > new Date(row.expires_at)) {
+      await admin.from('password_reset_codes').delete().eq('email', normalizedEmail)
+      return { error: 'El código ha expirado. Solicita uno nuevo.' }
+    }
+    if (row.attempts >= MAX_ATTEMPTS) {
+      await admin.from('password_reset_codes').delete().eq('email', normalizedEmail)
+      return { error: 'Has excedido el número máximo de intentos. Solicita un nuevo código.' }
+    }
+    if (row.code !== code.trim()) {
+      await admin.from('password_reset_codes').update({ attempts: row.attempts + 1 }).eq('email', normalizedEmail)
+      return { error: `Código incorrecto. Te quedan ${MAX_ATTEMPTS - row.attempts - 1} intentos.` }
     }
 
-    return { success: true, resetToken: data.resetToken, message: data.message }
+    // Code correct — generate reset token valid 15 min
+    const resetToken = crypto.randomUUID()
+    const resetTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    await admin.from('password_reset_codes').update({
+      verified: true,
+      reset_token: resetToken,
+      reset_token_expires_at: resetTokenExpiresAt,
+    }).eq('email', normalizedEmail)
+
+    return { success: true, resetToken, message: 'Código verificado correctamente' }
   } catch (error) {
+    console.error('Error in verifyResetCode:', error)
     return { error: 'Error de conexión con el servidor' }
   }
 }
 
 export async function resetPassword(email: string, resetToken: string, password: string) {
-  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
+  const normalizedEmail = email.trim().toLowerCase()
+  if (!password || password.length < 6) return { error: 'La contraseña debe tener al menos 6 caracteres' }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/auth/reset-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, resetToken, password })
-    })
+    const admin = createAdminClient()
+    const { data: row, error } = await admin
+      .from('password_reset_codes')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .single()
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      return { error: data.message || 'Error al actualizar la contraseña' }
+    if (error || !row || !row.verified || row.reset_token !== resetToken) {
+      return { error: 'El token de recuperación no es válido. Inicia el proceso nuevamente.' }
+    }
+    if (new Date() > new Date(row.reset_token_expires_at)) {
+      await admin.from('password_reset_codes').delete().eq('email', normalizedEmail)
+      return { error: 'El token ha expirado. Inicia el proceso nuevamente.' }
     }
 
-    return { success: true, message: data.message }
+    // Find user and update password
+    const { data: { users } } = await admin.auth.admin.listUsers()
+    const user = users.find(u => u.email?.toLowerCase() === normalizedEmail)
+    if (!user) return { error: 'No se encontró un usuario con ese correo' }
+
+    const { error: updateError } = await admin.auth.admin.updateUserById(user.id, { password })
+    if (updateError) return { error: updateError.message }
+
+    await admin.from('password_reset_codes').delete().eq('email', normalizedEmail)
+
+    return { success: true, message: 'Contraseña actualizada exitosamente' }
   } catch (error) {
+    console.error('Error in resetPassword:', error)
     return { error: 'Error de conexión con el servidor' }
   }
 }
@@ -183,7 +264,7 @@ export async function getUser() {
       data: { user },
     } = await supabase.auth.getUser()
     return user
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -196,7 +277,7 @@ export async function getUserRole() {
       data: { user: fetchedUser },
     } = await supabase.auth.getUser()
     user = fetchedUser
-  } catch (error) {
+  } catch {
     user = null
   }
 

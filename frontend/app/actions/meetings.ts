@@ -4,13 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNotificationEmail } from '@/lib/email'
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000'
-
-async function getAuthToken(): Promise<string | null> {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.access_token || null
-}
 
 export type MeetingStatus =
   | 'pending'
@@ -115,25 +108,76 @@ export async function getMyMeetings(params?: {
   to_date?: string
 }): Promise<{ success: boolean; data: Meeting[]; error?: string }> {
   try {
-    const token = await getAuthToken()
-    if (!token) return { success: false, data: [], error: 'No autenticado' }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, data: [], error: 'No autenticado' }
 
-    const searchParams = new URLSearchParams()
-    if (params?.status) searchParams.set('status', params.status)
-    if (params?.from_date) searchParams.set('from_date', params.from_date)
-    if (params?.to_date) searchParams.set('to_date', params.to_date)
+    const admin = createAdminClient()
 
-    const url = `${BACKEND_URL}/api/meetings/my-meetings${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+    let query = admin
+      .from('meetings')
+      .select(`
+        *,
+        mvp:mvps!mvp_id (
+          id,
+          title,
+          slug,
+          cover_image_url,
+          owner_id
+        )
+      `)
+      .or(`requester_id.eq.${user.id},owner_id.eq.${user.id}`)
+      .order('scheduled_at', { ascending: true })
 
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store'
-    })
+    if (params?.status && params.status !== 'all') query = query.eq('status', params.status)
+    if (params?.from_date) query = query.gte('scheduled_at', params.from_date)
+    if (params?.to_date) query = query.lte('scheduled_at', params.to_date)
 
-    const data = await response.json()
-    if (!response.ok) return { success: false, data: [], error: data.message || 'Error al obtener reuniones' }
+    const { data: meetings, error } = await query
+    if (error) return { success: false, data: [], error: error.message }
+    if (!meetings || meetings.length === 0) return { success: true, data: [] }
 
-    return { success: true, data: data.data || [] }
+    // Unique user IDs across all meetings
+    const userIds = [...new Set(meetings.flatMap((m: { requester_id: string; owner_id: string }) => [m.requester_id, m.owner_id]))]
+
+    // Fetch profiles
+    const { data: profiles } = await admin
+      .from('user_profiles')
+      .select('id, display_name, avatar_url')
+      .in('id', userIds)
+
+    // Fetch emails for each user via admin API (in parallel)
+    const emailMap = new Map<string, string>()
+    await Promise.all(
+      userIds.map(async (id) => {
+        try {
+          const { data } = await admin.auth.admin.getUserById(id)
+          if (data?.user?.email) emailMap.set(id, data.user.email)
+        } catch { /* silent */ }
+      })
+    )
+
+    const profileMap = new Map((profiles || []).map((p: { id: string; display_name: string | null; avatar_url: string | null }) => [p.id, p]))
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const enriched = (meetings as any[]).map(m => ({
+      ...m,
+      user_role: m.mvp?.owner_id === user.id ? 'entrepreneur' : 'investor',
+      requester: {
+        id: m.requester_id,
+        display_name: profileMap.get(m.requester_id)?.display_name || null,
+        avatar_url: profileMap.get(m.requester_id)?.avatar_url || null,
+        email: emailMap.get(m.requester_id) || null,
+      },
+      owner: {
+        id: m.owner_id,
+        display_name: profileMap.get(m.owner_id)?.display_name || null,
+        avatar_url: profileMap.get(m.owner_id)?.avatar_url || null,
+        email: emailMap.get(m.owner_id) || null,
+      },
+    })) as Meeting[]
+
+    return { success: true, data: enriched }
   } catch {
     return { success: false, data: [], error: 'Error de conexión con el servidor' }
   }
