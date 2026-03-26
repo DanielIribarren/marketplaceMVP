@@ -713,8 +713,6 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
                 <option value="oldest">Mas antiguos</option>
                 <option value="price_low">Precio mas bajo</option>
                 <option value="price_high">Precio mas alto</option>
-                <option value="most_views">Más vistos</option>
-                <option value="most_favorites">Más favoritos</option>
               </select>
             </div>
 

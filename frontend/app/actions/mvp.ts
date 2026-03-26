@@ -102,7 +102,7 @@ export async function saveDraft(mvpData: Partial<MVPPublication> & { id?: string
 
     let priceRange: string | undefined
     if (mvpData.minPrice && mvpData.maxPrice) {
-      priceRange = `USD ${mvpData.minPrice.toLocaleString('es-ES')}-${mvpData.maxPrice.toLocaleString('es-ES')}`
+      priceRange = `USD ${mvpData.minPrice}-${mvpData.maxPrice}`
     }
 
     const id = (mvpData.id && !mvpData.id.startsWith('draft-')) ? mvpData.id : undefined
@@ -331,7 +331,9 @@ function parsePriceToken(value: string): number | null {
 
 function parsePriceRange(value: string | null): { min: number; max: number } | null {
   if (!value) return null
-  const tokens = String(value).match(/\d+(?:\.\d+)?\s*[kKmM]?/g) || []
+  // Strip Spanish thousand-separator dots (e.g. "1.000" → "1000") before parsing
+  const normalized = String(value).replace(/\.(\d{3})(?!\d)/g, '$1')
+  const tokens = normalized.match(/\d+(?:\.\d+)?\s*[kKmM]?/g) || []
   const numbers = tokens.map(parsePriceToken).filter((n): n is number => typeof n === 'number')
   if (numbers.length === 0) return null
   return { min: Math.min(...numbers), max: Math.max(...numbers) }
@@ -339,7 +341,8 @@ function parsePriceRange(value: string | null): { min: number; max: number } | n
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function passesPriceFilter(row: any, priceMin?: number, priceMax?: number): boolean {
-  const numericPrice = typeof row.price === 'number' ? row.price : null
+  const rawPrice = row.price != null ? Number(row.price) : NaN
+  const numericPrice = !isNaN(rawPrice) ? rawPrice : null
   const range = numericPrice === null ? parsePriceRange(row.price_range) : null
   const minValue = numericPrice ?? range?.min ?? null
   const maxValue = numericPrice ?? range?.max ?? null
