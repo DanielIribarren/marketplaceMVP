@@ -582,7 +582,7 @@ export async function getMvpDetails(mvpId: string) {
         profileData = p2 || null
       }
 
-      creator = { display_name: displayName, ...(profileData || {}) }
+      creator = { display_name: displayName ?? undefined, ...(profileData || {}) }
     }
 
     return {
