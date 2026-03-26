@@ -357,7 +357,7 @@ export async function getPublicMvps(params: {
   category?: string
   dealModality?: string
   status?: string
-  sort?: 'recent' | 'oldest' | 'price_low' | 'price_high'
+  sort?: 'recent' | 'oldest' | 'price_low' | 'price_high' | 'most_views' | 'most_favorites'
   priceMin?: number
   priceMax?: number
   publishedFrom?: string
