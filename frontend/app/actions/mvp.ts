@@ -316,8 +316,41 @@ export async function getMyDrafts() {
   }
 }
 
+// ─── Price helpers (ported from backend/api/mvps/public.js) ──────────────────
+
+function parsePriceToken(value: string): number | null {
+  const match = String(value).trim().match(/(\d+(?:\.\d+)?)(\s*[kKmM])?/)
+  if (!match) return null
+  const base = Number(match[1])
+  if (Number.isNaN(base)) return null
+  const suffix = (match[2] || '').toLowerCase().trim()
+  if (suffix === 'k') return base * 1000
+  if (suffix === 'm') return base * 1000000
+  return base
+}
+
+function parsePriceRange(value: string | null): { min: number; max: number } | null {
+  if (!value) return null
+  const tokens = String(value).match(/\d+(?:\.\d+)?\s*[kKmM]?/g) || []
+  const numbers = tokens.map(parsePriceToken).filter((n): n is number => typeof n === 'number')
+  if (numbers.length === 0) return null
+  return { min: Math.min(...numbers), max: Math.max(...numbers) }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function passesPriceFilter(row: any, priceMin?: number, priceMax?: number): boolean {
+  const numericPrice = typeof row.price === 'number' ? row.price : null
+  const range = numericPrice === null ? parsePriceRange(row.price_range) : null
+  const minValue = numericPrice ?? range?.min ?? null
+  const maxValue = numericPrice ?? range?.max ?? null
+  if (minValue === null || maxValue === null) return false
+  if (typeof priceMin === 'number' && minValue < priceMin) return false
+  if (typeof priceMax === 'number' && maxValue > priceMax) return false
+  return true
+}
+
 /**
- * Obtiene MVPs públicos para búsqueda
+ * Obtiene MVPs públicos para búsqueda (directo a Supabase, sin Railway)
  */
 export async function getPublicMvps(params: {
   q?: string
@@ -333,30 +366,94 @@ export async function getPublicMvps(params: {
   offset?: number
 } = {}) {
   try {
-    const searchParams = new URLSearchParams()
+    const admin = createAdminClient()
+    const parsedLimit = Math.min(params.limit || 12, 500)
+    const parsedOffset = Math.max(params.offset || 0, 0)
 
-    if (params.q) searchParams.set('q', params.q)
-    if (params.category) searchParams.set('category', params.category)
-    if (params.dealModality) searchParams.set('deal_modality', params.dealModality)
-    if (params.status) searchParams.set('status', params.status)
-    if (params.sort) searchParams.set('sort', params.sort)
-    if (typeof params.priceMin === 'number') searchParams.set('price_min', String(params.priceMin))
-    if (typeof params.priceMax === 'number') searchParams.set('price_max', String(params.priceMax))
-    if (params.publishedFrom) searchParams.set('published_from', params.publishedFrom)
-    if (params.publishedTo) searchParams.set('published_to', params.publishedTo)
-    if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit))
-    if (typeof params.offset === 'number') searchParams.set('offset', String(params.offset))
+    // Determine statuses
+    let statuses: string[]
+    if (!params.status) {
+      statuses = ['approved', 'pending_review']
+    } else if (params.status === 'all') {
+      statuses = []
+    } else {
+      statuses = params.status.split(',').map(s => s.trim()).filter(Boolean)
+    }
 
-    const response = await fetch(`${BACKEND_URL}/api/mvps/public?${searchParams.toString()}`, {
-      cache: 'no-store'
-    })
-    const data = await response.json()
+    let query = admin
+      .from('mvps')
+      .select(
+        'id,title,one_liner,category,deal_modality,monetization_model,price_range,price,competitive_differentials,cover_image_url,images_urls,views_count,favorites_count,status,published_at,owner_id,slug',
+        { count: 'exact' }
+      )
 
-    if (!response.ok) return { success: false, error: data.error || 'Error al obtener MVPs' }
-    return { success: true, data: data.data || [], count: data.count || 0 }
+    if (statuses.length > 0) query = query.in('status', statuses)
+    if (params.q) query = query.or(`title.ilike.%${params.q}%,one_liner.ilike.%${params.q}%`)
+    if (params.category && params.category !== 'all') query = query.ilike('category', `%${params.category}%`)
+    if (params.dealModality) query = query.eq('deal_modality', params.dealModality)
+
+    if (params.publishedFrom) {
+      const from = new Date(params.publishedFrom + 'T00:00:00.000Z')
+      if (!isNaN(from.getTime())) query = query.gte('published_at', from.toISOString())
+    }
+    if (params.publishedTo) {
+      const to = new Date(params.publishedTo + 'T00:00:00.000Z')
+      if (!isNaN(to.getTime())) {
+        to.setUTCHours(23, 59, 59, 999)
+        query = query.lte('published_at', to.toISOString())
+      }
+    }
+
+    const sort = params.sort || 'recent'
+    if (sort === 'oldest') {
+      query = query.order('published_at', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true })
+    } else if (sort === 'most_views') {
+      query = query.order('views_count', { ascending: false, nullsFirst: false }).order('published_at', { ascending: false, nullsFirst: false })
+    } else if (sort === 'most_favorites') {
+      query = query.order('favorites_count', { ascending: false, nullsFirst: false }).order('published_at', { ascending: false, nullsFirst: false })
+    } else {
+      // recent (default)
+      query = query.order('published_at', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false })
+    }
+
+    const hasPriceFilter =
+      (typeof params.priceMin === 'number' && !isNaN(params.priceMin)) ||
+      (typeof params.priceMax === 'number' && !isNaN(params.priceMax))
+
+    const { data, error, count } = await query.range(parsedOffset, parsedOffset + parsedLimit - 1)
+    if (error) throw error
+
+    let filteredData = data || []
+
+    if (hasPriceFilter) {
+      filteredData = filteredData.filter(row => passesPriceFilter(row, params.priceMin, params.priceMax))
+    }
+
+    if (sort === 'price_low' || sort === 'price_high') {
+      const dir = sort === 'price_low' ? 1 : -1
+      filteredData.sort((a, b) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const aPrice = typeof (a as any).price === 'number' ? (a as any).price : parsePriceRange((a as any).price_range)?.min
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const bPrice = typeof (b as any).price === 'number' ? (b as any).price : parsePriceRange((b as any).price_range)?.min
+        if (aPrice == null) return 1
+        if (bPrice == null) return -1
+        return (aPrice - bPrice) * dir
+      })
+    }
+
+    const sanitized = filteredData.map(mvp => ({
+      ...mvp,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      views_count: Math.max(0, (mvp as any).views_count || 0),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      favorites_count: Math.max(0, (mvp as any).favorites_count || 0),
+    }))
+
+    return { success: true, data: sanitized, count: hasPriceFilter ? sanitized.length : (count || 0) }
   } catch (error) {
     console.error('Error al obtener MVPs públicos:', error)
-    return { success: false, error: 'Error de conexión' }
+    return { success: false, error: 'Error de conexión', data: [], count: 0 }
   }
 }
 
@@ -441,14 +538,64 @@ export async function getCreatorPublicData(ownerId: string, currentMvpId: string
 }
 
 /**
-* Obtiene los detalles completos de un MVP específico (público)
-*/
+ * Obtiene los detalles completos de un MVP específico (público, directo a Supabase)
+ */
 export async function getMvpDetails(mvpId: string) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/mvps/public/${mvpId}`, { cache: 'no-store' })
-    const data = await response.json()
-    if (!response.ok) return { success: false, error: data.error || 'Error al obtener detalles del MVP' }
-    return { success: true, data: data.data }
+    const admin = createAdminClient()
+
+    const { data, error } = await admin
+      .from('mvps')
+      .select('id,title,slug,one_liner,description,short_description,category,deal_modality,price_range,price,monetization_model,transfer_checklist,competitive_differentials,cover_image_url,images_urls,video_url,demo_url,repository_url,documentation_url,tech_stack,features,metrics,views_count,favorites_count,status,published_at,created_at,updated_at,owner_id,minimal_evidence,roadmap_60_days,risks_and_mitigations,testimonials')
+      .eq('id', mvpId)
+      .eq('status', 'approved')
+      .single()
+
+    if (error || !data) {
+      return { success: false, error: 'MVP no encontrado o no está aprobado' }
+    }
+
+    // Obtener info del creador
+    let creator = null
+    if (data.owner_id) {
+      let displayName: string | null = null
+      try {
+        const { data: authUser } = await admin.auth.admin.getUserById(data.owner_id)
+        displayName = authUser?.user?.user_metadata?.display_name || authUser?.user?.user_metadata?.name || null
+      } catch { /* ignorar */ }
+
+      let profileData = null
+      const { data: p1, error: e1 } = await admin
+        .from('user_profiles')
+        .select('avatar_url, company, bio, linkedin_url, location, website')
+        .eq('id', data.owner_id)
+        .single()
+
+      if (!e1 && p1) {
+        profileData = p1
+      } else {
+        const { data: p2 } = await admin
+          .from('user_profiles')
+          .select('avatar_url, company, bio, linkedin_url, location, website')
+          .eq('user_id', data.owner_id)
+          .single()
+        profileData = p2 || null
+      }
+
+      creator = { display_name: displayName, ...(profileData || {}) }
+    }
+
+    return {
+      success: true,
+      data: {
+        ...data,
+        user_profiles: creator,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        views_count: Math.max(0, (data as any).views_count || 0),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        favorites_count: Math.max(0, (data as any).favorites_count || 0),
+      }
+    }
   } catch (error) {
     console.error('Error al obtener detalles del MVP:', error)
     return { success: false, error: 'Error de conexión' }
