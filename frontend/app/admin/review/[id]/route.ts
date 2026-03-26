@@ -70,6 +70,7 @@ export async function POST(
         status: "approved",
         approved_by: user.id,
         approved_at: new Date().toISOString(),
+        published_at: new Date().toISOString(),
         rejection_reason: null,
       })
       .eq("id", id)
