@@ -245,7 +245,7 @@ export async function resetPassword(email: string, resetToken: string, password:
     const user = users.find(u => u.email?.toLowerCase() === normalizedEmail)
     if (!user) return { error: 'No se encontró un usuario con ese correo' }
 
-    const { error: updateError } = await admin.auth.admin.updateUserById(user.id, { password })
+    const { error: updateError } = await admin.auth.admin.updateUserById(user.id, { password, email_confirm: true })
     if (updateError) return { error: updateError.message }
 
     await admin.from('password_reset_codes').delete().eq('email', normalizedEmail)
