@@ -57,7 +57,7 @@ export async function POST(
     try {
       const { data } = await adminSupabase.auth.admin.getUserById(ownerId)
       const email = data?.user?.email
-      if (email) sendNotificationEmail(email, notification).catch(() => {})
+      if (email) await sendNotificationEmail(email, notification)
     } catch { /* silent */ }
   }
 

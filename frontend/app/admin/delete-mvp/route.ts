@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     try {
       const { data } = await adminClient.auth.admin.getUserById(mvp.owner_id)
       const email = data?.user?.email
-      if (email) sendNotificationEmail(email, notification).catch(() => {})
+      if (email) await sendNotificationEmail(email, notification)
     } catch { /* silent */ }
   }
 

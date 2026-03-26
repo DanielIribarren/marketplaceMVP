@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Send restoration email directly (no Railway)
-  sendNotificationEmail(email, {
+  await sendNotificationEmail(email, {
     type: 'account_restored',
     title: 'Cuenta restaurada',
     message: 'Tu cuenta ha sido restaurada. Ya puedes volver a acceder a MVP Marketplace.',

@@ -12,7 +12,7 @@ async function notify(
   try {
     const { data } = await admin.auth.admin.getUserById(notification.user_id)
     const email = data?.user?.email
-    if (email) sendNotificationEmail(email, notification).catch(() => {})
+    if (email) await sendNotificationEmail(email, notification)
   } catch { /* silent */ }
 }
 

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   const userName = profile?.display_name || null
 
   // Send ban email before deleting (after deletion the user won't receive notifications)
-  sendNotificationEmail(email, {
+  await sendNotificationEmail(email, {
     type: 'account_banned',
     title: 'Cuenta suspendida',
     message: `${userName ? `Hola ${userName}, tu` : 'Tu'} cuenta ha sido suspendida por el equipo de administración. Motivo: ${reason || 'Actividad sospechosa'}.`,

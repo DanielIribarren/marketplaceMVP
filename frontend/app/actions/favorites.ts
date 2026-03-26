@@ -102,7 +102,7 @@ export async function toggleFavorite(mvpId: string): Promise<{
                     try {
                         const { data: authUser } = await admin.auth.admin.getUserById(mvpData.owner_id)
                         const email = authUser?.user?.email
-                        if (email) sendNotificationEmail(email, notification).catch(() => {})
+                        if (email) await sendNotificationEmail(email, notification)
                     } catch { /* silent */ }
                 }
             }
