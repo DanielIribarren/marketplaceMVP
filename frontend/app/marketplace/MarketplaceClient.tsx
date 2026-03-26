@@ -15,8 +15,7 @@ import { getMyMeetings } from '@/app/actions/meetings'
 import type { Meeting } from '@/app/actions/meetings'
 import { getInvestorMeetingStatusMeta, pickLatestMeetingByMvp } from '@/lib/investor-meeting-status'
 import { getMyFavorites, toggleFavorite } from '@/app/actions/favorites'
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'
+import { getPublicMvps } from '@/app/actions/mvp'
 
 type FilterState = {
   q: string
@@ -304,7 +303,6 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
     setMediaIndexes(prev => ({ ...prev, [mvpId]: index }))
   }
 
-  const apiQuery = useMemo(() => buildApiParams(filters).toString(), [filters])
   const urlQuery = useMemo(() => buildUrlParams(filters).toString(), [filters])
   const advancedFilterCount = useMemo(
     () => [filters.priceMin, filters.priceMax, filters.publishedFrom, filters.publishedTo].filter(Boolean).length,
@@ -411,16 +409,26 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
       setLoading(true)
 
       try {
-        const response = await fetch(`${BACKEND_URL}/api/mvps/public?${apiQuery}`, {
-          cache: 'no-store'
+        const data = await getPublicMvps({
+          status: 'approved',
+          q: filters.q?.trim() || undefined,
+          dealModality: filters.dealModality?.trim() || undefined,
+          category: filters.sector?.trim() || undefined,
+          sort: filters.sort,
+          priceMin: filters.priceMin ? Number(filters.priceMin) : undefined,
+          priceMax: filters.priceMax ? Number(filters.priceMax) : undefined,
+          publishedFrom: filters.publishedFrom || undefined,
+          publishedTo: filters.publishedTo || undefined,
+          limit: filters.limit,
+          offset: filters.page > 1 ? (filters.page - 1) * filters.limit : 0,
         })
-        const data = await response.json()
 
-        if (!response.ok) {
+        if (!data.success) {
           throw new Error(data.error || 'Error al obtener MVPs')
         }
 
-        setMvps(data.data || [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setMvps((data.data || []) as any)
         setTotalCount(data.count || 0)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al obtener MVPs')
@@ -432,7 +440,7 @@ export function MarketplaceClient({ initialMvps, initialCount, userId, initialFi
     }, 400)
 
     return () => clearTimeout(handle)
-  }, [apiQuery, pathname, router, urlQuery])
+  }, [filters, pathname, router, urlQuery])
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({
