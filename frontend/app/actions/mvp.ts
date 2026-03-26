@@ -589,7 +589,7 @@ export async function getMvpDetails(mvpId: string) {
       success: true,
       data: {
         ...data,
-        user_profiles: creator,
+        user_profiles: creator ?? undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         views_count: Math.max(0, (data as any).views_count || 0),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
